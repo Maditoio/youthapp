@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { AppProviders } from "@/components/app-providers";
 import { DemoModeBanner } from "@/components/demo-mode-banner";
 import { MotionRoot } from "@/components/motion";
 import { PwaRegister } from "@/components/pwa-register";
@@ -50,9 +51,11 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body className={`${plusJakarta.variable} antialiased`}>
-        <DemoModeBanner message={dict.common.demoBanner} />
-        <MotionRoot>{children}</MotionRoot>
-        <PwaRegister />
+        <AppProviders clerk={Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)}>
+          <DemoModeBanner message={dict.common.demoBanner} />
+          <MotionRoot>{children}</MotionRoot>
+          <PwaRegister />
+        </AppProviders>
       </body>
     </html>
   );

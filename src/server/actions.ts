@@ -19,6 +19,7 @@ import {
   createDraftProject,
   createSubscription,
   createTicket,
+  linkOrCreateClerk,
   linkOrCreateGoogle,
   markDividendPaid,
   markNotificationRead,
@@ -103,6 +104,25 @@ export async function resendCodeAction(formData: FormData) {
   const result = getStore().update((db) => resendEmailCode(db, email));
   if (result && appConfig.demoMode) stashDemoCode(result.userId, result.code);
   redirect(`/verify?email=${encodeURIComponent(email)}`);
+}
+
+export async function bindClerkSession(): Promise<void> {
+  const { auth, currentUser } = await import("@clerk/nextjs/server");
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) redirect("/sign-in");
+  const clerkUser = await currentUser();
+  const email = clerkUser?.emailAddresses.find((item) => item.id === clerkUser.primaryEmailAddressId)?.emailAddress;
+  if (!email) redirect("/sign-in");
+  const userId = getStore().update((db) =>
+    linkOrCreateClerk(db, {
+      clerkUserId,
+      email,
+      firstName: clerkUser?.firstName ?? "",
+      lastName: clerkUser?.lastName ?? "",
+    }),
+  );
+  await setSession(userId);
+  redirect(destinationFor(userId));
 }
 
 export async function signInAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

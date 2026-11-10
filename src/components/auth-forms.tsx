@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
-import { googleDemoAction, mfaAction, signInAction, signUpAction, verifyEmailAction } from "@/server/actions";
+import { useActionState, useState } from "react";
+import { useSignIn } from "@clerk/nextjs/legacy";
+import { bindClerkSession, googleDemoAction, mfaAction, signInAction, signUpAction, verifyEmailAction } from "@/server/actions";
 import { CountrySelect, GenderSelect } from "@/components/choice-fields";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,12 @@ import { tx } from "@/lib/i18n/tx";
 
 const field = "h-12 w-full rounded-2xl border border-border bg-white px-4 text-sm";
 
-export function SignInForm({ locale }: { locale: AppLocale }) {
+export function SignInForm({ locale, useClerk = false }: { locale: AppLocale; useClerk?: boolean }) {
+  if (useClerk) return <ClerkSignInForm locale={locale} />;
+  return <DemoSignInForm locale={locale} />;
+}
+
+function DemoSignInForm({ locale }: { locale: AppLocale }) {
   const [state, action, pending] = useActionState(signInAction, {});
   return (
     <form action={action} className="space-y-3">
@@ -53,6 +59,60 @@ export function SignInForm({ locale }: { locale: AppLocale }) {
       </p>
       <button formAction={googleDemoAction} className="h-12 w-full rounded-full border border-border text-sm font-semibold">
         {tx(locale, "Continuer avec Google (bac à sable)", "Continue with Google (sandbox)")}
+      </button>
+    </form>
+  );
+}
+
+function ClerkSignInForm({ locale }: { locale: AppLocale }) {
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  async function onSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
+    event.preventDefault();
+    if (!isLoaded || !signIn) return;
+    const data = new FormData(event.currentTarget);
+    setPending(true);
+    setError("");
+    try {
+      const result = await signIn.create({
+        identifier: String(data.get("email") ?? ""),
+        password: String(data.get("password") ?? ""),
+      });
+      if (result.status !== "complete" || !result.createdSessionId) {
+        setError(tx(locale, "Connexion incomplète. Terminez la vérification demandée par Clerk.", "Sign-in is incomplete. Finish the verification Clerk asked for."));
+        setPending(false);
+        return;
+      }
+      await setActive({ session: result.createdSessionId });
+      await bindClerkSession();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "INVALID_CREDENTIALS");
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <input name="email" type="email" required autoComplete="email" placeholder={tx(locale, "E-mail", "Email")} className={field} />
+      <input name="password" type="password" required autoComplete="current-password" placeholder={tx(locale, "Mot de passe", "Password")} className={field} />
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      <Button type="submit" className="w-full" disabled={pending || !isLoaded}>
+        {tx(locale, "Se connecter", "Sign in")}
+      </Button>
+      <button
+        type="button"
+        className="h-12 w-full rounded-full border border-border text-sm font-semibold"
+        onClick={() =>
+          signIn?.authenticateWithRedirect({
+            strategy: "oauth_google",
+            redirectUrl: "/sign-in/sso-callback",
+            redirectUrlComplete: "/sign-in/clerk",
+          })
+        }
+      >
+        {tx(locale, "Continuer avec Google", "Continue with Google")}
       </button>
     </form>
   );

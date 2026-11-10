@@ -16,12 +16,6 @@ const eslintConfig = [
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   prettier,
-  {
-    files: ["src/prisma/contract.d.ts"],
-    rules: {
-      "@typescript-eslint/no-empty-object-type": "off",
-    },
-  },
 ];
 
 export default eslintConfig;

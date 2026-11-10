@@ -8,7 +8,7 @@ export default async function SignInPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{tx(locale, "Connexion", "Sign in")}</h1>
-      <SignInForm locale={locale} />
+      <SignInForm locale={locale} useClerk={Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)} />
       <p className="text-sm">
         <Link href="/sign-up" className="font-semibold text-violet">
           {tx(locale, "Créer un compte", "Create an account")}

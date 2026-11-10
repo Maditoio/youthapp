@@ -432,6 +432,108 @@ export function linkOrCreateGoogle(
   return { userId: user.id, created: false };
 }
 
+export function linkOrCreateClerk(
+  db: Database,
+  input: { clerkUserId: string; email: string; firstName: string; lastName: string },
+): string {
+  const email = input.email.trim().toLowerCase();
+  assert(EMAIL.test(email), "INVALID_EMAIL");
+  const existing = db.authIdentities.find(
+    (item) => item.provider === "clerk" && item.providerSubject === input.clerkUserId,
+  );
+  if (existing) return existing.userId;
+  const named = {
+    first: input.firstName.trim() || email.split("@")[0] || "Jeunese",
+    last: input.lastName.trim() || "—",
+  };
+  const user = db.users.find((item) => item.email === email);
+  const at = now(db);
+  if (user) {
+    db.authIdentities.push({
+      id: uid(),
+      userId: user.id,
+      provider: "clerk",
+      providerSubject: input.clerkUserId,
+      verifiedEmailAt: at,
+      linkedAt: at,
+    });
+    if (!user.emailVerifiedAt) user.emailVerifiedAt = at;
+    audit(db, user.id, "auth.clerk_link", "user", user.id);
+    return user.id;
+  }
+  const userId = uid();
+  db.users.push({
+    id: userId,
+    email,
+    phone: null,
+    passwordHash: null,
+    preferredLanguage: "fr",
+    accountStatus: "ACTIVE",
+    emailVerifiedAt: at,
+    countryOfResidence: null,
+    gender: null,
+    legalFirstName: named.first,
+    legalLastName: named.last,
+    createdAt: at,
+    updatedAt: at,
+  });
+  db.authIdentities.push({
+    id: uid(),
+    userId,
+    provider: "clerk",
+    providerSubject: input.clerkUserId,
+    verifiedEmailAt: at,
+    linkedAt: at,
+  });
+  const profileId = uid();
+  db.investorProfiles.push({
+    id: profileId,
+    userId,
+    investorNumber: `INV-${1000 + db.investorProfiles.length + 1}`,
+    legalFirstName: named.first,
+    legalMiddleName: "",
+    legalLastName: named.last,
+    dateOfBirth: null,
+    countryOfResidence: null,
+    gender: null,
+    nationality: null,
+    addressLine: null,
+    city: null,
+    taxResidency: null,
+    taxId: null,
+    sourceOfFunds: null,
+    pepStatus: "UNKNOWN",
+    onboardingStatus: "NOT_STARTED",
+    payoutLabel: null,
+    createdAt: at,
+    updatedAt: at,
+  });
+  db.kycCases.push({
+    id: uid(),
+    investorProfileId: profileId,
+    status: "NOT_STARTED",
+    riskReviewStatus: "NOT_STARTED",
+    submittedAt: null,
+    reviewedAt: null,
+    reviewedBy: null,
+    reasonCode: null,
+    reviewNotes: null,
+    createdAt: at,
+    updatedAt: at,
+  });
+  db.userRoles.push({
+    id: uid(),
+    userId,
+    role: "investor",
+    scopeType: "PLATFORM",
+    scopeId: null,
+    assignedBy: null,
+    createdAt: at,
+  });
+  audit(db, userId, "auth.clerk_create", "user", userId);
+  return userId;
+}
+
 export function updateInvestorDetails(
   db: Database,
   userId: string,

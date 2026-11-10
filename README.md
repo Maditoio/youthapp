@@ -31,7 +31,7 @@ Open [http://localhost:3000](http://localhost:3000). A visible demo banner stays
 - Tailwind CSS v4 + shadcn/ui-ready components
 - French-first i18n (`fr` default, `en` supported)
 - Installable PWA (manifest + lean service worker)
-- Clerk behind an auth adapter stub (env wired; no invented secrets)
+- Clerk signs in through the existing login screen when both Clerk keys are set. Empty keys keep the demo password login.
 - Vitest + ESLint + Prettier
 
 ## Local setup
@@ -50,7 +50,7 @@ npm install
 cp .env.example .env.local
 ```
 
-Fill Clerk keys in `.env.local` only when you have real values from the Clerk dashboard. Leaving them empty keeps the adapter in stub mode.
+Fill `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` in `.env.local` only when you have real values from the Clerk dashboard. Leaving them empty keeps the demo sign-in screen and its password. With both keys set, the same screen talks to Clerk and then opens the Jeunese session.
 
 ### Develop
 
@@ -88,7 +88,7 @@ Citizens aged 18 through 35 can join and buy. Raised money is assigned to the co
 
 The screens still read and write `data/demo-db.json`. PostgreSQL is prepared, not switched on. The data contract is `src/prisma/contract.prisma`. Put your connection string in `DATABASE_URL`, then run `npx prisma db init` with Node.js 22.18 or newer. That creates the tables. It does not yet move the running screens off the demo file.
 
-This build also runs without Clerk or a live payment provider. Money is stored in integer cents, the ledger balances, and a sandbox payment does not issue shares. A real statutory register, licensed custody, and production identity checks are not in place. Do not treat the figures as a real offer.
+Payments stay in the sandbox. Money is stored in integer cents, the ledger balances, and a sandbox payment does not issue shares. A real statutory register, licensed custody, and production identity checks are not in place. Do not treat the figures as a real offer.
 
 ## License
 

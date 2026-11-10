@@ -83,7 +83,7 @@ export interface User {
 export interface AuthIdentity {
   id: string;
   userId: string;
-  provider: "password" | "google";
+  provider: "password" | "google" | "clerk";
   providerSubject: string;
   verifiedEmailAt: string | null;
   linkedAt: string;
