@@ -1,0 +1,828 @@
+// use prisma-8
+
+/// Application clock and store version. One row, id = "jeunese".
+model PlatformState {
+  id      String @id
+  version Int
+  clock   String
+}
+
+model User {
+  id                  String   @id
+  email               String   @unique
+  phone               String?
+  passwordHash        String?
+  preferredLanguage   String
+  accountStatus       String
+  emailVerifiedAt     String?
+  countryOfResidence  String?
+  gender              String?
+  legalFirstName      String
+  legalLastName       String
+  createdAt           String
+  updatedAt           String
+  authIdentities      AuthIdentity[]
+  emailVerifications  EmailVerification[]
+  investorProfile     InvestorProfile?
+  staffProfile        StaffProfile?
+  roles               UserRole[]
+  notifications       Notification[]
+  supportTickets      SupportTicket[]
+  loginAttempts       LoginAttempt[]
+
+  @@index([countryOfResidence])
+}
+
+model AuthIdentity {
+  id              String  @id
+  userId          String
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        String
+  providerSubject String
+  verifiedEmailAt String?
+  linkedAt        String
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+}
+
+model EmailVerification {
+  id         String  @id
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email      String
+  codeHash   String
+  status     String
+  expiresAt  String
+  verifiedAt String?
+  createdAt  String
+
+  @@index([userId])
+}
+
+model InvestorProfile {
+  id                  String   @id
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  investorNumber      String   @unique
+  legalFirstName      String
+  legalMiddleName     String
+  legalLastName       String
+  dateOfBirth         String?
+  countryOfResidence  String?
+  gender              String?
+  nationality         String?
+  addressLine         String?
+  city                String?
+  taxResidency        String?
+  taxId               String?
+  sourceOfFunds       String?
+  pepStatus           String
+  onboardingStatus    String
+  payoutLabel         String?
+  createdAt           String
+  updatedAt           String
+  kycCases            KycCase[]
+  subscriptions       Subscription[]
+  shareIssuances      ShareIssuance[]
+  shareholdingEvents  ShareholdingEvent[]
+  dividendEntitlements DividendEntitlement[]
+  resolutionEligibilities ResolutionEligibility[]
+  votes               ShareholderVote[]
+  nextOfKin           NextOfKin[]
+  nominationSets      NominationSet[]
+  inheritanceCases    InheritanceCase[]
+
+  @@index([onboardingStatus])
+  @@index([dateOfBirth])
+}
+
+model KycCase {
+  id                String   @id
+  investorProfileId String
+  investorProfile   InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Cascade)
+  status            String
+  riskReviewStatus  String
+  submittedAt       String?
+  reviewedAt        String?
+  reviewedBy        String?
+  reasonCode        String?
+  reviewNotes       String?
+  createdAt         String
+  updatedAt         String
+  documents         KycDocument[]
+
+  @@index([investorProfileId])
+  @@index([status])
+}
+
+model KycDocument {
+  id                     String  @id
+  kycCaseId              String
+  kycCase                KycCase @relation(fields: [kycCaseId], references: [id], onDelete: Cascade)
+  issuingCountryCode     String
+  documentType           String
+  documentNumber         String
+  expiryDate             String?
+  manualReviewRequired   Boolean
+  verificationStatus     String
+  storageKey             String
+  mimeType               String
+  checksum               String
+  reviewedBy             String?
+  reviewedAt             String?
+  rejectionReasonCode    String?
+  uploadedAt             String
+
+  @@index([kycCaseId])
+}
+
+model StaffProfile {
+  id          String @id
+  userId      String @unique
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  staffNumber String @unique
+  status      String
+  mfaCodeHash String
+  createdAt   String
+}
+
+model UserRole {
+  id         String  @id
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       String
+  scopeType  String
+  scopeId    String?
+  assignedBy String?
+  createdAt  String
+
+  @@index([userId])
+  @@index([role])
+}
+
+model Issuer {
+  id                   String   @id
+  legalName            String
+  tradingName          String
+  registrationNumber   String
+  jurisdiction         String
+  legalForm            String
+  registeredAddress    String
+  industry             String
+  companyStatus        String
+  website              String
+  createdAt            String
+  updatedAt            String
+  representatives      IssuerRepresentative[]
+  projects             Project[]
+  offerings            Offering[]
+  shareClasses         ShareClass[]
+  financings           CompanyFinancing[]
+  allotmentBatches     AllotmentBatch[]
+  shareIssuances       ShareIssuance[]
+  shareholdingEvents   ShareholdingEvent[]
+  dividendDeclarations DividendDeclaration[]
+  resolutions          Resolution[]
+
+  @@index([registrationNumber])
+}
+
+model IssuerRepresentative {
+  id              String @id
+  issuerId        String
+  issuer          Issuer @relation(fields: [issuerId], references: [id], onDelete: Cascade)
+  userId          String
+  position        String
+  authorityStatus String
+  createdAt       String
+
+  @@index([issuerId])
+  @@index([userId])
+}
+
+model Project {
+  id                String   @id
+  issuerId          String
+  issuer            Issuer   @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  slug              String   @unique
+  titleFr           String
+  titleEn           String
+  shortFr           String
+  shortEn           String
+  fullFr            String
+  fullEn            String
+  marketFr          String
+  marketEn          String
+  industry          String
+  locationName      String
+  status            String
+  /// START creates the company. FINANCE funds a company that already exists.
+  financingPurpose  String
+  createdBy         String
+  /// JSON array of { labelFr, labelEn, amountMinor }.
+  useOfProceedsJson String
+  /// JSON array of team members.
+  teamJson          String
+  risksFr           String[]
+  risksEn           String[]
+  assumptionsFr     String
+  assumptionsEn     String
+  projectionsFr     String
+  projectionsEn     String
+  createdAt         String
+  updatedAt         String
+  updates           ProjectUpdate[]
+  offerings         Offering[]
+
+  @@index([issuerId])
+  @@index([status])
+}
+
+model ProjectUpdate {
+  id             String  @id
+  projectId      String
+  project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  titleFr        String
+  titleEn        String
+  bodyFr         String
+  bodyEn         String
+  visibility     String
+  approvalStatus String
+  submittedBy    String
+  approvedBy     String?
+  publishedAt    String?
+  createdAt      String
+
+  @@index([projectId])
+}
+
+model Offering {
+  id                       String   @id
+  projectId                String
+  project                  Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  issuerId                 String
+  issuer                   Issuer   @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  nameFr                   String
+  nameEn                   String
+  status                   String
+  currencyCode             String
+  minimumRaiseMinor        Int
+  maximumRaiseMinor        Int
+  minimumSubscriptionMinor Int
+  maximumSubscriptionMinor Int
+  opensAt                  String
+  closesAt                 String
+  termsVersion             String
+  createdBy                String
+  approvedBy               String?
+  publishedAt              String?
+  feeMinor                 Int
+  preMoneyValuationMinor   Int?
+  permittedCountries       String[]
+  dividendPolicyFr         String
+  dividendPolicyEn         String
+  transferRestrictionsFr   String
+  transferRestrictionsEn   String
+  conditionsFr             String
+  conditionsEn             String
+  refundFr                 String
+  refundEn                 String
+  /// JSON array of { holderFr, holderEn, shares }.
+  existingCapJson          String
+  createdAt                String
+  updatedAt                String
+  shareTerms               OfferingShareTerms[]
+  documents                OfferingDocument[]
+  subscriptions            Subscription[]
+  financings               CompanyFinancing[]
+  allotmentBatches         AllotmentBatch[]
+  shareIssuances           ShareIssuance[]
+
+  @@index([projectId])
+  @@index([issuerId])
+  @@index([status])
+}
+
+model ShareClass {
+  id                     String   @id
+  issuerId               String
+  issuer                 Issuer   @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  className              String
+  classCode              String
+  currencyCode           String
+  votingRightsFr         String
+  votingRightsEn         String
+  dividendRightsFr       String
+  dividendRightsEn       String
+  transferRestrictionsFr String
+  transferRestrictionsEn String
+  createdAt              String
+  terms                  OfferingShareTerms[]
+  subscriptions          Subscription[]
+  issuances              ShareIssuance[]
+  events                 ShareholdingEvent[]
+  dividends              DividendDeclaration[]
+  eligibilities          ResolutionEligibility[]
+
+  @@unique([issuerId, classCode])
+}
+
+model OfferingShareTerms {
+  id                        String     @id
+  offeringId                String
+  offering                  Offering   @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+  shareClassId              String
+  shareClass                ShareClass @relation(fields: [shareClassId], references: [id], onDelete: Restrict)
+  issuePriceMinor           Int
+  sharesOffered             Int
+  maximumSharesPerInvestor  Int
+  minimumSharesPerInvestor  Int
+  fractionalSharesAllowed   Boolean
+  shareQuantityPrecision    Int
+  createdAt                 String
+
+  @@index([offeringId])
+}
+
+model OfferingDocument {
+  id           String   @id
+  offeringId   String
+  offering     Offering @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+  documentType String
+  version      String
+  titleFr      String
+  titleEn      String
+  bodyFr       String
+  bodyEn       String
+  checksum     String
+  visibility   String
+  publishedAt  String?
+  createdAt    String
+  acceptances  SubscriptionAcceptance[]
+
+  @@index([offeringId])
+}
+
+model Subscription {
+  id                String   @id
+  investorProfileId String
+  investorProfile   InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Restrict)
+  offeringId        String
+  offering          Offering @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  shareClassId      String
+  shareClass        ShareClass @relation(fields: [shareClassId], references: [id], onDelete: Restrict)
+  reference         String   @unique
+  currencyCode      String
+  amountMinor       Int
+  shareQuantity     Int
+  issuePriceMinor   Int
+  feeMinor          Int
+  totalMinor        Int
+  status            String
+  termsVersion      String
+  acceptedAt        String
+  createdAt         String
+  updatedAt         String
+  acceptances       SubscriptionAcceptance[]
+  payments          PaymentTransaction[]
+  financing         CompanyFinancing?
+  issuance          ShareIssuance?
+
+  @@index([investorProfileId])
+  @@index([offeringId])
+  @@index([status])
+}
+
+model SubscriptionAcceptance {
+  id               String            @id
+  subscriptionId   String
+  subscription     Subscription      @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  documentId       String
+  document         OfferingDocument  @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  documentVersion  String
+  acceptedAt       String
+  evidenceHash     String
+  acceptanceMethod String
+
+  @@index([subscriptionId])
+}
+
+model PaymentTransaction {
+  id                    String       @id
+  subscriptionId        String
+  subscription          Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  provider              String
+  providerTransactionId String
+  providerEventId       String       @unique
+  currencyCode          String
+  amountMinor           Int
+  status                String
+  initiatedAt           String
+  confirmedAt           String?
+  settledAt             String?
+  createdAt             String
+  refunds               Refund[]
+
+  @@index([subscriptionId])
+}
+
+model Refund {
+  id                   String             @id
+  paymentTransactionId String
+  payment              PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Restrict)
+  amountMinor          Int
+  currencyCode         String
+  reasonCode           String
+  status               String
+  requestedBy          String
+  approvedBy           String?
+  createdAt            String
+  completedAt          String?
+
+  @@index([paymentTransactionId])
+}
+
+model CompanyFinancing {
+  id                String       @id
+  issuerId          String
+  issuer            Issuer       @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  projectId         String
+  offeringId        String
+  offering          Offering     @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  allotmentBatchId  String
+  allotmentBatch    AllotmentBatch @relation(fields: [allotmentBatchId], references: [id], onDelete: Restrict)
+  subscriptionId    String       @unique
+  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  purpose           String
+  amountMinor       Int
+  currencyCode      String
+  releasedAt        String
+  releasedBy        String
+
+  @@index([issuerId])
+  @@index([offeringId])
+}
+
+model LedgerAccount {
+  id           String        @id
+  accountCode  String        @unique
+  accountName  String
+  accountType  String
+  currencyCode String
+  ownerType    String
+  ownerId      String?
+  status       String
+  entries      LedgerEntry[]
+}
+
+model LedgerTransaction {
+  id              String        @id
+  reference       String        @unique
+  transactionType String
+  sourceType      String
+  sourceId        String
+  status          String
+  effectiveAt     String
+  createdAt       String
+  createdBy       String?
+  entries         LedgerEntry[]
+
+  @@index([sourceType, sourceId])
+}
+
+model LedgerEntry {
+  id                  String            @id
+  ledgerTransactionId String
+  transaction         LedgerTransaction @relation(fields: [ledgerTransactionId], references: [id], onDelete: Cascade)
+  ledgerAccountId     String
+  account             LedgerAccount     @relation(fields: [ledgerAccountId], references: [id], onDelete: Restrict)
+  debitMinor          Int
+  creditMinor         Int
+  currencyCode        String
+  createdAt           String
+
+  @@index([ledgerTransactionId])
+  @@index([ledgerAccountId])
+}
+
+model AllotmentBatch {
+  id                        String   @id
+  issuerId                  String
+  issuer                    Issuer   @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  offeringId                String
+  offering                  Offering @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  status                    String
+  preparedBy                String
+  approvedBy                String?
+  approvedAt                String?
+  registerEvidenceReference String?
+  subscriptionIds           String[]
+  createdAt                 String
+  financings                CompanyFinancing[]
+  issuances                 ShareIssuance[]
+
+  @@index([offeringId])
+}
+
+model ShareIssuance {
+  id                 String          @id
+  issuerId           String
+  issuer             Issuer          @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  shareClassId       String
+  shareClass         ShareClass      @relation(fields: [shareClassId], references: [id], onDelete: Restrict)
+  offeringId         String
+  offering           Offering        @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  allotmentBatchId   String
+  allotmentBatch     AllotmentBatch  @relation(fields: [allotmentBatchId], references: [id], onDelete: Restrict)
+  investorProfileId  String
+  investorProfile    InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Restrict)
+  subscriptionId     String          @unique
+  subscription       Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  shareQuantity      Int
+  issuePriceMinor    Int
+  currencyCode       String
+  allotmentDate      String
+  registerReference  String
+  status             String
+  createdAt          String
+}
+
+model ShareholdingEvent {
+  id                  String          @id
+  issuerId            String
+  issuer              Issuer          @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  shareClassId        String
+  shareClass          ShareClass      @relation(fields: [shareClassId], references: [id], onDelete: Restrict)
+  investorProfileId   String
+  investorProfile     InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Restrict)
+  eventType           String
+  shareQuantityDelta  Int
+  relatedIssuanceId   String?
+  relatedTransferId   String?
+  effectiveAt         String
+  recordedAt          String
+  recordedBy          String
+  evidenceDocumentId  String?
+
+  @@index([investorProfileId, issuerId, shareClassId], name: "holding_lookup")
+  @@index([effectiveAt], name: "holding_effective")
+}
+
+model DividendDeclaration {
+  id             String   @id
+  issuerId       String
+  issuer         Issuer   @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  shareClassId   String
+  shareClass     ShareClass @relation(fields: [shareClassId], references: [id], onDelete: Restrict)
+  currencyCode   String
+  perShareMinor  Int
+  recordDate     String
+  paymentDate    String
+  status         String
+  withholdingBps Int
+  preparedBy     String
+  approvedBy     String?
+  createdAt      String
+  entitlements   DividendEntitlement[]
+
+  @@index([issuerId])
+}
+
+model DividendEntitlement {
+  id                    String               @id
+  declarationId         String
+  declaration           DividendDeclaration  @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  investorProfileId     String
+  investorProfile       InvestorProfile      @relation(fields: [investorProfileId], references: [id], onDelete: Restrict)
+  eligibleShareQuantity Int
+  grossAmountMinor      Int
+  withholdingTaxMinor   Int
+  netAmountMinor        Int
+  calculationVersion    String
+  createdAt             String
+  payment               DividendPayment?
+
+  @@index([declarationId])
+  @@index([investorProfileId])
+}
+
+model DividendPayment {
+  id              String              @id
+  entitlementId   String              @unique
+  entitlement     DividendEntitlement @relation(fields: [entitlementId], references: [id], onDelete: Cascade)
+  provider        String
+  providerReference String
+  amountMinor     Int
+  currencyCode    String
+  status          String
+  paidAt          String?
+  createdAt       String
+}
+
+model Resolution {
+  id               String   @id
+  issuerId         String
+  issuer           Issuer   @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  titleFr          String
+  titleEn          String
+  descriptionFr    String
+  descriptionEn    String
+  resolutionTextFr String
+  resolutionTextEn String
+  recordDate       String
+  opensAt          String
+  closesAt         String
+  status           String
+  quorumFr         String
+  quorumEn         String
+  createdAt        String
+  eligibilities    ResolutionEligibility[]
+  votes            ShareholderVote[]
+
+  @@index([issuerId])
+}
+
+model ResolutionEligibility {
+  id                String          @id
+  resolutionId      String
+  resolution        Resolution      @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+  investorProfileId String
+  investorProfile   InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Restrict)
+  eligibleVotes     Int
+  shareClassId      String
+  shareClass        ShareClass      @relation(fields: [shareClassId], references: [id], onDelete: Restrict)
+
+  @@unique([resolutionId, investorProfileId])
+}
+
+model ShareholderVote {
+  id                String          @id
+  resolutionId      String
+  resolution        Resolution      @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+  investorProfileId String
+  investorProfile   InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Restrict)
+  voteChoice        String
+  votesCast         Int
+  submittedAt       String
+
+  @@unique([resolutionId, investorProfileId])
+}
+
+model NextOfKin {
+  id                String          @id
+  investorProfileId String
+  investorProfile   InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Cascade)
+  fullName          String
+  relationship      String
+  gender            String?
+  email             String
+  phone             String
+  createdAt         String
+  updatedAt         String
+
+  @@index([investorProfileId])
+}
+
+model NominationSet {
+  id                String          @id
+  investorProfileId String
+  investorProfile   InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Cascade)
+  scopeType         String
+  scopeId           String?
+  version           Int
+  status            String
+  totalBps          Int
+  acknowledgement   Boolean
+  activatedAt       String?
+  createdAt         String
+  allocations       Allocation[]
+
+  @@index([investorProfileId])
+}
+
+model Allocation {
+  id              String        @id
+  nominationSetId String
+  nominationSet   NominationSet @relation(fields: [nominationSetId], references: [id], onDelete: Cascade)
+  fullName        String
+  relationship    String
+  gender          String?
+  email           String
+  phone           String
+  allocationBps   Int
+  createdAt       String
+
+  @@index([nominationSetId])
+}
+
+model InheritanceCase {
+  id                         String          @id
+  deceasedInvestorProfileId  String
+  deceased                   InvestorProfile @relation(fields: [deceasedInvestorProfileId], references: [id], onDelete: Restrict)
+  reportedBy                 String
+  status                     String
+  jurisdiction               String
+  assignedReviewerId         String?
+  approvedBy                 String?
+  secondApprovedBy           String?
+  legalEvidenceReference     String?
+  notes                      String?
+  openedAt                   String
+  closedAt                   String?
+  registerUpdated            Boolean
+
+  @@index([deceasedInvestorProfileId])
+  @@index([status])
+}
+
+model Notification {
+  id          String @id
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel     String
+  templateKey String
+  titleFr     String
+  titleEn     String
+  bodyFr      String
+  bodyEn      String
+  status      String
+  createdAt   String
+
+  @@index([userId])
+}
+
+model SupportTicket {
+  id         String  @id
+  userId     String?
+  user       User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  category   String
+  subject    String
+  status     String
+  assignedTo String?
+  createdAt  String
+  updatedAt  String
+  messages   SupportMessage[]
+
+  @@index([userId])
+}
+
+model SupportMessage {
+  id        String        @id
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId  String?
+  message   String
+  internal  Boolean
+  createdAt String
+
+  @@index([ticketId])
+}
+
+model AuditLog {
+  id           String  @id
+  actorUserId  String?
+  action       String
+  resourceType String
+  resourceId   String
+  reason       String?
+  createdAt    String
+
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+}
+
+model Article {
+  id      String @id
+  slug    String @unique
+  titleFr String
+  titleEn String
+  bodyFr  String
+  bodyEn  String
+}
+
+model Faq {
+  id         String @id
+  questionFr String
+  questionEn String
+  answerFr   String
+  answerEn   String
+}
+
+model IdentityPolicy {
+  countryCode           String   @id
+  acceptedDocumentTypes String[]
+  policyVersion         String
+  enabled               Boolean
+}
+
+model LoginAttempt {
+  id      String @id
+  email   String
+  userId  String?
+  user    User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  at      String
+  success Boolean
+
+  @@index([email])
+}

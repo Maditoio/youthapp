@@ -1,41 +1,44 @@
 /**
- * Jeunese design tokens — forest / ivory / copper.
- * Adjust --font-size-base for universal text scaling (low-vision friendly).
+ * Jeunese visual system.
+ * The product is an equity platform. The interface follows the violet
+ * card language of the reference screens: soft canvas, purple surfaces,
+ * pink accent, large radii. Forest green from the written spec is not used.
  */
 :root {
-  /* Brand */
-  --brand-forest: #15352e;
-  --brand-green: #278b70;
-  --brand-copper: #c58b55;
+  --brand-violet: #6d4dff;
+  --brand-violet-deep: #5836f5;
+  --brand-violet-ink: #3a2a86;
+  --brand-pink: #ff6fae;
+  --brand-pink-soft: #ffd6e8;
+  --brand-lilac: #efeaff;
+  --brand-gold: #f6c15b;
 
-  /* Surfaces */
+  /* Mapped so existing utility classes follow the same violet system. */
+  --brand-forest: var(--brand-violet);
+  --brand-green: #7c5cfc;
+  --brand-copper: var(--brand-pink);
+
   --surface: #ffffff;
-  --surface-muted: #f5f5f1; /* ivory */
-  --surface-forest: var(--brand-forest);
-
-  /* Text */
-  --text-primary: #18231f;
-  --text-secondary: #66716b;
-  --text-on-forest: #f5f5f1;
+  --surface-muted: #f6f4fb;
+  --canvas: #e7e9f2;
+  --text-primary: #1d1633;
+  --text-secondary: #7d7694;
+  --text-on-forest: #ffffff;
   --text-on-green: #ffffff;
+  --border: #e7e2f2;
+  --success: #1f9d62;
+  --warning: #e0a04a;
+  --danger: #e15d6a;
+  --focus-ring: #6d4dff;
 
-  /* Borders & states */
-  --border: #e3e7e2;
-  --success: #278b70;
-  --warning: #c58b55;
-  --danger: #b84a4a;
-  --focus-ring: #278b70;
-
-  /* Typography — adjustable base */
   --font-size-base: 1rem;
   --font-sans: var(--font-plus-jakarta), "Segoe UI", sans-serif;
 
-  /* Spacing rhythm */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  --radius-sm: 0.85rem;
+  --radius-md: 1.15rem;
+  --radius-lg: 1.75rem;
+  --shadow-card: 0 18px 40px rgba(70, 52, 140, 0.12);
 
-  /* Demo banner */
-  --demo-banner-bg: #c58b55;
-  --demo-banner-fg: #18231f;
+  --demo-banner-bg: #3a2a86;
+  --demo-banner-fg: #ffffff;
 }

@@ -12,11 +12,15 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "contract:emit": "prisma contract emit",
+    "db:init": "prisma db init"
   },
   "dependencies": {
+    "@prisma/orm-postgres": "^8.0.0-rc.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^18.0.10",
     "lucide-react": "^1.71.0",
     "next": "15.5.29",
     "react": "19.1.0",
@@ -26,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@prisma/cli-engine": "^0.9.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
@@ -39,6 +44,7 @@
     "jsdom": "^31.0.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "prisma": "^8.0.0-rc.33",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.7"

@@ -1,49 +1,64 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { getDictionary, getLocale } from "@/lib/i18n/get-dictionary";
+import { signOutAction } from "@/server/actions";
+import { getLocale } from "@/lib/i18n/get-dictionary";
+import { tx } from "@/lib/i18n/tx";
+import { getSession } from "@/server/auth/session";
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const dynamic = "force-dynamic";
+
+const links = [
+  ["/admin", "Tableau", "Dashboard"],
+  ["/admin/investors", "Investisseurs", "Investors"],
+  ["/admin/kyc", "Identité", "Identity"],
+  ["/admin/inheritance", "Successions", "Estates"],
+  ["/admin/issuers", "Émetteurs", "Issuers"],
+  ["/admin/projects", "Projets", "Projects"],
+  ["/admin/offerings", "Offres", "Offerings"],
+  ["/admin/subscriptions", "Souscriptions", "Subscriptions"],
+  ["/admin/payments", "Paiements", "Payments"],
+  ["/admin/reconciliation", "Rapprochement", "Reconciliation"],
+  ["/admin/share-register", "Registre", "Register"],
+  ["/admin/dividends", "Dividendes", "Dividends"],
+  ["/admin/votes", "Votes", "Votes"],
+  ["/admin/content", "Contenu", "Content"],
+  ["/admin/support", "Support", "Support"],
+  ["/admin/staff", "Personnel", "Staff"],
+  ["/admin/audit-logs", "Audit", "Audit"],
+  ["/admin/reports", "Rapports", "Reports"],
+  ["/admin/settings", "Réglages", "Settings"],
+] as const;
+
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+  if (!session) redirect("/sign-in");
+  const staff = session.roles.some((role) => role !== "investor" && role !== "issuer_manager");
+  if (!staff) redirect(session.roles.includes("issuer_manager") ? "/issuer" : "/investor");
   const locale = await getLocale();
-  const dict = await getDictionary(locale);
-
   return (
-    <div className="bg-surface-muted flex min-h-dvh">
-      <aside className="border-border bg-brand-forest hidden w-64 shrink-0 border-r p-4 text-[var(--text-on-forest)] md:block">
-        <Link href="/" className="mb-8 block text-lg font-bold">
-          {dict.common.productName}
-        </Link>
-        <p className="text-brand-copper mb-4 text-xs tracking-wider uppercase">
-          {dict.nav.admin}
-        </p>
-        <nav className="flex flex-col gap-1 text-sm">
-          <Link
-            href="/admin"
-            className="rounded-[var(--radius-md)] px-3 py-2 hover:bg-white/10"
-          >
-            {dict.nav.dashboard}
-          </Link>
+    <div className="min-h-dvh bg-canvas md:flex">
+      <aside className="w-full shrink-0 bg-violet text-white md:min-h-dvh md:w-64">
+        <div className="px-4 py-5">
+          <Link href="/admin" className="text-lg font-extrabold tracking-wide">JEUNESE</Link>
+          <p className="text-xs text-white/70">{session.user.legalFirstName}</p>
+        </div>
+        <nav className="flex gap-2 overflow-x-auto px-3 pb-4 md:block md:space-y-1 md:px-3">
+          {links.map(([href, fr, en]) => (
+            <Link key={href} href={href} className="block whitespace-nowrap rounded-2xl px-3 py-2 text-sm hover:bg-white/15">
+              {tx(locale, fr, en)}
+            </Link>
+          ))}
         </nav>
+        <form action={signOutAction} className="px-4 pb-4">
+          <button className="text-sm text-white/80">{tx(locale, "Sortir", "Sign out")}</button>
+        </form>
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-border bg-surface flex items-center justify-between border-b px-4 py-3">
-          <h1 className="text-brand-forest font-semibold">
-            {dict.admin.title}
-          </h1>
-          <LanguageSwitcher
-            locale={locale}
-            labels={{
-              language: dict.common.language,
-              french: dict.common.french,
-              english: dict.common.english,
-            }}
-            returnTo="/admin"
-          />
+      <div className="min-w-0 flex-1">
+        <header className="flex items-center justify-end px-4 py-3">
+          <LanguageSwitcher locale={locale} labels={{ language: "Language", french: "FR", english: "EN" }} returnTo="/admin" />
         </header>
-        <main className="flex-1 p-4 md:p-8">{children}</main>
+        <main className="px-4 pb-10 md:px-8">{children}</main>
       </div>
     </div>
   );

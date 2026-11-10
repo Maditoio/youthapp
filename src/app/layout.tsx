@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { DemoModeBanner } from "@/components/demo-mode-banner";
+import { MotionRoot } from "@/components/motion";
 import { PwaRegister } from "@/components/pwa-register";
 import { appConfig } from "@/lib/config";
 import { getDictionary, getLocale } from "@/lib/i18n/get-dictionary";
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#15352E",
+  themeColor: "#6D4DFF",
   width: "device-width",
   initialScale: 1,
 };
@@ -50,7 +51,7 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={`${plusJakarta.variable} antialiased`}>
         <DemoModeBanner message={dict.common.demoBanner} />
-        {children}
+        <MotionRoot>{children}</MotionRoot>
         <PwaRegister />
       </body>
     </html>

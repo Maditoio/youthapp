@@ -5,6 +5,11 @@
   --color-brand-forest: var(--brand-forest);
   --color-brand-green: var(--brand-green);
   --color-brand-copper: var(--brand-copper);
+  --color-violet: var(--brand-violet);
+  --color-violet-deep: var(--brand-violet-deep);
+  --color-pink: var(--brand-pink);
+  --color-lilac: var(--brand-lilac);
+  --color-canvas: var(--canvas);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-text-primary: var(--text-primary);
@@ -13,6 +18,8 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-ink: var(--text-primary);
+  --color-muted: var(--text-secondary);
   --font-sans: var(--font-sans);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -24,7 +31,7 @@ html {
 }
 
 body {
-  background: var(--surface-muted);
+  background: var(--canvas);
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100dvh;
@@ -32,5 +39,175 @@ body {
 
 *:focus-visible {
   outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+::selection {
+  background: #ddd4ff;
+}
+
+/* Softer than a circular arc: cards and controls use a squircle where the browser supports it. */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-card: 2.25rem;
+  --radius-sheet: 2.75rem;
+}
+
+.rounded-2xl,
+.rounded-\[24px\],
+.rounded-\[28px\],
+[class*="rounded-[24px]"],
+[class*="rounded-[28px]"] {
+  border-radius: var(--radius-card);
+  corner-shape: squircle;
+}
+
+.rounded-\[32px\],
+.rounded-\[36px\],
+.rounded-\[40px\],
+[class*="rounded-[32px]"],
+[class*="rounded-[36px]"],
+[class*="rounded-[40px]"] {
+  border-radius: var(--radius-sheet);
+  corner-shape: squircle;
+}
+
+.rounded-t-\[36px\],
+[class*="rounded-t-[36px]"] {
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  corner-shape: squircle;
+}
+
+.rounded-b-\[32px\],
+.rounded-b-\[40px\],
+[class*="rounded-b-[32px]"],
+[class*="rounded-b-[40px]"] {
+  border-bottom-left-radius: var(--radius-sheet);
+  border-bottom-right-radius: var(--radius-sheet);
+  corner-shape: squircle;
+}
+
+input,
+select,
+textarea,
+article,
+section,
+aside,
+form {
+  corner-shape: squircle;
+}
+
+.rounded-full,
+[class*="rounded-full"] {
+  corner-shape: round;
+}
+
+button[class*="rounded"],
+a[class*="rounded-full"],
+a[class*="rounded-2xl"] {
+  transition:
+    transform 0.55s var(--ease-out),
+    background-color 0.45s ease,
+    box-shadow 0.55s var(--ease-out),
+    color 0.35s ease,
+    opacity 0.35s ease,
+    border-color 0.35s ease;
+}
+
+button[class*="rounded"]:hover,
+a[class*="rounded-full"]:hover {
+  transform: translateY(-1px);
+}
+
+a[class*="rounded-2xl"]:hover {
+  transform: scale(1.045);
+}
+
+button[class*="rounded"]:active,
+a[class*="rounded-full"]:active,
+a[class*="rounded-2xl"]:active {
+  transform: scale(0.975);
+}
+
+input,
+select,
+textarea {
+  transition:
+    border-color 0.35s ease,
+    box-shadow 0.45s var(--ease-out),
+    background-color 0.35s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-violet);
+  box-shadow: 0 0 0 4px rgba(109, 77, 255, 0.14);
+}
+
+.page-enter {
+  animation: page-in 0.55s var(--ease-out) both;
+}
+
+.page-loading {
+  animation: page-in 0.45s var(--ease-out) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes date-pop {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.date-pop {
+  animation: date-pop 0.28s var(--ease-out) both;
+}
+
+.page-enter article,
+.page-enter section,
+.page-enter aside,
+.page-enter form {
+  animation: rise-in 0.72s var(--ease-out) both;
+  animation-delay: calc(var(--rise, 0) * 50ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .page-loading,
+  .page-enter article,
+  .page-enter section,
+  .page-enter aside,
+  .page-enter form,
+  .date-pop,
+  button,
+  a {
+    animation: none;
+    transition: none;
+    translate: none;
+  }
 }

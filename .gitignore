@@ -38,3 +38,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# demo database — regenerated locally, contains password hashes
+/data
+node_modules/
+dist/
+.env

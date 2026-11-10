@@ -1,21 +1,17 @@
 import Link from "next/link";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { SignUpForm } from "@/components/auth-forms";
+import { getLocale } from "@/lib/i18n/get-dictionary";
+import { tx } from "@/lib/i18n/tx";
 
 export default async function SignUpPage() {
-  const dict = await getDictionary();
-
+  const locale = await getLocale();
   return (
     <div className="space-y-4">
-      <h1 className="text-brand-forest text-2xl font-bold">
-        {dict.auth.signUpTitle}
-      </h1>
-      <p className="text-text-secondary text-sm">{dict.auth.stubNote}</p>
-      <p className="text-text-secondary text-sm">
-        <Link
-          href="/sign-in"
-          className="text-brand-green font-medium underline"
-        >
-          {dict.common.signIn}
+      <h1 className="text-2xl font-bold">{tx(locale, "Créer un compte", "Create an account")}</h1>
+      <SignUpForm locale={locale} />
+      <p className="text-sm">
+        <Link href="/sign-in" className="font-semibold text-violet">
+          {tx(locale, "Déjà un compte", "Already have an account")}
         </Link>
       </p>
     </div>

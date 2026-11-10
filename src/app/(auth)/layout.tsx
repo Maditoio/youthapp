@@ -15,7 +15,7 @@ export default async function AuthLayout({
       <div className="mb-8 flex w-full max-w-md items-center justify-between">
         <Link
           href="/"
-          className="text-brand-forest text-xl font-bold tracking-tight"
+          className="text-xl font-bold tracking-tight text-violet"
         >
           {dict.common.productName}
         </Link>
@@ -29,7 +29,7 @@ export default async function AuthLayout({
           returnTo="/sign-in"
         />
       </div>
-      <div className="border-border bg-surface w-full max-w-md rounded-[var(--radius-lg)] border p-8 shadow-sm">
+      <div className="border-border w-full max-w-md rounded-[28px] bg-white p-8 shadow-[var(--shadow-card)]">
         {children}
       </div>
     </div>
