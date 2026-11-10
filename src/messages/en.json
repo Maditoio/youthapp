@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "title": "Jeunese — Invest together in the DRC",
+    "description": "Equity investment platform for Congolese citizens. Become a shareholder in productive businesses in the DRC."
+  },
+  "common": {
+    "productName": "Jeunese",
+    "tagline": "Invest together. Build together. Own together.",
+    "brandLine": "Built by Congo. Owned by Congolese.",
+    "language": "Language",
+    "french": "Français",
+    "english": "English",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "exploreProjects": "Explore projects",
+    "howItWorks": "How it works",
+    "demoBanner": "DEMO MODE — Fictional data. No real investments. No live money."
+  },
+  "nav": {
+    "home": "Home",
+    "projects": "Projects",
+    "learn": "Learn",
+    "dashboard": "Dashboard",
+    "portfolio": "Portfolio",
+    "profile": "Profile",
+    "admin": "Admin",
+    "issuer": "Issuer"
+  },
+  "public": {
+    "heroSupport": "Jeunese helps Congolese people at home and abroad become genuine shareholders of productive businesses.",
+    "placeholderNote": "The full landing page ships in milestone 4. This is the milestone 1 shell."
+  },
+  "auth": {
+    "signInTitle": "Sign in",
+    "signUpTitle": "Create account",
+    "stubNote": "Clerk authentication — adapter in place. Real sign-in lands in milestone 3."
+  },
+  "investor": {
+    "title": "Investor portal",
+    "stub": "Investor portal shell. Dashboard and onboarding in milestone 4."
+  },
+  "admin": {
+    "title": "Administration",
+    "stub": "Back-office shell. CRUD and RBAC in milestones 3 and 5."
+  },
+  "issuer": {
+    "title": "Issuer workspace",
+    "stub": "Optional issuer workspace shell. Features in milestone 8."
+  }
+}

@@ -1,0 +1,41 @@
+/**
+ * Jeunese design tokens — forest / ivory / copper.
+ * Adjust --font-size-base for universal text scaling (low-vision friendly).
+ */
+:root {
+  /* Brand */
+  --brand-forest: #15352e;
+  --brand-green: #278b70;
+  --brand-copper: #c58b55;
+
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-muted: #f5f5f1; /* ivory */
+  --surface-forest: var(--brand-forest);
+
+  /* Text */
+  --text-primary: #18231f;
+  --text-secondary: #66716b;
+  --text-on-forest: #f5f5f1;
+  --text-on-green: #ffffff;
+
+  /* Borders & states */
+  --border: #e3e7e2;
+  --success: #278b70;
+  --warning: #c58b55;
+  --danger: #b84a4a;
+  --focus-ring: #278b70;
+
+  /* Typography — adjustable base */
+  --font-size-base: 1rem;
+  --font-sans: var(--font-plus-jakarta), "Segoe UI", sans-serif;
+
+  /* Spacing rhythm */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* Demo banner */
+  --demo-banner-bg: #c58b55;
+  --demo-banner-fg: #18231f;
+}

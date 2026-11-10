@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "title": "Jeunese — Investir ensemble en RDC",
+    "description": "Plateforme d'investissement en actions pour les citoyens congolais. Devenir actionnaire de entreprises productives en RDC."
+  },
+  "common": {
+    "productName": "Jeunese",
+    "tagline": "Investir ensemble. Construire ensemble. Posséder ensemble.",
+    "brandLine": "Construit par le Congo. Possédé par les Congolais.",
+    "language": "Langue",
+    "french": "Français",
+    "english": "English",
+    "signIn": "Connexion",
+    "signUp": "Créer un compte",
+    "exploreProjects": "Explorer les projets",
+    "howItWorks": "Comment ça marche",
+    "demoBanner": "MODE DÉMO — Données fictives. Aucun investissement réel. Pas d'argent en jeu."
+  },
+  "nav": {
+    "home": "Accueil",
+    "projects": "Projets",
+    "learn": "Apprendre",
+    "dashboard": "Tableau de bord",
+    "portfolio": "Portefeuille",
+    "profile": "Profil",
+    "admin": "Administration",
+    "issuer": "Émetteur"
+  },
+  "public": {
+    "heroSupport": "Jeunese aide les Congolais, en RDC et dans la diaspora, à devenir de véritables actionnaires d'entreprises productives.",
+    "placeholderNote": "La page d'accueil complète arrive au jalon 4. Ceci est l'ossature du jalon 1."
+  },
+  "auth": {
+    "signInTitle": "Connexion",
+    "signUpTitle": "Créer un compte",
+    "stubNote": "Authentification Clerk — adaptateur en place. La connexion réelle arrive au jalon 3."
+  },
+  "investor": {
+    "title": "Espace investisseur",
+    "stub": "Coquille du portail investisseur. Tableau de bord et onboarding au jalon 4."
+  },
+  "admin": {
+    "title": "Administration",
+    "stub": "Coquille du back-office. CRUD et RBAC aux jalons 3 et 5."
+  },
+  "issuer": {
+    "title": "Espace émetteur",
+    "stub": "Coquille optionnelle de l'espace émetteur. Fonctionnalités au jalon 8."
+  }
+}
