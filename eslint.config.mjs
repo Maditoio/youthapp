@@ -11,18 +11,16 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  {
+    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "coverage/**", "public/sw.js", "next-env.d.ts"],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   prettier,
   {
-    ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "build/**",
-      "coverage/**",
-      "public/sw.js",
-      "next-env.d.ts",
-    ],
+    files: ["src/prisma/contract.d.ts"],
+    rules: {
+      "@typescript-eslint/no-empty-object-type": "off",
+    },
   },
 ];
 
