@@ -6,7 +6,7 @@ import { can } from "@/server/domain/finance";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  const db = getStore().db;
+  const db = (await getStore()).db;
   const locale = await getLocale();
   const offeringDoc = db.offeringDocuments.find((item) => item.id === id);
   if (offeringDoc && offeringDoc.visibility === "PUBLIC") {
@@ -21,7 +21,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const profile = kyc && db.investorProfiles.find((item) => item.id === kyc.investorProfileId);
   const allowed = profile?.userId === session.user.id || can(session.roles, "kyc.review");
   if (!allowed) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
-  getStore().update((draft) => {
+  await (await getStore()).update((draft) => {
     draft.auditLogs.push({
       id: crypto.randomUUID(),
       actorUserId: session.user.id,

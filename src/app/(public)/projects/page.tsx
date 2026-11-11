@@ -18,7 +18,7 @@ export default async function ProjectsPage({
   const locale = await getLocale();
   const params = await searchParams;
   const q = (params.q ?? "").toLowerCase();
-  const projects = publicProjects(getStore().db).filter((item) => {
+  const projects = publicProjects((await getStore()).db).filter((item) => {
     const title = `${item.project.titleFr} ${item.project.titleEn} ${item.project.industry}`.toLowerCase();
     const industryOk = !params.industry || item.project.industry === params.industry;
     return industryOk && (!q || title.includes(q));

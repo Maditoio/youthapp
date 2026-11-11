@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function FaqPage() {
   const locale = await getLocale();
-  const faqs = getStore().db.faqs;
+  const faqs = (await getStore()).db.faqs;
   return (
     <ProsePage locale={locale} returnTo="/faq" title="FAQ">
       {faqs.map((faq) => (

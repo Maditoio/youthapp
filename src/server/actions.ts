@@ -76,7 +76,7 @@ function fail(error: unknown): ActionState {
 
 export async function signUpAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   try {
-    const result = getStore().update((db) =>
+    const result = await (await getStore()).update((db) =>
       registerUser(db, {
         firstName: String(formData.get("firstName") ?? ""),
         lastName: String(formData.get("lastName") ?? ""),
@@ -101,7 +101,7 @@ export async function signUpAction(_prev: ActionState, formData: FormData): Prom
 export async function verifyEmailAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const email = String(formData.get("email") ?? "");
   try {
-    const userId = getStore().update((db) => verifyEmail(db, email, String(formData.get("code") ?? "")));
+    const userId = await (await getStore()).update((db) => verifyEmail(db, email, String(formData.get("code") ?? "")));
     await setSession(userId);
     redirect("/investor/onboarding");
   } catch (error) {
@@ -112,7 +112,7 @@ export async function verifyEmailAction(_prev: ActionState, formData: FormData):
 
 export async function resendCodeAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
-  const result = getStore().update((db) => resendEmailCode(db, email));
+  const result = await (await getStore()).update((db) => resendEmailCode(db, email));
   if (result && appConfig.demoMode) stashDemoCode(result.userId, result.code);
   redirect(`/verify?email=${encodeURIComponent(email)}`);
 }
@@ -124,7 +124,7 @@ export async function bindClerkSession(profile?: ClerkBindProfile): Promise<void
   const clerkUser = await currentUser();
   const email = clerkUser?.emailAddresses.find((item) => item.id === clerkUser.primaryEmailAddressId)?.emailAddress;
   if (!email) redirect("/sign-in");
-  const linked = getStore().update((db) =>
+  const linked = await (await getStore()).update((db) =>
     linkOrCreateClerk(db, {
       clerkUserId,
       email,
@@ -142,12 +142,12 @@ export async function bindClerkSession(profile?: ClerkBindProfile): Promise<void
     }),
   );
   await setSession(linked.userId);
-  redirect(destinationFor(linked.userId, linked.created));
+  redirect(await destinationFor(linked.userId, linked.created));
 }
 
 export async function signInAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   try {
-    const result = getStore().update((db) =>
+    const result = await (await getStore()).update((db) =>
       authenticate(db, String(formData.get("email") ?? ""), String(formData.get("password") ?? "")),
     );
     if (result.needsMfa) {
@@ -155,7 +155,7 @@ export async function signInAction(_prev: ActionState, formData: FormData): Prom
       redirect("/mfa");
     }
     await setSession(result.userId);
-    redirect(destinationFor(result.userId));
+    redirect(await destinationFor(result.userId));
   } catch (error) {
     if (isRedirect(error)) throw error;
     return fail(error);
@@ -166,9 +166,9 @@ export async function mfaAction(_prev: ActionState, formData: FormData): Promise
   const userId = await readMfaPending();
   if (!userId) return { error: "MFA_REQUIRED" };
   try {
-    getStore().update((db) => verifyStaffMfa(db, userId, String(formData.get("code") ?? "")));
+    await (await getStore()).update((db) => verifyStaffMfa(db, userId, String(formData.get("code") ?? "")));
     await setSession(userId);
-    redirect(destinationFor(userId));
+    redirect(await destinationFor(userId));
   } catch (error) {
     if (isRedirect(error)) throw error;
     return fail(error);
@@ -195,7 +195,7 @@ export async function signOutAction() {
 export async function googleDemoAction() {
   if (!appConfig.demoMode) throw new AppError("FORBIDDEN");
   const session = await getSession();
-  const result = getStore().update((db) =>
+  const result = await (await getStore()).update((db) =>
     linkOrCreateGoogle(db, session?.user.id ?? null, {
       email: session?.user.email ?? "google.demo@demo.jeunese.test",
       subject: session ? `google-linked-${session.user.id}` : "google-sandbox-subject",
@@ -210,7 +210,7 @@ export async function profileAction(_prev: ActionState, formData: FormData): Pro
   const session = await getSession();
   if (!session) return { error: "FORBIDDEN" };
   try {
-    getStore().update((db) =>
+    await (await getStore()).update((db) =>
       updateInvestorDetails(db, session.user.id, {
         firstName: String(formData.get("firstName") ?? ""),
         middleName: String(formData.get("middleName") ?? ""),
@@ -242,7 +242,7 @@ export async function kycAction(_prev: ActionState, formData: FormData): Promise
   if (!session) return { error: "FORBIDDEN" };
   try {
     const gender = String(formData.get("gender") ?? "");
-    getStore().update((db) => {
+    await (await getStore()).update((db) => {
       if (isGender(gender)) {
         const user = db.users.find((item) => item.id === session.user.id);
         const profile = db.investorProfiles.find((item) => item.userId === session.user.id);
@@ -266,7 +266,7 @@ export async function kycAction(_prev: ActionState, formData: FormData): Promise
 export async function kinAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     saveNextOfKin(db, session.user.id, {
       id: String(formData.get("id") ?? "") || undefined,
       fullName: String(formData.get("fullName") ?? ""),
@@ -282,7 +282,7 @@ export async function kinAction(formData: FormData) {
 export async function deleteKinAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  getStore().update((db) => removeNextOfKin(db, session.user.id, String(formData.get("id") ?? "")));
+  await (await getStore()).update((db) => removeNextOfKin(db, session.user.id, String(formData.get("id") ?? "")));
   redirect("/investor/profile/contacts");
 }
 
@@ -300,7 +300,7 @@ export async function nominationAction(_prev: ActionState, formData: FormData): 
     }))
     .filter((person) => person.fullName || person.bps);
   try {
-    getStore().update((db) =>
+    await (await getStore()).update((db) =>
       saveNomination(db, session.user.id, {
         activate: formData.get("activate") === "on",
         acknowledgement: formData.get("ack") === "on",
@@ -318,7 +318,7 @@ export async function deathReportAction(formData: FormData) {
   if (!session) redirect("/sign-in");
   const profile = session.db.investorProfiles.find((item) => item.userId === session.user.id);
   if (!profile) redirect("/investor/profile");
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     reportDeath(
       db,
       session.user.id,
@@ -331,7 +331,7 @@ export async function deathReportAction(formData: FormData) {
 }
 
 export async function quoteAction(offeringId: string, amountMajor: string) {
-  const db = getStore().db;
+  const db = (await getStore()).db;
   const offering = db.offerings.find((item) => item.id === offeringId);
   const terms = db.offeringShareTerms.find((item) => item.offeringId === offeringId);
   const amountMinor = parseMajorToMinor(amountMajor);
@@ -355,7 +355,7 @@ export async function subscribeAction(_prev: ActionState, formData: FormData): P
   const amountMinor = parseMajorToMinor(String(formData.get("amount") ?? ""));
   if (amountMinor === null) return { error: "AMOUNT_INVALID" };
   try {
-    const id = getStore().update((db) =>
+    const id = await (await getStore()).update((db) =>
       createSubscription(db, session.user.id, {
         offeringId: String(formData.get("offeringId") ?? ""),
         amountMinor,
@@ -373,7 +373,7 @@ export async function subscribeAction(_prev: ActionState, formData: FormData): P
 export async function cancelSubAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  getStore().update((db) => cancelSubscription(db, session.user.id, String(formData.get("id") ?? "")));
+  await (await getStore()).update((db) => cancelSubscription(db, session.user.id, String(formData.get("id") ?? "")));
   redirect("/investor/subscriptions");
 }
 
@@ -381,9 +381,9 @@ export async function sandboxPayAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const subscriptionId = String(formData.get("id") ?? "");
-  const sub = getStore().db.subscriptions.find((item) => item.id === subscriptionId);
+  const sub = (await getStore()).db.subscriptions.find((item) => item.id === subscriptionId);
   if (!sub) redirect("/investor/subscriptions");
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     applySandboxPayment(db, {
       providerEventId: `sandbox-${uid()}`,
       providerTransactionId: `txn-${uid()}`,
@@ -399,7 +399,7 @@ export async function voteAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const choice = String(formData.get("choice") ?? "ABSTAIN");
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     castVote(
       db,
       session.user.id,
@@ -412,7 +412,7 @@ export async function voteAction(formData: FormData) {
 
 export async function ticketAction(formData: FormData) {
   const session = await getSession();
-  const id = getStore().update((db) =>
+  const id = await (await getStore()).update((db) =>
     createTicket(
       db,
       session?.user.id ?? null,
@@ -428,7 +428,7 @@ export async function replyAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const ticketId = String(formData.get("ticketId") ?? "");
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     replyTicket(db, session.user.id, ticketId, String(formData.get("message") ?? ""), formData.get("internal") === "on"),
   );
   redirect(session.roles.includes("investor") ? `/investor/support/${ticketId}` : `/admin/support`);
@@ -437,7 +437,7 @@ export async function replyAction(formData: FormData) {
 export async function readNoteAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  getStore().update((db) => markNotificationRead(db, session.user.id, String(formData.get("id") ?? "")));
+  await (await getStore()).update((db) => markNotificationRead(db, session.user.id, String(formData.get("id") ?? "")));
   redirect("/investor/notifications");
 }
 
@@ -447,7 +447,7 @@ export async function kycDecisionAction(formData: FormData) {
     KycStatus,
     "APPROVED" | "REJECTED" | "ADDITIONAL_INFORMATION_REQUIRED" | "SUSPENDED"
   >;
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     reviewKyc(
       db,
       session.user.id,
@@ -463,7 +463,7 @@ export async function kycDecisionAction(formData: FormData) {
 
 export async function offeringTransitionAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     transitionOffering(
       db,
       session.user.id,
@@ -482,7 +482,7 @@ export async function createProjectAction(formData: FormData) {
   const max = parseMajorToMinor(String(formData.get("max") ?? ""));
   if (price === null || min === null || max === null) redirect("/admin/projects/new?error=AMOUNT_INVALID");
   try {
-    const created = getStore().update((db) =>
+    const created = await (await getStore()).update((db) =>
       createDraftProject(db, session.user.id, {
         issuerId: String(formData.get("issuerId") ?? ""),
         titleFr: String(formData.get("titleFr") ?? ""),
@@ -506,7 +506,7 @@ export async function createProjectAction(formData: FormData) {
 
 export async function prepareAllotmentAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     prepareAllotment(
       db,
       session.user.id,
@@ -519,7 +519,7 @@ export async function prepareAllotmentAction(formData: FormData) {
 
 export async function approveAllotmentAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     approveAllotment(
       db,
       session.user.id,
@@ -533,13 +533,13 @@ export async function approveAllotmentAction(formData: FormData) {
 
 export async function settleAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) => settlePayment(db, session.user.id, String(formData.get("paymentId") ?? "")));
+  await (await getStore()).update((db) => settlePayment(db, session.user.id, String(formData.get("paymentId") ?? "")));
   redirect("/admin/payments");
 }
 
 export async function refundRequestAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     requestRefund(db, session.user.id, String(formData.get("paymentId") ?? ""), String(formData.get("reason") ?? "")),
   );
   redirect("/admin/payments");
@@ -547,7 +547,7 @@ export async function refundRequestAction(formData: FormData) {
 
 export async function refundApproveAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     approveRefund(db, session.user.id, String(formData.get("refundId") ?? ""), String(formData.get("password") ?? "")),
   );
   redirect("/admin/payments");
@@ -555,14 +555,14 @@ export async function refundApproveAction(formData: FormData) {
 
 export async function publishUpdateAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) => publishUpdate(db, session.user.id, String(formData.get("updateId") ?? "")));
+  await (await getStore()).update((db) => publishUpdate(db, session.user.id, String(formData.get("updateId") ?? "")));
   redirect("/admin/content");
 }
 
 export async function issuerUpdateAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     submitIssuerUpdate(db, session.user.id, {
       projectId: String(formData.get("projectId") ?? ""),
       titleFr: String(formData.get("titleFr") ?? ""),
@@ -582,7 +582,7 @@ export async function issuerProfitAction(formData: FormData) {
   const recordDate = String(formData.get("recordDate") ?? "");
   const paymentDate = String(formData.get("paymentDate") ?? "");
   try {
-    getStore().update((db) =>
+    await (await getStore()).update((db) =>
       proposeDividend(db, session.user.id, {
         issuerId: String(formData.get("issuerId") ?? ""),
         shareClassId: String(formData.get("shareClassId") ?? ""),
@@ -604,7 +604,7 @@ export async function dividendProposeAction(formData: FormData) {
   const session = await requireStaff();
   const perShare = parseMajorToMinor(String(formData.get("perShare") ?? ""));
   if (perShare === null) redirect("/admin/dividends?error=AMOUNT_INVALID");
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     proposeDividend(db, session.user.id, {
       issuerId: String(formData.get("issuerId") ?? ""),
       shareClassId: String(formData.get("shareClassId") ?? ""),
@@ -619,7 +619,7 @@ export async function dividendProposeAction(formData: FormData) {
 
 export async function dividendApproveAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     approveDividend(db, session.user.id, String(formData.get("declarationId") ?? ""), String(formData.get("password") ?? "")),
   );
   redirect("/admin/dividends");
@@ -627,13 +627,13 @@ export async function dividendApproveAction(formData: FormData) {
 
 export async function dividendPayAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) => markDividendPaid(db, session.user.id, String(formData.get("paymentId") ?? "")));
+  await (await getStore()).update((db) => markDividendPaid(db, session.user.id, String(formData.get("paymentId") ?? "")));
   redirect("/admin/dividends");
 }
 
 export async function inheritanceAdvanceAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     advanceInheritance(
       db,
       session.user.id,
@@ -648,7 +648,7 @@ export async function inheritanceAdvanceAction(formData: FormData) {
 
 export async function inheritanceApproveAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     addInheritanceApproval(
       db,
       session.user.id,
@@ -662,7 +662,7 @@ export async function inheritanceApproveAction(formData: FormData) {
 
 export async function inheritanceTransferAction(formData: FormData) {
   const session = await requireStaff();
-  getStore().update((db) =>
+  await (await getStore()).update((db) =>
     recordInheritanceRegisterUpdate(
       db,
       session.user.id,
@@ -680,13 +680,13 @@ export async function inheritanceTransferAction(formData: FormData) {
 export async function resetDemoAction() {
   const session = await requireStaff();
   if (!session.roles.includes("platform_admin")) throw new AppError("FORBIDDEN");
-  getStore().reset();
+  await (await getStore()).reset();
   redirect("/admin/settings");
 }
 
 export async function currentDemoCode(email: string): Promise<string | null> {
   if (!appConfig.demoMode) return null;
-  const user = getStore().db.users.find((item) => item.email === email.trim().toLowerCase());
+  const user = (await getStore()).db.users.find((item) => item.email === email.trim().toLowerCase());
   if (!user) return null;
   return peekDemoCode(user.id) ?? null;
 }
@@ -697,8 +697,8 @@ async function requireStaff() {
   return session;
 }
 
-function destinationFor(userId: string, newlyCreated = false): string {
-  const db = getStore().db;
+async function destinationFor(userId: string, newlyCreated = false): Promise<string> {
+  const db = (await getStore()).db;
   const roles = db.userRoles.filter((item) => item.userId === userId).map((item) => item.role);
   if (roles.includes("platform_admin") || roles.includes("kyc_officer") || roles.includes("finance_officer") || roles.includes("project_analyst") || roles.includes("offering_approver") || roles.includes("support_agent") || roles.includes("auditor")) {
     return "/admin";

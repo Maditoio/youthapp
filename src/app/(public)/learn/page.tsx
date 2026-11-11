@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LearnPage() {
   const locale = await getLocale();
-  const articles = getStore().db.articles;
+  const articles = (await getStore()).db.articles;
   return (
     <ProsePage locale={locale} returnTo="/learn" title={tx(locale, "Apprendre", "Learn")}>
       {articles.map((article) => (

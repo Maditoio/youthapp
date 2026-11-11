@@ -85,7 +85,7 @@ export async function getSession(): Promise<Session | null> {
   const jar = await cookies();
   const userId = read(jar.get(COOKIE)?.value);
   if (!userId) return null;
-  const db = getStore().db;
+  const db = (await getStore()).db;
   const user = db.users.find((item) => item.id === userId && item.accountStatus === "ACTIVE");
   if (!user) return null;
   return { user, roles: rolesFor(db, user.id), db };

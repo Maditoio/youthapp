@@ -2,9 +2,9 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 /**
- * Demo persistence. Screens use this file store.
- * PostgreSQL tables are described in src/prisma/contract.prisma and open through src/prisma/db.ts
- * once DATABASE_URL is set and `npx prisma db init` has been run.
+ * Persistence switch:
+ * - DATABASE_URL set → PostgreSQL via Prisma 8 contract (src/prisma/db.ts)
+ * - otherwise → local JSON FileStore (demo)
  */
 import { createDemoDatabase } from "./seed";
 import type { Database } from "../domain/types";
@@ -14,18 +14,23 @@ import { AppError } from "../domain/errors";
 export class Store {
   constructor(public db: Database) {}
 
-  persist() {}
+  async persist(): Promise<void> {}
 
-  update<T>(fn: (db: Database) => T): T {
+  async update<T>(fn: (db: Database) => T): Promise<T> {
     const snapshot = structuredClone(this.db);
     try {
       const result = fn(this.db);
-      this.persist();
+      await this.persist();
       return result;
     } catch (error) {
       this.db = snapshot;
       throw error;
     }
+  }
+
+  async reset(): Promise<void> {
+    this.db = createDemoDatabase();
+    await this.persist();
   }
 }
 
@@ -42,18 +47,18 @@ export class FileStore extends Store {
       const parsed = JSON.parse(readFileSync(filePath, "utf8")) as Database;
       if (parsed.version !== STORE_VERSION) {
         const fresh = new FileStore(createDemoDatabase(), filePath);
-        fresh.persist();
+        void fresh.persist();
         return fresh;
       }
       return new FileStore(parsed, filePath);
     } catch {
       const fresh = new FileStore(createDemoDatabase(), filePath);
-      fresh.persist();
+      void fresh.persist();
       return fresh;
     }
   }
 
-  persist() {
+  async persist() {
     try {
       mkdirSync(path.dirname(this.filePath), { recursive: true });
       writeFileSync(this.filePath, JSON.stringify(this.db));
@@ -61,20 +66,36 @@ export class FileStore extends Store {
       // The demo still serves from memory when the host filesystem is read-only.
     }
   }
-
-  reset() {
-    this.db = createDemoDatabase();
-    this.persist();
-  }
 }
 
-const globalStore = globalThis as unknown as { jeuneseStore?: FileStore };
+type GlobalStore = {
+  jeuneseStore?: Store;
+  jeuneseStorePromise?: Promise<Store>;
+};
 
-export function getStore(): FileStore {
-  if (!globalStore.jeuneseStore) {
-    globalStore.jeuneseStore = FileStore.load();
+const globalStore = globalThis as unknown as GlobalStore;
+
+export function hasDatabaseUrl(): boolean {
+  return Boolean(process.env.DATABASE_URL?.trim());
+}
+
+export async function getStore(): Promise<Store> {
+  if (globalStore.jeuneseStore) return globalStore.jeuneseStore;
+  if (!globalStore.jeuneseStorePromise) {
+    globalStore.jeuneseStorePromise = openStore().then((store) => {
+      globalStore.jeuneseStore = store;
+      return store;
+    });
   }
-  return globalStore.jeuneseStore;
+  return globalStore.jeuneseStorePromise;
+}
+
+async function openStore(): Promise<Store> {
+  if (hasDatabaseUrl()) {
+    const { PostgresStore } = await import("./postgres-store");
+    return PostgresStore.open();
+  }
+  return FileStore.load();
 }
 
 export function defaultPath(): string {

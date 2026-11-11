@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       amountMinor: number;
       currencyCode: string;
     };
-    const result = getStore().update((db) => applySandboxPayment(db, event));
+    const result = await (await getStore()).update((db) => applySandboxPayment(db, event));
     return NextResponse.json({ ok: true, duplicate: result.duplicate });
   } catch (error) {
     const known = asAppError(error) ?? (error instanceof AppError ? error : null);

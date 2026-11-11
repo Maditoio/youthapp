@@ -52,6 +52,70 @@ function password() {
   return hashPassword(DEMO_PASSWORD);
 }
 
+/** Production / Postgres bootstrap — no fictional investors or tomato demo data. */
+export function createEmptyDatabase(clock = new Date().toISOString()): Database {
+  return {
+    version: STORE_VERSION,
+    clock,
+    users: [],
+    authIdentities: [],
+    emailVerifications: [],
+    investorProfiles: [],
+    kycCases: [],
+    kycDocuments: [],
+    staffProfiles: [],
+    userRoles: [],
+    issuers: [],
+    issuerRepresentatives: [],
+    projects: [],
+    projectUpdates: [],
+    offerings: [],
+    shareClasses: [],
+    offeringShareTerms: [],
+    offeringDocuments: [],
+    subscriptions: [],
+    subscriptionAcceptances: [],
+    payments: [],
+    refunds: [],
+    companyFinancings: [],
+    ledgerAccounts: [],
+    ledgerTransactions: [],
+    ledgerEntries: [],
+    allotmentBatches: [],
+    shareIssuances: [],
+    shareholdingEvents: [],
+    dividendDeclarations: [],
+    dividendEntitlements: [],
+    dividendPayments: [],
+    resolutions: [],
+    resolutionEligibility: [],
+    votes: [],
+    nextOfKin: [],
+    nominationSets: [],
+    allocations: [],
+    inheritanceCases: [],
+    notifications: [],
+    supportTickets: [],
+    supportMessages: [],
+    auditLogs: [],
+    articles: [],
+    faqs: [],
+    identityPolicies: [
+      { countryCode: "CD", acceptedDocumentTypes: ["national_id", "passport"], policyVersion: "1", enabled: true },
+      { countryCode: "CG", acceptedDocumentTypes: ["national_id", "passport"], policyVersion: "1", enabled: true },
+      { countryCode: "FR", acceptedDocumentTypes: ["national_id", "passport"], policyVersion: "1", enabled: true },
+      { countryCode: "BE", acceptedDocumentTypes: ["national_id", "passport"], policyVersion: "1", enabled: true },
+      { countryCode: "US", acceptedDocumentTypes: ["passport", "residence_permit"], policyVersion: "1", enabled: true },
+      { countryCode: "CA", acceptedDocumentTypes: ["passport", "residence_permit"], policyVersion: "1", enabled: true },
+      { countryCode: "GB", acceptedDocumentTypes: ["passport", "residence_permit"], policyVersion: "1", enabled: true },
+      { countryCode: "ZA", acceptedDocumentTypes: ["national_id", "passport"], policyVersion: "1", enabled: true },
+      { countryCode: "RW", acceptedDocumentTypes: ["national_id", "passport"], policyVersion: "1", enabled: true },
+      { countryCode: "AO", acceptedDocumentTypes: ["national_id", "passport"], policyVersion: "1", enabled: true },
+    ],
+    loginAttempts: [],
+  };
+}
+
 export function createDemoDatabase(): Database {
   const pass = password();
   const mfa = hashCode(DEMO_MFA);

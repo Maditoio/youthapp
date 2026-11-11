@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const locale = await getLocale();
   const { slug } = await params;
-  const db = getStore().db;
+  const db = (await getStore()).db;
   const project = db.projects.find((item) => item.slug === slug && item.status === "PUBLISHED");
   if (!project) notFound();
   const issuer = db.issuers.find((item) => item.id === project.issuerId)!;
