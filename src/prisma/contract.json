@@ -6288,6 +6288,13 @@
                   "kind": "scalar"
                 }
               },
+              "mfaCodeDisplay": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "mfaCodeHash": {
                 "nullable": false,
                 "type": {
@@ -6342,6 +6349,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "mfaCodeDisplay": {
+                  "column": "mfaCodeDisplay"
                 },
                 "mfaCodeHash": {
                   "column": "mfaCodeHash"
@@ -11564,6 +11574,11 @@
                   "dataType": "pg/text",
                   "nullable": false
                 },
+                "mfaCodeDisplay": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
                 "mfaCodeHash": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -12262,7 +12277,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "fc811157ca4b8ae00bccf79632ac53081f7b6b8e51b67d4f0bf5833465a5b229"
+    "storageHash": "9ffae6bdfbf480fd056f36551941d1443e2d5f7b7030dda42916a9e4a20b2b12"
   },
   "capabilities": {
     "postgres": {

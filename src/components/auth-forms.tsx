@@ -69,7 +69,7 @@ function DemoSignInForm({ locale }: { locale: AppLocale }) {
         ))}
       </div>
       <p className="text-xs text-muted">
-        {tx(locale, "Mot de passe démo pour tous les comptes : Demo-Jeunese-2026. Le personnel doit ensuite saisir le code 482913.", "Demo password for every account: Demo-Jeunese-2026. Staff then enter code 482913.")}
+        {tx(locale, "Mot de passe démo pour tous les comptes : Demo-Jeunese-2026. Le personnel saisit ensuite son code personnel (Admin → Personnel).", "Demo password for every account: Demo-Jeunese-2026. Staff then enter their personal code (Admin → Staff).")}
       </p>
       <button formAction={googleDemoAction} className="h-12 w-full rounded-full border border-border text-sm font-semibold">
         {tx(locale, "Continuer avec Google (bac à sable)", "Continue with Google (sandbox)")}
@@ -356,9 +356,13 @@ export function MfaForm({ locale }: { locale: AppLocale }) {
   return (
     <form action={action} className="space-y-3">
       <p className="text-sm text-muted">
-        {tx(locale, "Code personnel de démonstration : 482913. En production, ce serait une application d'authentification.", "Demonstration staff code: 482913. In production this would be an authenticator app.")}
+        {tx(
+          locale,
+          "Saisissez le code personnel affiché sur Admin → Personnel pour votre compte. En production, ce serait une application d'authentification.",
+          "Enter the confirmation code shown on Admin → Staff for your account. In production this would be an authenticator app.",
+        )}
       </p>
-      <input name="code" required className={field} defaultValue="482913" />
+      <input name="code" required className={field} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" />
       {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
       <Button type="submit" className="w-full" disabled={pending}>
         {tx(locale, "Confirmer", "Confirm")}

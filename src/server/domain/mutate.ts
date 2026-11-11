@@ -10,12 +10,23 @@ import {
   rolesFor,
 } from "./finance";
 import { digest, hashCode, hashPassword, randomDigits, uid, verifyCode, verifyPassword } from "./crypto";
-import type { Database, InheritanceStatus, KycStatus, Locale, OfferingStatus } from "./types";
+import type { Database, InheritanceStatus, KycStatus, Locale, OfferingStatus, Role } from "./types";
 import { DEMO_NOW } from "./types";
 import { isGender, isIndustry, isPermittedCountry } from "@/lib/choices";
 
 const PHONE = /^\+[1-9]\d{7,14}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Roles that can be assigned when adding staff (excludes investor / issuer_manager). */
+export const ASSIGNABLE_STAFF_ROLES: Role[] = [
+  "platform_admin",
+  "kyc_officer",
+  "finance_officer",
+  "project_analyst",
+  "offering_approver",
+  "support_agent",
+  "auditor",
+];
 
 export const INHERITANCE_NEXT: Record<InheritanceStatus, InheritanceStatus[]> = {
   REPORTED: ["EVIDENCE_REQUESTED", "SUSPENDED", "DISPUTED", "REJECTED"],
@@ -100,12 +111,63 @@ function requirePermission(db: Database, userId: string, permission: string) {
   return user;
 }
 
-/** Demo / bootstrap staff confirmation code (same as MFA login). Prefer account password when set. */
-export const STAFF_STEP_UP_CODE = "482913";
+/**
+ * Issue a unique 6-digit staff confirmation code.
+ * Hash is used for verification; plaintext is stored as mfaCodeDisplay for Admin → Personnel.
+ */
+export function issueStaffConfirmationCode(db: Database): { code: string; hash: string } {
+  for (let attempt = 0; attempt < 64; attempt += 1) {
+    const code = randomDigits();
+    const hash = hashCode(code);
+    const taken = db.staffProfiles.some(
+      (item) => item.mfaCodeDisplay === code || item.mfaCodeHash === hash,
+    );
+    if (!taken) return { code, hash };
+  }
+  throw new AppError("INVALID_STATE");
+}
+
+function nextStaffNumber(db: Database): string {
+  let max = 0;
+  for (const profile of db.staffProfiles) {
+    const match = /^STF-(\d+)$/i.exec(profile.staffNumber.trim());
+    if (!match) continue;
+    const n = Number(match[1]);
+    if (Number.isFinite(n)) max = Math.max(max, n);
+  }
+  return `STF-${max + 1}`;
+}
+
+function activateStaffProfile(db: Database, userId: string, actorUserId: string | null, action: string) {
+  const existing = db.staffProfiles.find((item) => item.userId === userId);
+  if (existing) {
+    if (existing.status !== "ACTIVE") existing.status = "ACTIVE";
+    if (!existing.mfaCodeDisplay || !existing.mfaCodeHash) {
+      const issued = issueStaffConfirmationCode(db);
+      existing.mfaCodeHash = issued.hash;
+      existing.mfaCodeDisplay = issued.code;
+      audit(db, actorUserId, "staff.code_backfilled", "staff_profile", existing.id);
+    }
+    return existing;
+  }
+  const issued = issueStaffConfirmationCode(db);
+  const profile = {
+    id: uid(),
+    userId,
+    staffNumber: nextStaffNumber(db),
+    status: "ACTIVE" as const,
+    mfaCodeHash: issued.hash,
+    mfaCodeDisplay: issued.code,
+    createdAt: now(db),
+  };
+  db.staffProfiles.push(profile);
+  audit(db, actorUserId, action, "staff_profile", profile.id);
+  return profile;
+}
 
 /**
- * Sensitive-action confirmation: account password if the user has one, otherwise active staff MFA code.
- * Clerk-only admins have null passwordHash — they must use the staff step-up code (demo: 482913).
+ * Sensitive-action confirmation: account password if the user has one, otherwise that staff member's MFA code.
+ * Clerk-only admins have null passwordHash — they must use their per-staff confirmation code.
  */
 function stepUp(db: Database, userId: string, secret: string) {
   const user = requireUser(db, userId);
@@ -122,19 +184,67 @@ function stepUp(db: Database, userId: string, secret: string) {
 
 /** Non-investor roles without a local password get an MFA profile so step-up still works (Clerk admins). */
 function ensureStaffStepUpProfile(db: Database, userId: string): void {
-  if (db.staffProfiles.some((item) => item.userId === userId && item.status === "ACTIVE")) return;
+  const active = db.staffProfiles.find((item) => item.userId === userId && item.status === "ACTIVE");
+  if (active) {
+    if (!active.mfaCodeDisplay || !active.mfaCodeHash) {
+      const issued = issueStaffConfirmationCode(db);
+      active.mfaCodeHash = issued.hash;
+      active.mfaCodeDisplay = issued.code;
+      audit(db, userId, "staff.code_backfilled", "staff_profile", active.id);
+    }
+    return;
+  }
   const roles = rolesFor(db, userId);
   if (roles.length === 0 || roles.every((role) => role === "investor")) return;
-  const ordinal = db.staffProfiles.length + 1;
-  db.staffProfiles.push({
-    id: uid(),
-    userId,
-    staffNumber: `STF-${ordinal}`,
-    status: "ACTIVE",
-    mfaCodeHash: hashCode(STAFF_STEP_UP_CODE),
-    createdAt: now(db),
-  });
-  audit(db, userId, "staff.step_up_provisioned", "user", userId);
+  activateStaffProfile(db, userId, userId, "staff.step_up_provisioned");
+}
+
+/** Platform admin: activate an existing user as staff with a role and a unique confirmation code. */
+export function createStaffMember(
+  db: Database,
+  actorId: string,
+  input: { email: string; role: Role },
+): { staffId: string; staffNumber: string; mfaCodeDisplay: string } {
+  requirePermission(db, actorId, "*");
+  assert(ASSIGNABLE_STAFF_ROLES.includes(input.role), "FORBIDDEN");
+  const email = input.email.trim().toLowerCase();
+  assert(EMAIL.test(email), "INVALID_EMAIL");
+  const user = db.users.find((item) => item.email === email && item.accountStatus === "ACTIVE");
+  assert(user, "NOT_FOUND");
+  if (!db.userRoles.some((item) => item.userId === user.id && item.role === input.role)) {
+    db.userRoles.push({
+      id: uid(),
+      userId: user.id,
+      role: input.role,
+      scopeType: "PLATFORM",
+      scopeId: null,
+      assignedBy: actorId,
+      createdAt: now(db),
+    });
+    audit(db, actorId, "staff.role_assigned", "user", user.id, input.role);
+  }
+  const profile = activateStaffProfile(db, user.id, actorId, "staff.created");
+  return {
+    staffId: profile.id,
+    staffNumber: profile.staffNumber,
+    mfaCodeDisplay: profile.mfaCodeDisplay,
+  };
+}
+
+/** Platform admin: rotate a staff member's confirmation code (audited). */
+export function rotateStaffConfirmationCode(
+  db: Database,
+  actorId: string,
+  staffId: string,
+): { mfaCodeDisplay: string } {
+  requirePermission(db, actorId, "*");
+  const profile = db.staffProfiles.find((item) => item.id === staffId);
+  assert(profile, "NOT_FOUND");
+  const issued = issueStaffConfirmationCode(db);
+  profile.mfaCodeHash = issued.hash;
+  profile.mfaCodeDisplay = issued.code;
+  audit(db, actorId, "staff.code_rotated", "staff_profile", profile.id);
+  return { mfaCodeDisplay: issued.code };
 }
 
 function postBalanced(

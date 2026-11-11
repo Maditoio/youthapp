@@ -1,7 +1,7 @@
 import type { Gender } from "@/lib/choices";
 
 export const DEMO_NOW = "2026-11-10T12:00:00.000Z";
-export const STORE_VERSION = 2;
+export const STORE_VERSION = 3;
 
 export type { Gender };
 
@@ -160,7 +160,13 @@ export interface StaffProfile {
   userId: string;
   staffNumber: string;
   status: "ACTIVE" | "SUSPENDED";
+  /** SHA-256 hash used for MFA / step-up verification. */
   mfaCodeHash: string;
+  /**
+   * Plaintext confirmation code for admin visibility (Personnel page).
+   * Demo/bootstrap only — verification always uses mfaCodeHash.
+   */
+  mfaCodeDisplay: string;
   createdAt: string;
 }
 

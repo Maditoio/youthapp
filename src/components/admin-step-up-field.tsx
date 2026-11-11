@@ -5,10 +5,13 @@ import { tx } from "@/lib/i18n/tx";
 export function AdminStepUpField({
   locale,
   hasPassword,
+  ownStaffCode,
   className,
 }: {
   locale: AppLocale;
   hasPassword: boolean;
+  /** Logged-in staff member's own confirmation code (never another person's). */
+  ownStaffCode?: string | null;
   className?: string;
 }) {
   if (hasPassword) {
@@ -45,11 +48,17 @@ export function AdminStepUpField({
         className={className}
       />
       <p className="text-xs text-muted">
-        {tx(
-          locale,
-          "Ce compte Clerk n'a pas de mot de passe local. Saisissez le code personnel staff (démonstration : 482913).",
-          "This Clerk account has no local password. Enter the staff confirmation code (demo: 482913).",
-        )}
+        {ownStaffCode
+          ? tx(
+              locale,
+              `Ce compte n'a pas de mot de passe local. Votre code personnel : ${ownStaffCode} (aussi sur Admin → Personnel).`,
+              `This account has no local password. Your staff confirmation code: ${ownStaffCode} (also on Admin → Staff).`,
+            )
+          : tx(
+              locale,
+              "Ce compte n'a pas de mot de passe local. Saisissez le code personnel affiché sur Admin → Personnel pour votre compte.",
+              "This account has no local password. Enter the staff confirmation code shown on Admin → Staff for your account.",
+            )}
       </p>
     </div>
   );

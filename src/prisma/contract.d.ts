@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'fc811157ca4b8ae00bccf79632ac53081f7b6b8e51b67d4f0bf5833465a5b229'>;
+  StorageHashBase<'9ffae6bdfbf480fd056f36551941d1443e2d5f7b7030dda42916a9e4a20b2b12'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -966,6 +966,7 @@ export namespace Models {
   export type public_StaffProfile = {
     createdAt: FieldOutputTypes['public']['StaffProfile']['createdAt'];
     id: FieldOutputTypes['public']['StaffProfile']['id'];
+    mfaCodeDisplay: FieldOutputTypes['public']['StaffProfile']['mfaCodeDisplay'];
     mfaCodeHash: FieldOutputTypes['public']['StaffProfile']['mfaCodeHash'];
     staffNumber: FieldOutputTypes['public']['StaffProfile']['staffNumber'];
     status: FieldOutputTypes['public']['StaffProfile']['status'];
@@ -4973,6 +4974,12 @@ type ContractBase = Omit<
                   readonly many: false;
                 };
                 readonly id: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly mfaCodeDisplay: {
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
@@ -9383,6 +9390,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly mfaCodeDisplay: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly mfaCodeHash: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -9417,6 +9428,7 @@ type ContractBase = Omit<
               readonly fields: {
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly id: { readonly column: 'id' };
+                readonly mfaCodeDisplay: { readonly column: 'mfaCodeDisplay' };
                 readonly mfaCodeHash: { readonly column: 'mfaCodeHash' };
                 readonly staffNumber: { readonly column: 'staffNumber' };
                 readonly status: { readonly column: 'status' };

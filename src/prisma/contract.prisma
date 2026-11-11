@@ -138,13 +138,14 @@ model KycDocument {
 }
 
 model StaffProfile {
-  id          String @id
-  userId      String @unique
-  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  staffNumber String @unique
-  status      String
-  mfaCodeHash String
-  createdAt   String
+  id             String @id
+  userId         String @unique
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  staffNumber    String @unique
+  status         String
+  mfaCodeHash    String
+  mfaCodeDisplay String
+  createdAt      String
 }
 
 model UserRole {

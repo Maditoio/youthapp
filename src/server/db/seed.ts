@@ -4,7 +4,18 @@ import type { Database } from "../domain/types";
 import { DEMO_NOW, STORE_VERSION } from "../domain/types";
 
 export const DEMO_PASSWORD = "Demo-Jeunese-2026";
-export const DEMO_MFA = "482913";
+
+/** Stable unique confirmation codes for seeded staff (visible on Admin → Personnel). */
+export const DEMO_STAFF_CODES = {
+  admin: "481001",
+  kyc: "481002",
+  finance: "481003",
+  analyst: "481004",
+  approver: "481005",
+  issuer: "481006",
+  support: "481007",
+  auditor: "481008",
+} as const;
 
 export const ids = {
   amina: "user-amina",
@@ -118,7 +129,6 @@ export function createEmptyDatabase(clock = new Date().toISOString()): Database 
 
 export function createDemoDatabase(): Database {
   const pass = password();
-  const mfa = hashCode(DEMO_MFA);
   const db: Database = {
     version: STORE_VERSION,
     clock: DEMO_NOW,
@@ -173,14 +183,14 @@ export function createDemoDatabase(): Database {
       },
     ],
     staffProfiles: [
-      staff("staff-admin", ids.admin, "STF-1", mfa),
-      staff("staff-kyc", ids.kyc, "STF-2", mfa),
-      staff("staff-finance", ids.finance, "STF-3", mfa),
-      staff("staff-analyst", ids.analyst, "STF-4", mfa),
-      staff("staff-approver", ids.approver, "STF-5", mfa),
-      staff("staff-issuer", ids.issuerUser, "STF-6", mfa),
-      staff("staff-support", ids.support, "STF-7", mfa),
-      staff("staff-auditor", ids.auditor, "STF-8", mfa),
+      staff("staff-admin", ids.admin, "STF-1", DEMO_STAFF_CODES.admin),
+      staff("staff-kyc", ids.kyc, "STF-2", DEMO_STAFF_CODES.kyc),
+      staff("staff-finance", ids.finance, "STF-3", DEMO_STAFF_CODES.finance),
+      staff("staff-analyst", ids.analyst, "STF-4", DEMO_STAFF_CODES.analyst),
+      staff("staff-approver", ids.approver, "STF-5", DEMO_STAFF_CODES.approver),
+      staff("staff-issuer", ids.issuerUser, "STF-6", DEMO_STAFF_CODES.issuer),
+      staff("staff-support", ids.support, "STF-7", DEMO_STAFF_CODES.support),
+      staff("staff-auditor", ids.auditor, "STF-8", DEMO_STAFF_CODES.auditor),
     ],
     userRoles: [
       role("role-amina", ids.amina, "investor"),
@@ -975,8 +985,16 @@ function kyc(
   };
 }
 
-function staff(id: string, userId: string, staffNumber: string, mfaCodeHash: string) {
-  return { id, userId, staffNumber, status: "ACTIVE" as const, mfaCodeHash, createdAt: at };
+function staff(id: string, userId: string, staffNumber: string, code: string) {
+  return {
+    id,
+    userId,
+    staffNumber,
+    status: "ACTIVE" as const,
+    mfaCodeHash: hashCode(code),
+    mfaCodeDisplay: code,
+    createdAt: at,
+  };
 }
 
 function role(

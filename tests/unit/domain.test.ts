@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDemoDatabase, DEMO_PASSWORD, ids } from "@/server/db/seed";
+import { createDemoDatabase, DEMO_PASSWORD, DEMO_STAFF_CODES, ids } from "@/server/db/seed";
 import { Store } from "@/server/db/store";
 import {
   dividendAmounts,
@@ -12,6 +12,7 @@ import {
 import {
   applySandboxPayment,
   approveAllotment,
+  createStaffMember,
   createSubscription,
   completeInvestorOnboarding,
   isInvestorOnboardingComplete,
@@ -21,12 +22,13 @@ import {
   registerUser,
   reportDeath,
   reviewKyc,
+  rotateStaffConfirmationCode,
   saveNomination,
-  STAFF_STEP_UP_CODE,
   submitIdentityDocument,
   submitIssuerUpdate,
   updateInvestorDetails,
   verifyEmail,
+  verifyStaffMfa,
 } from "@/server/domain/mutate";
 import { AppError } from "@/server/domain/errors";
 
@@ -224,8 +226,9 @@ describe("money and ownership rules", async () => {
       )).rejects.toBeInstanceOf(AppError);
   });
 
-  it("lets passwordless Clerk staff step up with the staff code and notifies on KYC decisions", async () => {
+  it("lets passwordless Clerk staff step up with their per-staff code and notifies on KYC decisions", async () => {
     const memory = store();
+    const kycCode = DEMO_STAFF_CODES.kyc;
     await memory.update((draft) => {
       const officer = draft.users.find((item) => item.id === ids.kyc)!;
       officer.passwordHash = null;
@@ -233,6 +236,19 @@ describe("money and ownership rules", async () => {
     await expect(
       memory.update((draft) =>
         reviewKyc(draft, ids.kyc, "kyc-sarah", "ADDITIONAL_INFORMATION_REQUIRED", "ADDRESS_PROOF", "Need proof", "wrong"),
+      ),
+    ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      memory.update((draft) =>
+        reviewKyc(
+          draft,
+          ids.kyc,
+          "kyc-sarah",
+          "ADDITIONAL_INFORMATION_REQUIRED",
+          "ADDRESS_PROOF",
+          "Need proof",
+          DEMO_STAFF_CODES.admin,
+        ),
       ),
     ).rejects.toBeInstanceOf(AppError);
     await memory.update((draft) =>
@@ -243,7 +259,7 @@ describe("money and ownership rules", async () => {
         "ADDITIONAL_INFORMATION_REQUIRED",
         "ADDRESS_PROOF",
         "Need utility bill",
-        STAFF_STEP_UP_CODE,
+        kycCode,
       ),
     );
     const profile = memory.db.investorProfiles.find((item) => item.id === ids.profileSarah)!;
@@ -260,9 +276,38 @@ describe("money and ownership rules", async () => {
     expect(memory.db.kycCases.find((item) => item.id === "kyc-sarah")?.status).toBe("SUBMITTED");
     expect(profile.onboardingStatus).toBe("SUBMITTED");
     await memory.update((draft) =>
-      reviewKyc(draft, ids.kyc, "kyc-sarah", "APPROVED", "ID_OK", "Documents sufficient for demo", STAFF_STEP_UP_CODE),
+      reviewKyc(draft, ids.kyc, "kyc-sarah", "APPROVED", "ID_OK", "Documents sufficient for demo", kycCode),
     );
     expect(memory.db.investorProfiles.find((item) => item.id === ids.profileSarah)?.onboardingStatus).toBe("APPROVED");
+  });
+
+  it("creates unique staff confirmation codes and rotates them with audit", async () => {
+    const memory = store();
+    const created = await memory.update((draft) => {
+      const investor = draft.users.find((item) => item.id === ids.grace)!;
+      return createStaffMember(draft, ids.admin, { email: investor.email, role: "support_agent" });
+    });
+    expect(created.mfaCodeDisplay).toMatch(/^\d{6}$/);
+    expect(created.staffNumber).toMatch(/^STF-\d+$/);
+    const profile = memory.db.staffProfiles.find((item) => item.id === created.staffId)!;
+    expect(profile.mfaCodeDisplay).toBe(created.mfaCodeDisplay);
+    expect(profile.mfaCodeHash).not.toBe(created.mfaCodeDisplay);
+    verifyStaffMfa(memory.db, ids.grace, created.mfaCodeDisplay);
+    await expect(
+      memory.update((draft) => {
+        verifyStaffMfa(draft, ids.grace, "000000");
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+    const rotated = await memory.update((draft) => rotateStaffConfirmationCode(draft, ids.admin, created.staffId));
+    expect(rotated.mfaCodeDisplay).not.toBe(created.mfaCodeDisplay);
+    await expect(
+      memory.update((draft) => {
+        verifyStaffMfa(draft, ids.grace, created.mfaCodeDisplay);
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+    verifyStaffMfa(memory.db, ids.grace, rotated.mfaCodeDisplay);
+    expect(memory.db.auditLogs.some((item) => item.action === "staff.created")).toBe(true);
+    expect(memory.db.auditLogs.some((item) => item.action === "staff.code_rotated")).toBe(true);
   });
 
   it("rejects KYC with password step-up and blocks further investor uploads", async () => {

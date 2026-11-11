@@ -38,6 +38,9 @@ export default async function KycPage({ searchParams }: { searchParams: Promise<
   const locale = await getLocale();
   const error = (await searchParams).error;
   const hasPassword = Boolean(session.user.passwordHash);
+  const ownStaffCode =
+    session.db.staffProfiles.find((item) => item.userId === session.user.id && item.status === "ACTIVE")
+      ?.mfaCodeDisplay ?? null;
   const cases = session.db.kycCases.filter((item) => item.status !== "APPROVED" && item.status !== "NOT_STARTED");
   return (
     <div className="space-y-4">
@@ -92,7 +95,12 @@ export default async function KycPage({ searchParams }: { searchParams: Promise<
               )}
               className="min-h-20 w-full rounded-2xl border px-3 py-2"
             />
-            <AdminStepUpField locale={locale} hasPassword={hasPassword} className="h-11 w-full rounded-2xl border px-3" />
+            <AdminStepUpField
+              locale={locale}
+              hasPassword={hasPassword}
+              ownStaffCode={ownStaffCode}
+              className="h-11 w-full rounded-2xl border px-3"
+            />
             <div className="flex flex-wrap gap-2">
               {DECISIONS.map((decision) => (
                 <button
