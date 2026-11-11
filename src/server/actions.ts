@@ -498,21 +498,29 @@ export async function readNoteAction(formData: FormData) {
 
 export async function kycDecisionAction(formData: FormData) {
   const session = await requireStaff();
-  const decision = String(formData.get("decision") ?? "") as Extract<
+  const decision = String(formData.get("decision") ?? "").trim() as Extract<
     KycStatus,
     "APPROVED" | "REJECTED" | "ADDITIONAL_INFORMATION_REQUIRED" | "SUSPENDED"
   >;
-  await (await getStore()).update((db) =>
-    reviewKyc(
-      db,
-      session.user.id,
-      String(formData.get("caseId") ?? ""),
-      decision,
-      String(formData.get("reason") ?? ""),
-      String(formData.get("notes") ?? ""),
-      String(formData.get("password") ?? ""),
-    ),
-  );
+  const allowed = new Set(["APPROVED", "REJECTED", "ADDITIONAL_INFORMATION_REQUIRED", "SUSPENDED"]);
+  if (!allowed.has(decision)) redirect("/admin/kyc?error=STATUS_REQUIRED");
+  try {
+    await (await getStore()).update((db) =>
+      reviewKyc(
+        db,
+        session.user.id,
+        String(formData.get("caseId") ?? ""),
+        decision,
+        String(formData.get("reason") ?? ""),
+        String(formData.get("notes") ?? ""),
+        String(formData.get("password") ?? ""),
+      ),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/kyc?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/kyc");
 }
 

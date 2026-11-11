@@ -100,9 +100,41 @@ function requirePermission(db: Database, userId: string, permission: string) {
   return user;
 }
 
-function stepUp(db: Database, userId: string, password: string) {
+/** Demo / bootstrap staff confirmation code (same as MFA login). Prefer account password when set. */
+export const STAFF_STEP_UP_CODE = "482913";
+
+/**
+ * Sensitive-action confirmation: account password if the user has one, otherwise active staff MFA code.
+ * Clerk-only admins have null passwordHash — they must use the staff step-up code (demo: 482913).
+ */
+function stepUp(db: Database, userId: string, secret: string) {
   const user = requireUser(db, userId);
-  assert(verifyPassword(password, user.passwordHash), "STEP_UP_FAILED");
+  const trimmed = secret.trim();
+  assert(trimmed.length > 0, "STEP_UP_FAILED");
+  if (user.passwordHash) {
+    assert(verifyPassword(trimmed, user.passwordHash), "STEP_UP_FAILED");
+    return;
+  }
+  ensureStaffStepUpProfile(db, userId);
+  const staff = db.staffProfiles.find((item) => item.userId === userId && item.status === "ACTIVE");
+  assert(staff && verifyCode(trimmed, staff.mfaCodeHash), "STEP_UP_FAILED");
+}
+
+/** Non-investor roles without a local password get an MFA profile so step-up still works (Clerk admins). */
+function ensureStaffStepUpProfile(db: Database, userId: string): void {
+  if (db.staffProfiles.some((item) => item.userId === userId && item.status === "ACTIVE")) return;
+  const roles = rolesFor(db, userId);
+  if (roles.length === 0 || roles.every((role) => role === "investor")) return;
+  const ordinal = db.staffProfiles.length + 1;
+  db.staffProfiles.push({
+    id: uid(),
+    userId,
+    staffNumber: `STF-${ordinal}`,
+    status: "ACTIVE",
+    mfaCodeHash: hashCode(STAFF_STEP_UP_CODE),
+    createdAt: now(db),
+  });
+  audit(db, userId, "staff.step_up_provisioned", "user", userId);
 }
 
 function postBalanced(
@@ -459,17 +491,20 @@ export function ensureBootstrapAdmin(db: Database, userId: string, email: string
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
   if (!allow.includes(email.trim().toLowerCase())) return;
-  if (db.userRoles.some((item) => item.userId === userId && item.role === "platform_admin")) return;
-  db.userRoles.push({
-    id: uid(),
-    userId,
-    role: "platform_admin",
-    scopeType: "PLATFORM",
-    scopeId: null,
-    assignedBy: null,
-    createdAt: now(db),
-  });
-  audit(db, userId, "auth.bootstrap_admin", "user", userId);
+  if (!db.userRoles.some((item) => item.userId === userId && item.role === "platform_admin")) {
+    db.userRoles.push({
+      id: uid(),
+      userId,
+      role: "platform_admin",
+      scopeType: "PLATFORM",
+      scopeId: null,
+      assignedBy: null,
+      createdAt: now(db),
+    });
+    audit(db, userId, "auth.bootstrap_admin", "user", userId);
+  }
+  // Clerk-only bootstrap admins have no passwordHash — provision staff MFA for step-up.
+  ensureStaffStepUpProfile(db, userId);
 }
 
 export function linkOrCreateClerk(
@@ -772,6 +807,11 @@ export function submitIdentityDocument(
   const manualReviewRequired = !accepted || !countryMatch;
   const kyc = db.kycCases.find((item) => item.investorProfileId === profile.id);
   assert(kyc, "NOT_FOUND");
+  assert(
+    kyc.status !== "APPROVED" && kyc.status !== "SUSPENDED" && kyc.status !== "REJECTED",
+    "INVALID_STATE",
+  );
+  const resubmit = kyc.status === "ADDITIONAL_INFORMATION_REQUIRED";
   const at = now(db);
   db.kycDocuments.push({
     id: uid(),
@@ -793,10 +833,26 @@ export function submitIdentityDocument(
   kyc.status = "SUBMITTED";
   kyc.submittedAt = at;
   kyc.updatedAt = at;
-  kyc.reasonCode = manualReviewRequired ? "MANUAL_REVIEW" : null;
+  kyc.reviewedAt = null;
+  kyc.reviewedBy = null;
+  kyc.reasonCode = manualReviewRequired ? "MANUAL_REVIEW" : resubmit ? "RESUBMITTED" : null;
+  kyc.reviewNotes = resubmit ? null : kyc.reviewNotes;
   profile.onboardingStatus = "SUBMITTED";
   profile.updatedAt = at;
   audit(db, userId, "kyc.submit", "kyc_case", kyc.id, manualReviewRequired ? "manual review" : "queued");
+  notify(
+    db,
+    userId,
+    "kyc.submitted",
+    "Documents soumis",
+    "Documents submitted",
+    resubmit
+      ? "Vos nouveaux documents ont été envoyés. Une revue humaine est encore nécessaire."
+      : "Votre dossier d'identité a été soumis. Une revue humaine est encore nécessaire.",
+    resubmit
+      ? "Your new documents were sent. A human review is still required."
+      : "Your identity case was submitted. A human review is still required.",
+  );
   return { manualReviewRequired };
 }
 
@@ -851,15 +907,56 @@ export function reviewKyc(
   if (decision !== "APPROVED") profile.onboardingStatus = decision;
   profile.updatedAt = at;
   audit(db, actorId, `kyc.${kyc.status.toLowerCase()}`, "kyc_case", kyc.id, reasonCode);
-  notify(
-    db,
-    profile.userId,
-    "kyc.status",
-    "Mise à jour de vérification",
-    "Verification update",
-    `Statut : ${profile.onboardingStatus}.`,
-    `Status: ${profile.onboardingStatus}.`,
-  );
+  const status = profile.onboardingStatus;
+  const copy = kycDecisionNotifyCopy(status, reasonCode, notes);
+  notify(db, profile.userId, "kyc.status", copy.titleFr, copy.titleEn, copy.bodyFr, copy.bodyEn);
+}
+
+function kycDecisionNotifyCopy(
+  status: KycStatus,
+  reasonCode: string,
+  notes: string,
+): { titleFr: string; titleEn: string; bodyFr: string; bodyEn: string } {
+  const note = notes.trim();
+  const reason = reasonCode.trim();
+  if (status === "APPROVED") {
+    return {
+      titleFr: "Identité approuvée",
+      titleEn: "Identity approved",
+      bodyFr: "Votre vérification d'identité est approuvée. Vous pouvez souscrire aux offres éligibles.",
+      bodyEn: "Your identity verification is approved. You can subscribe to eligible offerings.",
+    };
+  }
+  if (status === "ADDITIONAL_INFORMATION_REQUIRED") {
+    return {
+      titleFr: "Documents complémentaires requis",
+      titleEn: "Additional documents required",
+      bodyFr: `Motif : ${reason}.${note ? ` ${note}` : ""} Retournez à la vérification pour déposer de nouveaux documents.`,
+      bodyEn: `Reason: ${reason}.${note ? ` ${note}` : ""} Return to verification to upload new documents.`,
+    };
+  }
+  if (status === "REJECTED") {
+    return {
+      titleFr: "Vérification refusée",
+      titleEn: "Verification rejected",
+      bodyFr: `Motif : ${reason}.${note ? ` ${note}` : ""}`,
+      bodyEn: `Reason: ${reason}.${note ? ` ${note}` : ""}`,
+    };
+  }
+  if (status === "SUSPENDED") {
+    return {
+      titleFr: "Vérification suspendue",
+      titleEn: "Verification suspended",
+      bodyFr: `Motif : ${reason}.${note ? ` ${note}` : ""}`,
+      bodyEn: `Reason: ${reason}.${note ? ` ${note}` : ""}`,
+    };
+  }
+  return {
+    titleFr: "Mise à jour de vérification",
+    titleEn: "Verification update",
+    bodyFr: `Statut : ${status}. Motif : ${reason}.`,
+    bodyEn: `Status: ${status}. Reason: ${reason}.`,
+  };
 }
 
 export function saveNextOfKin(

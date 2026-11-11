@@ -20,7 +20,9 @@ import {
   prepareAllotment,
   registerUser,
   reportDeath,
+  reviewKyc,
   saveNomination,
+  STAFF_STEP_UP_CODE,
   submitIdentityDocument,
   submitIssuerUpdate,
   updateInvestorDetails,
@@ -220,6 +222,65 @@ describe("money and ownership rules", async () => {
           riskAccepted: true,
         }),
       )).rejects.toBeInstanceOf(AppError);
+  });
+
+  it("lets passwordless Clerk staff step up with the staff code and notifies on KYC decisions", async () => {
+    const memory = store();
+    await memory.update((draft) => {
+      const officer = draft.users.find((item) => item.id === ids.kyc)!;
+      officer.passwordHash = null;
+    });
+    await expect(
+      memory.update((draft) =>
+        reviewKyc(draft, ids.kyc, "kyc-sarah", "ADDITIONAL_INFORMATION_REQUIRED", "ADDRESS_PROOF", "Need proof", "wrong"),
+      ),
+    ).rejects.toBeInstanceOf(AppError);
+    await memory.update((draft) =>
+      reviewKyc(
+        draft,
+        ids.kyc,
+        "kyc-sarah",
+        "ADDITIONAL_INFORMATION_REQUIRED",
+        "ADDRESS_PROOF",
+        "Need utility bill",
+        STAFF_STEP_UP_CODE,
+      ),
+    );
+    const profile = memory.db.investorProfiles.find((item) => item.id === ids.profileSarah)!;
+    expect(profile.onboardingStatus).toBe("ADDITIONAL_INFORMATION_REQUIRED");
+    expect(memory.db.notifications.some((item) => item.userId === ids.sarah && item.templateKey === "kyc.status")).toBe(true);
+    await memory.update((draft) =>
+      submitIdentityDocument(draft, ids.sarah, {
+        documentType: "national_id",
+        issuingCountry: "BE",
+        documentNumber: "BE-MORE-1",
+        expiryDate: "2031-01-01",
+      }),
+    );
+    expect(memory.db.kycCases.find((item) => item.id === "kyc-sarah")?.status).toBe("SUBMITTED");
+    expect(profile.onboardingStatus).toBe("SUBMITTED");
+    await memory.update((draft) =>
+      reviewKyc(draft, ids.kyc, "kyc-sarah", "APPROVED", "ID_OK", "Documents sufficient for demo", STAFF_STEP_UP_CODE),
+    );
+    expect(memory.db.investorProfiles.find((item) => item.id === ids.profileSarah)?.onboardingStatus).toBe("APPROVED");
+  });
+
+  it("rejects KYC with password step-up and blocks further investor uploads", async () => {
+    const memory = store();
+    await memory.update((draft) =>
+      reviewKyc(draft, ids.kyc, "kyc-sarah", "REJECTED", "FRAUD_SIGNAL", "Demo rejection", DEMO_PASSWORD),
+    );
+    expect(memory.db.investorProfiles.find((item) => item.id === ids.profileSarah)?.onboardingStatus).toBe("REJECTED");
+    await expect(
+      memory.update((draft) =>
+        submitIdentityDocument(draft, ids.sarah, {
+          documentType: "passport",
+          issuingCountry: "BE",
+          documentNumber: "BE-NO",
+          expiryDate: "2030-01-01",
+        }),
+      ),
+    ).rejects.toBeInstanceOf(AppError);
   });
 
   it("flags a passport issued outside the country of residence and does not approve it automatically", async () => {

@@ -158,7 +158,11 @@ export default async function InvestorHomePage() {
                 <h3 className="font-bold">{tx(locale, "Vérification", "Verification")}</h3>
                 <p className="mt-2 text-sm text-muted">{snap.profile.onboardingStatus}</p>
                 <Link href="/investor/onboarding" className="mt-4 inline-block text-sm font-semibold text-violet">
-                  {tx(locale, "Continuer", "Continue")}
+                  {snap.profile.onboardingStatus === "ADDITIONAL_INFORMATION_REQUIRED"
+                    ? tx(locale, "Déposer des documents", "Upload documents")
+                    : snap.profile.onboardingStatus === "APPROVED"
+                      ? tx(locale, "Voir le statut", "View status")
+                      : tx(locale, "Continuer", "Continue")}
                 </Link>
               </article>
               <article className="rounded-[28px] bg-white p-4 shadow-sm">
