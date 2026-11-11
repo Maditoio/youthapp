@@ -44,7 +44,7 @@ Open [http://localhost:3000](http://localhost:3000). A visible demo banner stays
 ### Install
 
 ```bash
-git clone https://github.com/kasaiindependent-del/youthinvestmentcongo.git
+git clone https://github.com/Maditoio/youthapp.git
 cd youthinvestmentcongo
 npm install
 cp .env.example .env.local
