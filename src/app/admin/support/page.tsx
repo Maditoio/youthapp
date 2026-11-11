@@ -7,10 +7,20 @@ import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function SupportAdmin() {
+export default async function SupportAdmin({
+  searchParams,
+}: {
+  searchParams: Promise<{ reply?: string }>;
+}) {
   const session = await getSession();
   if (!session) return null;
   const locale = await getLocale();
+  const params = await searchParams;
+  const replyTicketId = params.reply;
+  const replyTicket = replyTicketId
+    ? session.db.supportTickets.find((item) => item.id === replyTicketId)
+    : undefined;
+
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">Support</h1>
@@ -36,26 +46,20 @@ export default async function SupportAdmin() {
         </article>
       ))}
 
-      <SearchParamValueModal
-        param="reply"
-        titleFor={() => tx(locale, "Répondre au ticket", "Reply to ticket")}
-      >
-        {(ticketId) => {
-          const ticket = session.db.supportTickets.find((item) => item.id === ticketId);
-          return (
-            <form action={replyAction} className="space-y-2">
-              <input type="hidden" name="ticketId" value={ticketId} />
-              {ticket ? <p className="text-sm text-muted">{ticket.subject}</p> : null}
-              <textarea name="message" required className="min-h-28 w-full rounded-2xl border px-3 py-2" />
-              <label className="flex gap-2 text-xs">
-                <input type="checkbox" name="internal" />
-                {tx(locale, "Note interne", "Internal note")}
-              </label>
-              <SubmitButton size="sm">{tx(locale, "Répondre", "Reply")}</SubmitButton>
-            </form>
-          );
-        }}
-      </SearchParamValueModal>
+      {replyTicketId ? (
+        <SearchParamValueModal param="reply" title={tx(locale, "Répondre au ticket", "Reply to ticket")}>
+          <form action={replyAction} className="space-y-2">
+            <input type="hidden" name="ticketId" value={replyTicketId} />
+            {replyTicket ? <p className="text-sm text-muted">{replyTicket.subject}</p> : null}
+            <textarea name="message" required className="min-h-28 w-full rounded-2xl border px-3 py-2" />
+            <label className="flex gap-2 text-xs">
+              <input type="checkbox" name="internal" />
+              {tx(locale, "Note interne", "Internal note")}
+            </label>
+            <SubmitButton size="sm">{tx(locale, "Répondre", "Reply")}</SubmitButton>
+          </form>
+        </SearchParamValueModal>
+      ) : null}
     </div>
   );
 }

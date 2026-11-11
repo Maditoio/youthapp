@@ -21,7 +21,10 @@ export default async function ContactsPage({
   const locale = await getLocale();
   const profile = session.db.investorProfiles.find((item) => item.userId === session.user.id);
   const people = session.db.nextOfKin.filter((item) => item.investorProfileId === profile?.id);
-  const error = (await searchParams).error;
+  const params = await searchParams;
+  const error = params.error;
+  const editId = params.edit;
+  const editPerson = editId ? people.find((item) => item.id === editId) : undefined;
   const field = "h-12 w-full rounded-2xl border px-3";
   return (
     <div className="space-y-4 px-4 md:px-0">
@@ -83,33 +86,31 @@ export default async function ContactsPage({
         </form>
       </SearchParamModal>
 
-      <SearchParamValueModal
-        param="edit"
-        clearKeys={["error", "modal"]}
-        size="lg"
-        titleFor={() => tx(locale, "Modifier le proche", "Edit contact")}
-      >
-        {(id) => {
-          const person = people.find((item) => item.id === id);
-          if (!person) {
-            return <p className="text-sm text-muted">{tx(locale, "Contact introuvable.", "Contact not found.")}</p>;
-          }
-          return (
+      {editId ? (
+        <SearchParamValueModal
+          param="edit"
+          clearKeys={["error", "modal"]}
+          size="lg"
+          title={tx(locale, "Modifier le proche", "Edit contact")}
+        >
+          {!editPerson ? (
+            <p className="text-sm text-muted">{tx(locale, "Contact introuvable.", "Contact not found.")}</p>
+          ) : (
             <form action={kinAction} className="grid gap-2 md:grid-cols-2">
               {error ? <p className="text-sm text-danger md:col-span-2">{errorCopy[error]?.[locale] ?? error}</p> : null}
-              <input type="hidden" name="id" value={person.id} />
-              <input name="fullName" defaultValue={person.fullName} className={field} />
-              <input name="relationship" defaultValue={person.relationship} className={field} />
-              <GenderSelect locale={locale} defaultValue={readGender(person.gender) ?? ""} required />
-              <input name="email" defaultValue={person.email} className={field} />
-              <input name="phone" defaultValue={person.phone} className={field} />
+              <input type="hidden" name="id" value={editPerson.id} />
+              <input name="fullName" defaultValue={editPerson.fullName} className={field} />
+              <input name="relationship" defaultValue={editPerson.relationship} className={field} />
+              <GenderSelect locale={locale} defaultValue={readGender(editPerson.gender) ?? ""} required />
+              <input name="email" defaultValue={editPerson.email} className={field} />
+              <input name="phone" defaultValue={editPerson.phone} className={field} />
               <SubmitButton name="intent" value="update" size="sm" className="md:col-span-2">
                 {tx(locale, "Mettre à jour", "Update")}
               </SubmitButton>
             </form>
-          );
-        }}
-      </SearchParamValueModal>
+          )}
+        </SearchParamValueModal>
+      ) : null}
     </div>
   );
 }

@@ -24,11 +24,18 @@ export default async function KycPage({
   const locale = await getLocale();
   const params = await searchParams;
   const error = params.error;
+  const reviewId = params.review;
   const hasPassword = Boolean(session.user.passwordHash);
   const ownStaffCode =
     session.db.staffProfiles.find((item) => item.userId === session.user.id && item.status === "ACTIVE")
       ?.mfaCodeDisplay ?? null;
   const cases = session.db.kycCases.filter((item) => item.status !== "APPROVED" && item.status !== "NOT_STARTED");
+  const reviewCase = reviewId ? cases.find((row) => row.id === reviewId) : undefined;
+  const reviewProfile = reviewCase
+    ? session.db.investorProfiles.find((row) => row.id === reviewCase.investorProfileId)
+    : undefined;
+  const reviewOwnCase = reviewProfile?.userId === session.user.id;
+
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Revue d'identité", "Identity review")}</h1>
@@ -103,36 +110,33 @@ export default async function KycPage({
         <p className="text-sm text-muted">{tx(locale, "Aucune revue en attente.", "No review waiting.")}</p>
       ) : null}
 
-      <SearchParamValueModal
-        param="review"
-        clearKeys={["error"]}
-        size="lg"
-        titleFor={() => tx(locale, "Décision d'identité", "Identity decision")}
-      >
-        {(caseId) => {
-          const item = cases.find((row) => row.id === caseId);
-          if (!item) {
-            return <p className="text-sm text-muted">{tx(locale, "Dossier introuvable.", "Case not found.")}</p>;
-          }
-          const profile = session.db.investorProfiles.find((row) => row.id === item.investorProfileId);
-          const ownCase = profile?.userId === session.user.id;
-          return (
+      {reviewId ? (
+        <SearchParamValueModal
+          param="review"
+          clearKeys={["error"]}
+          size="lg"
+          title={tx(locale, "Décision d'identité", "Identity decision")}
+        >
+          {!reviewCase ? (
+            <p className="text-sm text-muted">{tx(locale, "Dossier introuvable.", "Case not found.")}</p>
+          ) : (
             <div className="space-y-3">
               {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
               <p className="text-sm text-muted">
-                {profile?.legalFirstName} {profile?.legalLastName} · {kycStatusLabel(locale, item.status)}
+                {reviewProfile?.legalFirstName} {reviewProfile?.legalLastName} ·{" "}
+                {kycStatusLabel(locale, reviewCase.status)}
               </p>
               <AdminKycReviewForm
                 locale={locale}
-                caseId={item.id}
-                ownCase={ownCase}
+                caseId={reviewCase.id}
+                ownCase={Boolean(reviewOwnCase)}
                 hasPassword={hasPassword}
                 ownStaffCode={ownStaffCode}
               />
             </div>
-          );
-        }}
-      </SearchParamValueModal>
+          )}
+        </SearchParamValueModal>
+      ) : null}
     </div>
   );
 }
