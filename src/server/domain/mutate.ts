@@ -34,6 +34,18 @@ export function now(db: Database): string {
   return db.clock || DEMO_NOW;
 }
 
+/** Next INV-n from the highest existing number (length-based codes collide after gaps/deletes). */
+function nextInvestorNumber(db: Database): string {
+  let max = 1000;
+  for (const profile of db.investorProfiles) {
+    const match = /^INV-(\d+)$/i.exec(profile.investorNumber.trim());
+    if (!match) continue;
+    const n = Number(match[1]);
+    if (Number.isFinite(n)) max = Math.max(max, n);
+  }
+  return `INV-${max + 1}`;
+}
+
 function audit(
   db: Database,
   actorUserId: string | null,
@@ -205,7 +217,7 @@ export function registerUser(
   db.investorProfiles.push({
     id: profileId,
     userId,
-    investorNumber: `INV-${1000 + db.investorProfiles.length + 1}`,
+    investorNumber: nextInvestorNumber(db),
     legalFirstName: input.firstName.trim(),
     legalMiddleName: "",
     legalLastName: input.lastName.trim(),
@@ -368,7 +380,7 @@ export function linkOrCreateGoogle(
     db.investorProfiles.push({
       id: profileId,
       userId,
-      investorNumber: `INV-${1000 + db.investorProfiles.length + 1}`,
+      investorNumber: nextInvestorNumber(db),
       legalFirstName: "Google",
       legalMiddleName: "",
       legalLastName: "Démo",
@@ -540,7 +552,7 @@ export function linkOrCreateClerk(
   db.investorProfiles.push({
     id: profileId,
     userId,
-    investorNumber: `INV-${1000 + db.investorProfiles.length + 1}`,
+    investorNumber: nextInvestorNumber(db),
     legalFirstName: named.first,
     legalMiddleName: "",
     legalLastName: named.last,
