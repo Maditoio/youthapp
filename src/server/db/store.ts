@@ -3,8 +3,9 @@ import os from "node:os";
 import path from "node:path";
 /**
  * Persistence switch:
- * - DATABASE_URL set → PostgreSQL via Prisma 8 contract (src/prisma/db.ts)
+ * - DATABASE_URL or DATABASE_URL_UNPOOLED set → PostgreSQL via Prisma 8 (src/prisma/db.ts)
  * - otherwise → local JSON FileStore (demo)
+ * Neon pooled URLs reject Prisma startup params; prefer DATABASE_URL_UNPOOLED.
  */
 import { createDemoDatabase } from "./seed";
 import type { Database } from "../domain/types";
@@ -76,7 +77,7 @@ type GlobalStore = {
 const globalStore = globalThis as unknown as GlobalStore;
 
 export function hasDatabaseUrl(): boolean {
-  return Boolean(process.env.DATABASE_URL?.trim());
+  return Boolean(process.env.DATABASE_URL_UNPOOLED?.trim() || process.env.DATABASE_URL?.trim());
 }
 
 export async function getStore(): Promise<Store> {

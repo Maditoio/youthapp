@@ -6,9 +6,17 @@ import contractJson from './contract.json' with { type: 'json' };
 
 export const contract = contractFromJson<Contract>(contractJson);
 
-/** Opens PostgreSQL only when DATABASE_URL is set. The demo file store stays in use until then. */
+/**
+ * Neon’s pooled URL rejects Prisma startup params such as lc_monetary.
+ * Prefer the direct (unpooled) connection when both are set.
+ */
+export function databaseUrl(): string | undefined {
+  return process.env.DATABASE_URL_UNPOOLED?.trim() || process.env.DATABASE_URL?.trim() || undefined;
+}
+
+/** Opens PostgreSQL only when a connection string is set. The demo file store stays in use until then. */
 export function openDatabase() {
-  const url = process.env.DATABASE_URL;
+  const url = databaseUrl();
   if (!url) {
     throw new Error("DATABASE_URL is not set. Add it to .env, then run npx prisma db init.");
   }

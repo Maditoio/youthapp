@@ -6,7 +6,8 @@ export default definePrismaConfig({
   orm: ormConfig({
     contract: "./src/prisma/contract.prisma",
     db: {
-      connection: process.env['DATABASE_URL']!,
+      // Neon pooler rejects Prisma startup params; prefer the direct URL.
+      connection: process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL!,
     },
   }),
 });
