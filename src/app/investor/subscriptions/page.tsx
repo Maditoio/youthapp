@@ -16,17 +16,19 @@ export default async function SubscriptionsPage() {
   return (
     <div className="space-y-3 px-4 md:px-0">
       <h1 className="text-3xl font-bold">{tx(locale, "Souscriptions", "Subscriptions")}</h1>
-      {snap?.subscriptions.map(({ subscription, project }) => (
-        <Link key={subscription.id} href={`/investor/subscriptions/${subscription.id}`} className="block rounded-[28px] bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="font-bold">{tx(locale, project.titleFr, project.titleEn)}</p>
-            <span className="text-xs font-semibold text-violet">{subscription.status}</span>
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            {subscription.shareQuantity} · {formatMoney(subscription.totalMinor, subscription.currencyCode, locale)} · {formatDate(subscription.createdAt, locale)}
-          </p>
-        </Link>
-      ))}
+      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+        {snap?.subscriptions.map(({ subscription, project }) => (
+          <Link key={subscription.id} href={`/investor/subscriptions/${subscription.id}`} className="block rounded-[28px] bg-white p-5 transition-shadow hover:shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-bold">{tx(locale, project.titleFr, project.titleEn)}</p>
+              <span className="text-xs font-semibold text-violet">{subscription.status}</span>
+            </div>
+            <p className="mt-1 text-sm text-muted">
+              {subscription.shareQuantity} · {formatMoney(subscription.totalMinor, subscription.currencyCode, locale)} · {formatDate(subscription.createdAt, locale)}
+            </p>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

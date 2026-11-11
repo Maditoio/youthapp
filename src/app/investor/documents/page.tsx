@@ -25,24 +25,26 @@ export default async function DocumentsPage() {
       <h1 className="text-3xl font-bold">{tx(locale, "Documents", "Documents")}</h1>
       {needsMore ? <RequestedDocumentsPanel locale={locale} kyc={kyc} /> : null}
       {!needsMore && (kyc?.reasonCode || parsed.notes) ? (
-        <p className="min-w-0 break-words text-sm text-muted">
+        <p className="min-w-0 max-w-3xl break-words text-sm text-muted">
           {reason || kyc?.reasonCode || ""}
           {parsed.notes ? ` · ${parsed.notes}` : ""}
         </p>
       ) : null}
-      {session.db.offeringDocuments.filter((item) => item.visibility === "PUBLIC").map((doc) => (
-        <a key={doc.id} href={`/api/documents/${doc.id}`} className="block min-w-0 overflow-hidden rounded-[28px] bg-white p-4 font-semibold text-violet">
-          <span className="break-words">{tx(locale, doc.titleFr, doc.titleEn)}</span>
-        </a>
-      ))}
-      {docs.map((doc) => (
-        <a key={doc.id} href={`/api/documents/${doc.id}`} className="block min-w-0 overflow-hidden rounded-[28px] bg-white p-4 text-sm">
-          <span className="break-words">
-            {doc.documentType} · {doc.verificationStatus}
-            {doc.rejectionReasonCode ? ` · ${doc.rejectionReasonCode}` : ""}
-          </span>
-        </a>
-      ))}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {session.db.offeringDocuments.filter((item) => item.visibility === "PUBLIC").map((doc) => (
+          <a key={doc.id} href={`/api/documents/${doc.id}`} className="block min-w-0 overflow-hidden rounded-[28px] bg-white p-4 font-semibold text-violet">
+            <span className="break-words">{tx(locale, doc.titleFr, doc.titleEn)}</span>
+          </a>
+        ))}
+        {docs.map((doc) => (
+          <a key={doc.id} href={`/api/documents/${doc.id}`} className="block min-w-0 overflow-hidden rounded-[28px] bg-white p-4 text-sm">
+            <span className="break-words">
+              {doc.documentType} · {doc.verificationStatus}
+              {doc.rejectionReasonCode ? ` · ${doc.rejectionReasonCode}` : ""}
+            </span>
+          </a>
+        ))}
+      </div>
       {kyc && kyc.status !== "APPROVED" && kyc.status !== "REJECTED" && kyc.status !== "SUSPENDED" ? (
         <Link href="/investor/onboarding" className="text-sm font-semibold text-violet">
           {needsMore

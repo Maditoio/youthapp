@@ -16,18 +16,22 @@ export default async function SupportPage() {
   return (
     <div className="space-y-4 px-4 md:px-0">
       <h1 className="text-3xl font-bold">{tx(locale, "Assistance", "Support")}</h1>
-      {tickets.map((ticket) => (
-        <Link key={ticket.id} href={`/investor/support/${ticket.id}`} className="block rounded-[28px] bg-white p-4">
-          <p className="font-bold">{ticket.subject}</p>
-          <p className="text-xs text-muted">{ticket.status}</p>
-        </Link>
-      ))}
-      <form action={ticketAction} className="space-y-2 rounded-[28px] bg-white p-4">
-        <input name="category" defaultValue="general" className="h-12 w-full rounded-2xl border px-3" />
-        <input name="subject" required placeholder={tx(locale, "Sujet", "Subject")} className="h-12 w-full rounded-2xl border px-3" />
-        <textarea name="message" required className="min-h-28 w-full rounded-2xl border px-3 py-2" />
-        <SubmitButton size="sm">{tx(locale, "Envoyer", "Send")}</SubmitButton>
-      </form>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)]">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+          {tickets.map((ticket) => (
+            <Link key={ticket.id} href={`/investor/support/${ticket.id}`} className="block rounded-[28px] bg-white p-4">
+              <p className="font-bold">{ticket.subject}</p>
+              <p className="text-xs text-muted">{ticket.status}</p>
+            </Link>
+          ))}
+        </div>
+        <form action={ticketAction} className="space-y-2 rounded-[28px] bg-white p-4">
+          <input name="category" defaultValue="general" className="h-12 w-full rounded-2xl border px-3" />
+          <input name="subject" required placeholder={tx(locale, "Sujet", "Subject")} className="h-12 w-full rounded-2xl border px-3" />
+          <textarea name="message" required className="min-h-28 w-full rounded-2xl border px-3 py-2" />
+          <SubmitButton size="sm">{tx(locale, "Envoyer", "Send")}</SubmitButton>
+        </form>
+      </div>
     </div>
   );
 }

@@ -22,8 +22,8 @@ export default async function StatisticsPage() {
       <section className="rounded-b-[32px] bg-gradient-to-b from-[#cbbdff] via-[#8d74ff] to-[#6d4dff] px-5 pb-16 pt-8 text-white md:rounded-[28px] md:pb-8">
         <h1 className="text-center text-2xl font-bold">{tx(locale, "Statistiques", "Statistics")}</h1>
       </section>
-      <div className="-mt-10 space-y-4 px-4 md:mt-4 md:px-0">
-        <article className="rounded-[28px] bg-white p-5 shadow-[var(--shadow-card)]">
+      <div className="-mt-10 grid gap-4 px-4 md:mt-4 md:px-0 xl:grid-cols-3">
+        <article className="rounded-[28px] bg-white p-5 shadow-[var(--shadow-card)] xl:col-span-2 xl:row-span-2">
           <div className="mb-2 flex items-start justify-between">
             <div>
               <p className="text-sm text-muted">{tx(locale, "Capital confirmé", "Confirmed capital")}</p>
@@ -40,7 +40,7 @@ export default async function StatisticsPage() {
             {tx(locale, "Chaque point est la somme des émissions déjà inscrites. Pas une valorisation.", "Each point is the sum of shares already issued. Not a valuation.")}
           </p>
         </article>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 content-start gap-3">
           <article className="rounded-[24px] bg-white p-4 shadow-sm">
             <p className="text-sm text-muted">{tx(locale, "Dividendes payés", "Dividends paid")}</p>
             <p className="mt-2 text-xl font-bold">{formatMoney(paid, "USD", locale)}</p>

@@ -19,7 +19,7 @@ export default async function BeneficiariesPage() {
   return (
     <div className="space-y-4 px-4 md:px-0">
       <h1 className="text-3xl font-bold">{tx(locale, "Bénéficiaires", "Beneficiaries")}</h1>
-      <p className="text-sm text-muted">
+      <p className="max-w-3xl text-sm text-muted">
         {tx(locale, "La portée de cette démo est une déclaration pour l'ensemble des titres, pas un droit par société. Elle ne transfère rien.", "This demo's scope is a statement for all holdings, not a per-company right. It transfers nothing.")}
       </p>
       {sets.map((set) => (

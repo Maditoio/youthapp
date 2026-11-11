@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LanguageSwitcher } from "@/components/language-switcher";
-import { SignOutButton } from "@/components/sign-out-button";
+import { SidebarShell, type NavGroup } from "@/components/side-nav";
+import { SidebarFooter } from "@/components/sidebar-footer";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
@@ -13,33 +12,50 @@ export default async function IssuerLayout({ children }: { children: React.React
   if (!session) redirect("/sign-in");
   if (!session.roles.includes("issuer_manager")) redirect("/admin");
   const locale = await getLocale();
-  const links = [
-    ["/issuer", tx(locale, "Société", "Company")],
-    ["/issuer/projects", tx(locale, "Projets", "Projects")],
-    ["/issuer/profits", tx(locale, "Bénéfices", "Profits")],
-    ["/issuer/updates", tx(locale, "Actualités", "Updates")],
-    ["/issuer/reports", tx(locale, "Rapports", "Reports")],
-    ["/issuer/documents", tx(locale, "Documents", "Documents")],
-    ["/issuer/shareholder-communications", tx(locale, "Actionnaires", "Shareholders")],
+  const t = (fr: string, en: string) => tx(locale, fr, en);
+
+  const groups: NavGroup[] = [
+    {
+      label: t("Société", "Company"),
+      items: [
+        { href: "/issuer", label: t("Société", "Company"), icon: "building", exact: true },
+        { href: "/issuer/projects", label: t("Projets", "Projects"), icon: "folder" },
+      ],
+    },
+    {
+      label: t("Résultats", "Performance"),
+      items: [
+        { href: "/issuer/profits", label: t("Bénéfices", "Profits"), icon: "coins" },
+        { href: "/issuer/reports", label: t("Rapports", "Reports"), icon: "chart" },
+      ],
+    },
+    {
+      label: t("Communication", "Communication"),
+      items: [
+        { href: "/issuer/updates", label: t("Actualités", "Updates"), icon: "news" },
+        { href: "/issuer/shareholder-communications", label: t("Actionnaires", "Shareholders"), icon: "megaphone" },
+        { href: "/issuer/documents", label: t("Documents", "Documents"), icon: "file" },
+      ],
+    },
   ];
+
   return (
-    <div className="min-h-dvh bg-canvas">
-      <header className="flex items-center justify-between bg-violet px-4 py-4 text-white">
-        <Link href="/issuer" className="font-extrabold">JEUNESE</Link>
-        <nav className="hidden gap-4 text-sm md:flex">
-          {links.map(([href, label]) => (
-            <Link key={href} href={href}>{label}</Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-3">
-          <LanguageSwitcher locale={locale} labels={{ language: "Language", french: "FR", english: "EN" }} returnTo="/issuer" />
-          <SignOutButton className="text-sm">{tx(locale, "Sortir", "Sign out")}</SignOutButton>
-        </div>
-      </header>
-      <nav className="flex gap-3 overflow-x-auto bg-violet px-4 pb-3 text-sm text-white md:hidden">
-        {links.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
-      </nav>
-      <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
-    </div>
+    <SidebarShell
+      homeHref="/issuer"
+      area={t("Émetteur", "Issuer")}
+      userName={session.user.legalFirstName}
+      userMeta={session.user.email}
+      groups={groups}
+      footer={<SidebarFooter locale={locale} returnTo="/issuer" />}
+      labels={{
+        nav: t("Navigation émetteur", "Issuer navigation"),
+        menu: t("Ouvrir le menu", "Open menu"),
+        close: t("Fermer le menu", "Close menu"),
+        more: t("Plus", "More"),
+      }}
+      mainClassName="px-4 py-5 md:px-6 lg:px-8 lg:py-8"
+    >
+      {children}
+    </SidebarShell>
   );
 }

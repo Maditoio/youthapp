@@ -15,16 +15,18 @@ export default async function DividendsPage() {
   return (
     <div className="space-y-3 px-4 md:px-0">
       <h1 className="text-3xl font-bold">{tx(locale, "Dividendes", "Dividends")}</h1>
-      <p className="text-sm text-muted">{tx(locale, "Seuls les dividendes déclarés sont affichés. Aucun dividende futur n'est calculé.", "Only declared dividends are shown. No future dividend is calculated.")}</p>
-      {snap?.dividends.map(({ entitlement, declaration, payment, issuer }) => (
-        <article key={entitlement.id} className="rounded-[28px] bg-white p-5 text-sm">
-          <p className="font-bold">{issuer.legalName}</p>
-          <p>{tx(locale, "Date d'arrêté", "Record date")} {formatDate(declaration.recordDate, locale)} · {tx(locale, "paiement", "payment")} {formatDate(declaration.paymentDate, locale)}</p>
-          <p>{tx(locale, "Brut", "Gross")} {formatMoney(entitlement.grossAmountMinor, declaration.currencyCode, locale)}</p>
-          <p>{tx(locale, "Retenue", "Withholding")} {formatMoney(entitlement.withholdingTaxMinor, declaration.currencyCode, locale)}</p>
-          <p>{tx(locale, "Net", "Net")} {formatMoney(entitlement.netAmountMinor, declaration.currencyCode, locale)} · {payment?.status} · {payment?.providerReference}</p>
-        </article>
-      ))}
+      <p className="max-w-3xl text-sm text-muted">{tx(locale, "Seuls les dividendes déclarés sont affichés. Aucun dividende futur n'est calculé.", "Only declared dividends are shown. No future dividend is calculated.")}</p>
+      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+        {snap?.dividends.map(({ entitlement, declaration, payment, issuer }) => (
+          <article key={entitlement.id} className="rounded-[28px] bg-white p-5 text-sm">
+            <p className="font-bold">{issuer.legalName}</p>
+            <p>{tx(locale, "Date d'arrêté", "Record date")} {formatDate(declaration.recordDate, locale)} · {tx(locale, "paiement", "payment")} {formatDate(declaration.paymentDate, locale)}</p>
+            <p>{tx(locale, "Brut", "Gross")} {formatMoney(entitlement.grossAmountMinor, declaration.currencyCode, locale)}</p>
+            <p>{tx(locale, "Retenue", "Withholding")} {formatMoney(entitlement.withholdingTaxMinor, declaration.currencyCode, locale)}</p>
+            <p>{tx(locale, "Net", "Net")} {formatMoney(entitlement.netAmountMinor, declaration.currencyCode, locale)} · {payment?.status} · {payment?.providerReference}</p>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

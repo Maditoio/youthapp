@@ -113,7 +113,7 @@ export default async function InvestorHomePage() {
           ))}
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="space-y-4">
             <section className="rounded-[28px] bg-white p-4 shadow-sm md:p-5">
               <div className="mb-3 flex items-center justify-between">
@@ -135,7 +135,7 @@ export default async function InvestorHomePage() {
                 {feed.length === 0 ? <li className="py-6 text-sm text-muted">{tx(locale, "Aucune activité confirmée.", "No confirmed activity yet.")}</li> : null}
               </ul>
             </section>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {projects.map(({ project, progress, offering }) => (
                 <Link key={project.id} href={`/projects/${project.slug}`} className="rounded-[28px] bg-white p-4 shadow-sm">
                   <span className="grid h-10 w-10 place-items-center rounded-2xl bg-lilac text-violet">

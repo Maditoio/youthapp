@@ -108,27 +108,29 @@ export default async function OnboardingPage() {
             "Enter your identity details to continue. Identity verification stays separate and is never auto-approved.",
           )}
         </p>
-        <OnboardingForm
-          locale={locale}
-          defaults={{
-            firstName: profile.legalFirstName,
-            middleName: profile.legalMiddleName,
-            lastName: profile.legalLastName,
-            phone: session.user.phone ?? "",
-            country: profile.countryOfResidence ?? "CD",
-            gender: readGender(profile.gender) ?? "",
-            language: session.user.preferredLanguage,
-            dateOfBirth: profile.dateOfBirth ?? "",
-            nationality: profile.nationality ?? "",
-            addressLine: profile.addressLine ?? "",
-            city: profile.city ?? "",
-            taxResidency: profile.taxResidency ?? "",
-            taxId: "",
-            sourceOfFunds: profile.sourceOfFunds ?? "",
-            payoutLabel: profile.payoutLabel ?? "",
-            pep: profile.pepStatus === "YES" ? "YES" : "NO",
-          }}
-        />
+        <div className="max-w-3xl">
+          <OnboardingForm
+            locale={locale}
+            defaults={{
+              firstName: profile.legalFirstName,
+              middleName: profile.legalMiddleName,
+              lastName: profile.legalLastName,
+              phone: session.user.phone ?? "",
+              country: profile.countryOfResidence ?? "CD",
+              gender: readGender(profile.gender) ?? "",
+              language: session.user.preferredLanguage,
+              dateOfBirth: profile.dateOfBirth ?? "",
+              nationality: profile.nationality ?? "",
+              addressLine: profile.addressLine ?? "",
+              city: profile.city ?? "",
+              taxResidency: profile.taxResidency ?? "",
+              taxId: "",
+              sourceOfFunds: profile.sourceOfFunds ?? "",
+              payoutLabel: profile.payoutLabel ?? "",
+              pep: profile.pepStatus === "YES" ? "YES" : "NO",
+            }}
+          />
+        </div>
       </div>
     );
   }
@@ -139,7 +141,7 @@ export default async function OnboardingPage() {
         <h1 className="text-3xl font-bold">{tx(locale, "Vérification", "Verification")}</h1>
         <StatusPill tone={kycStatusTone(status)}>{kycStatusLabel(locale, status)}</StatusPill>
       </div>
-      <p className="max-w-2xl break-words text-sm leading-relaxed text-muted">{statusGuidance(status, locale)}</p>
+      <p className="max-w-3xl break-words text-sm leading-relaxed text-muted">{statusGuidance(status, locale)}</p>
       {needsMoreDocs ? <RequestedDocumentsPanel locale={locale} kyc={kyc} /> : null}
       <p>
         <Link href="/investor" className="text-sm font-semibold text-violet">

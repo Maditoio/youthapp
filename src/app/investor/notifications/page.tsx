@@ -16,19 +16,21 @@ export default async function NotificationsPage() {
   return (
     <div className="space-y-3 px-4 md:px-0">
       <h1 className="text-3xl font-bold">{tx(locale, "Notifications", "Notifications")}</h1>
-      {notes.map((note) => (
-        <article key={note.id} className="rounded-[28px] bg-white p-4">
-          <p className="font-bold">{tx(locale, note.titleFr, note.titleEn)}</p>
-          <p className="text-sm">{tx(locale, note.bodyFr, note.bodyEn)}</p>
-          <p className="text-xs text-muted">{formatDateTime(note.createdAt, locale)} · {note.status}</p>
-          {note.status === "UNREAD" ? (
-            <form action={readNoteAction}>
-              <input type="hidden" name="id" value={note.id} />
-              <SubmitButton variant="link" size="inline" className="mt-2">{tx(locale, "Marquer comme lu", "Mark read")}</SubmitButton>
-            </form>
-          ) : null}
-        </article>
-      ))}
+      <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+        {notes.map((note) => (
+          <article key={note.id} className="rounded-[28px] bg-white p-4">
+            <p className="font-bold">{tx(locale, note.titleFr, note.titleEn)}</p>
+            <p className="text-sm">{tx(locale, note.bodyFr, note.bodyEn)}</p>
+            <p className="text-xs text-muted">{formatDateTime(note.createdAt, locale)} · {note.status}</p>
+            {note.status === "UNREAD" ? (
+              <form action={readNoteAction}>
+                <input type="hidden" name="id" value={note.id} />
+                <SubmitButton variant="link" size="inline" className="mt-2">{tx(locale, "Marquer comme lu", "Mark read")}</SubmitButton>
+              </form>
+            ) : null}
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

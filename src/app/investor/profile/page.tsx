@@ -102,60 +102,62 @@ export default async function ProfilePage() {
         ))}
       </nav>
 
-      <section className="overflow-hidden rounded-[28px] bg-white px-4 shadow-sm">
-        <div className="border-b border-border/70 py-3">
-          <h2 className="text-sm font-bold">{tx(locale, "Compte", "Account")}</h2>
-        </div>
-        <dl>
-          <ProfileRow label={tx(locale, "Investisseur", "Investor")} value={profile.investorNumber} />
-          <ProfileRow label={tx(locale, "E-mail", "Email")} value={session.user.email} />
-          <ProfileRow label={tx(locale, "Téléphone", "Phone")} value={session.user.phone ?? "—"} />
-          <ProfileRow
-            label={tx(locale, "Identité", "Identity")}
-            value={approved ? tx(locale, "Approuvée / vérifiée", "Approved / verified") : kycStatusLabel(locale, status)}
-          />
-          <ProfileRow
-            label={tx(locale, "Pays", "Country")}
-            value={countryName(locale, profile.countryOfResidence)}
-          />
-          <ProfileRow
-            label={tx(locale, "Genre", "Gender")}
-            value={gender ? genderLabel(locale, gender) : "—"}
-          />
-          <ProfileRow
-            label={tx(locale, "Fiscal", "Tax id")}
-            value={maskValue(profile.taxId) || "—"}
-          />
-        </dl>
-      </section>
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <section className="overflow-hidden rounded-[28px] bg-white px-4 shadow-sm">
+          <div className="border-b border-border/70 py-3">
+            <h2 className="text-sm font-bold">{tx(locale, "Compte", "Account")}</h2>
+          </div>
+          <dl>
+            <ProfileRow label={tx(locale, "Investisseur", "Investor")} value={profile.investorNumber} />
+            <ProfileRow label={tx(locale, "E-mail", "Email")} value={session.user.email} />
+            <ProfileRow label={tx(locale, "Téléphone", "Phone")} value={session.user.phone ?? "—"} />
+            <ProfileRow
+              label={tx(locale, "Identité", "Identity")}
+              value={approved ? tx(locale, "Approuvée / vérifiée", "Approved / verified") : kycStatusLabel(locale, status)}
+            />
+            <ProfileRow
+              label={tx(locale, "Pays", "Country")}
+              value={countryName(locale, profile.countryOfResidence)}
+            />
+            <ProfileRow
+              label={tx(locale, "Genre", "Gender")}
+              value={gender ? genderLabel(locale, gender) : "—"}
+            />
+            <ProfileRow
+              label={tx(locale, "Fiscal", "Tax id")}
+              value={maskValue(profile.taxId) || "—"}
+            />
+          </dl>
+        </section>
 
-      <section className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-bold">{tx(locale, "Modifier le profil", "Edit profile")}</h2>
-          <p className="text-xs text-muted">{tx(locale, "Champs éditables", "Editable fields")}</p>
-        </div>
-        <ProfileForm
-          locale={locale}
-          defaults={{
-            firstName: profile.legalFirstName,
-            middleName: profile.legalMiddleName,
-            lastName: profile.legalLastName,
-            phone: session.user.phone ?? "",
-            country: profile.countryOfResidence ?? "",
-            gender: gender ?? "",
-            language: session.user.preferredLanguage,
-            dateOfBirth: profile.dateOfBirth ?? "",
-            nationality: profile.nationality ?? "",
-            addressLine: profile.addressLine ?? "",
-            city: profile.city ?? "",
-            taxResidency: profile.taxResidency ?? "",
-            taxId: "",
-            sourceOfFunds: profile.sourceOfFunds ?? "",
-            payoutLabel: profile.payoutLabel ?? "",
-            pep: profile.pepStatus === "YES" ? "YES" : "NO",
-          }}
-        />
-      </section>
+        <section className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-bold">{tx(locale, "Modifier le profil", "Edit profile")}</h2>
+            <p className="text-xs text-muted">{tx(locale, "Champs éditables", "Editable fields")}</p>
+          </div>
+          <ProfileForm
+            locale={locale}
+            defaults={{
+              firstName: profile.legalFirstName,
+              middleName: profile.legalMiddleName,
+              lastName: profile.legalLastName,
+              phone: session.user.phone ?? "",
+              country: profile.countryOfResidence ?? "",
+              gender: gender ?? "",
+              language: session.user.preferredLanguage,
+              dateOfBirth: profile.dateOfBirth ?? "",
+              nationality: profile.nationality ?? "",
+              addressLine: profile.addressLine ?? "",
+              city: profile.city ?? "",
+              taxResidency: profile.taxResidency ?? "",
+              taxId: "",
+              sourceOfFunds: profile.sourceOfFunds ?? "",
+              payoutLabel: profile.payoutLabel ?? "",
+              pep: profile.pepStatus === "YES" ? "YES" : "NO",
+            }}
+          />
+        </section>
+      </div>
     </div>
   );
 }
