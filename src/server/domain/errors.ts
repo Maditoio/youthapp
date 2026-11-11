@@ -117,12 +117,16 @@ export const errorCopy: Record<string, { fr: string; en: string }> = {
   NOT_FOUND: { fr: "Élément introuvable.", en: "Item not found." },
   FORBIDDEN: { fr: "Action non autorisée.", en: "You cannot do that." },
   INVALID_STATE: {
-    fr: "Cette transition n'est pas permise.",
-    en: "That transition is not allowed.",
+    fr: "Cette action n'est pas permise dans l'état actuel.",
+    en: "This action is not allowed in the current state.",
+  },
+  STATUS_REQUIRED: {
+    fr: "Choisissez un statut cible avec l'un des boutons, puis confirmez.",
+    en: "Choose a target status with one of the buttons, then confirm.",
   },
   MAKER_CHECKER: {
-    fr: "Une autre personne doit approuver cette action.",
-    en: "Someone else must approve this action.",
+    fr: "Règle maker-checker : un autre membre du personnel doit approuver cette action. Vous ne pouvez pas valider ce que vous avez créé.",
+    en: "Maker-checker rule: another staff user must approve this action. You cannot approve what you created.",
   },
   DUPLICATE_EVENT: {
     fr: "Cet événement de paiement a déjà été traité.",

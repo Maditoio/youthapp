@@ -1,4 +1,5 @@
 import { inheritanceAdvanceAction, inheritanceApproveAction, inheritanceTransferAction } from "@/server/actions";
+import { errorCopy } from "@/server/domain/errors";
 import { INHERITANCE_NEXT } from "@/server/domain/mutate";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
@@ -6,13 +7,15 @@ import { tx } from "@/lib/i18n/tx";
 
 export const dynamic = "force-dynamic";
 
-export default async function InheritanceAdmin() {
+export default async function InheritanceAdmin({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const session = await getSession();
   if (!session) return null;
   const locale = await getLocale();
+  const error = (await searchParams).error;
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Successions", "Estates")}</h1>
+      {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
       <p className="text-sm text-muted">{tx(locale, "Deux approbations distinctes, puis une troisième personne, sont nécessaires avant toute écriture de transfert.", "Two different approvals, then a third person, are required before any transfer entry.")}</p>
       {session.db.inheritanceCases.length === 0 ? <p className="text-sm">{tx(locale, "Aucun dossier.", "No cases.")}</p> : null}
       {session.db.inheritanceCases.map((item) => (

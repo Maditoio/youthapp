@@ -1,4 +1,5 @@
 import { refundApproveAction, refundRequestAction, settleAction } from "@/server/actions";
+import { errorCopy } from "@/server/domain/errors";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
@@ -6,13 +7,15 @@ import { formatMoney } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function PaymentsAdmin() {
+export default async function PaymentsAdmin({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const session = await getSession();
   if (!session) return null;
   const locale = await getLocale();
+  const error = (await searchParams).error;
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Paiements", "Payments")}</h1>
+      {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
       {session.db.payments.map((payment) => (
         <article key={payment.id} className="rounded-[24px] bg-white p-4 text-sm">
           <p className="font-bold">{payment.providerEventId} · {payment.status}</p>

@@ -1,4 +1,5 @@
 import { approveAllotmentAction, prepareAllotmentAction } from "@/server/actions";
+import { errorCopy } from "@/server/domain/errors";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
@@ -6,15 +7,17 @@ import { ids } from "@/server/db/seed";
 
 export const dynamic = "force-dynamic";
 
-export default async function RegisterPage() {
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const session = await getSession();
   if (!session) return null;
   const locale = await getLocale();
+  const error = (await searchParams).error;
   const waiting = session.db.subscriptions.filter((item) => item.status === "PAID_AWAITING_CLOSING" && item.offeringId === ids.offering);
   const batches = session.db.allotmentBatches;
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Registre de démonstration", "Demonstration register")}</h1>
+      {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
       <p className="text-sm text-muted">{tx(locale, "Ce registre n'est pas présenté comme le registre statutaire légal.", "This register is not presented as the statutory legal register.")}</p>
       <form action={prepareAllotmentAction} className="space-y-2 rounded-[24px] bg-white p-4 text-sm">
         <input type="hidden" name="offeringId" value={ids.offering} />

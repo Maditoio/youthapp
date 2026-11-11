@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EntitySelect } from "@/components/choice-fields";
 import { dividendApproveAction, dividendPayAction, dividendProposeAction } from "@/server/actions";
+import { errorCopy } from "@/server/domain/errors";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
@@ -20,7 +21,7 @@ export default async function DividendsAdmin({ searchParams }: { searchParams: P
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Dividendes", "Dividends")}</h1>
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
       {!canPropose ? (
         <p className="rounded-2xl bg-lilac/60 px-4 py-3 text-sm">
           {tx(

@@ -518,16 +518,21 @@ export async function kycDecisionAction(formData: FormData) {
 
 export async function offeringTransitionAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    transitionOffering(
-      db,
-      session.user.id,
-      String(formData.get("offeringId") ?? ""),
-      String(formData.get("to") ?? "") as OfferingStatus,
-      String(formData.get("reason") ?? ""),
-    ),
-  );
-  redirect(`/admin/offerings/${String(formData.get("offeringId") ?? "")}`);
+  const offeringId = String(formData.get("offeringId") ?? "").trim();
+  const to = String(formData.get("to") ?? "").trim();
+  const back = `/admin/offerings/${encodeURIComponent(offeringId || "unknown")}`;
+  if (!offeringId) redirect("/admin/offerings?error=NOT_FOUND");
+  if (!to) redirect(`${back}?error=STATUS_REQUIRED`);
+  try {
+    await (await getStore()).update((db) =>
+      transitionOffering(db, session.user.id, offeringId, to as OfferingStatus, String(formData.get("reason") ?? "")),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`${back}?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
+  redirect(back);
 }
 
 export async function createIssuerAction(formData: FormData) {
@@ -587,50 +592,80 @@ export async function createProjectAction(formData: FormData) {
 
 export async function prepareAllotmentAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    prepareAllotment(
-      db,
-      session.user.id,
-      String(formData.get("offeringId") ?? ""),
-      formData.getAll("subscriptionId").map(String),
-    ),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      prepareAllotment(
+        db,
+        session.user.id,
+        String(formData.get("offeringId") ?? ""),
+        formData.getAll("subscriptionId").map(String),
+      ),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/share-register?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/share-register");
 }
 
 export async function approveAllotmentAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    approveAllotment(
-      db,
-      session.user.id,
-      String(formData.get("batchId") ?? ""),
-      String(formData.get("evidence") ?? ""),
-      String(formData.get("password") ?? ""),
-    ),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      approveAllotment(
+        db,
+        session.user.id,
+        String(formData.get("batchId") ?? ""),
+        String(formData.get("evidence") ?? ""),
+        String(formData.get("password") ?? ""),
+      ),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/share-register?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/share-register");
 }
 
 export async function settleAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) => settlePayment(db, session.user.id, String(formData.get("paymentId") ?? "")));
+  try {
+    await (await getStore()).update((db) => settlePayment(db, session.user.id, String(formData.get("paymentId") ?? "")));
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/payments");
 }
 
 export async function refundRequestAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    requestRefund(db, session.user.id, String(formData.get("paymentId") ?? ""), String(formData.get("reason") ?? "")),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      requestRefund(db, session.user.id, String(formData.get("paymentId") ?? ""), String(formData.get("reason") ?? "")),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/payments");
 }
 
 export async function refundApproveAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    approveRefund(db, session.user.id, String(formData.get("refundId") ?? ""), String(formData.get("password") ?? "")),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      approveRefund(db, session.user.id, String(formData.get("refundId") ?? ""), String(formData.get("password") ?? "")),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/payments");
 }
 
@@ -685,76 +720,112 @@ export async function dividendProposeAction(formData: FormData) {
   const session = await requireStaff();
   const perShare = parseMajorToMinor(String(formData.get("perShare") ?? ""));
   if (perShare === null) redirect("/admin/dividends?error=AMOUNT_INVALID");
-  await (await getStore()).update((db) =>
-    proposeDividend(db, session.user.id, {
-      issuerId: String(formData.get("issuerId") ?? ""),
-      shareClassId: String(formData.get("shareClassId") ?? ""),
-      perShareMinor: perShare,
-      recordDate: new Date(String(formData.get("recordDate") ?? "")).toISOString(),
-      paymentDate: new Date(String(formData.get("paymentDate") ?? "")).toISOString(),
-      withholdingBps: Number(formData.get("withholdingBps") ?? 0),
-    }),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      proposeDividend(db, session.user.id, {
+        issuerId: String(formData.get("issuerId") ?? ""),
+        shareClassId: String(formData.get("shareClassId") ?? ""),
+        perShareMinor: perShare,
+        recordDate: new Date(String(formData.get("recordDate") ?? "")).toISOString(),
+        paymentDate: new Date(String(formData.get("paymentDate") ?? "")).toISOString(),
+        withholdingBps: Number(formData.get("withholdingBps") ?? 0),
+      }),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/dividends?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/dividends");
 }
 
 export async function dividendApproveAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    approveDividend(db, session.user.id, String(formData.get("declarationId") ?? ""), String(formData.get("password") ?? "")),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      approveDividend(db, session.user.id, String(formData.get("declarationId") ?? ""), String(formData.get("password") ?? "")),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/dividends?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/dividends");
 }
 
 export async function dividendPayAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) => markDividendPaid(db, session.user.id, String(formData.get("paymentId") ?? "")));
+  try {
+    await (await getStore()).update((db) => markDividendPaid(db, session.user.id, String(formData.get("paymentId") ?? "")));
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/dividends?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/dividends");
 }
 
 export async function inheritanceAdvanceAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    advanceInheritance(
-      db,
-      session.user.id,
-      String(formData.get("caseId") ?? ""),
-      String(formData.get("to") ?? "") as InheritanceStatus,
-      String(formData.get("notes") ?? ""),
-      String(formData.get("password") ?? ""),
-    ),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      advanceInheritance(
+        db,
+        session.user.id,
+        String(formData.get("caseId") ?? ""),
+        String(formData.get("to") ?? "") as InheritanceStatus,
+        String(formData.get("notes") ?? ""),
+        String(formData.get("password") ?? ""),
+      ),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/inheritance");
 }
 
 export async function inheritanceApproveAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    addInheritanceApproval(
-      db,
-      session.user.id,
-      String(formData.get("caseId") ?? ""),
-      String(formData.get("evidence") ?? ""),
-      String(formData.get("password") ?? ""),
-    ),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      addInheritanceApproval(
+        db,
+        session.user.id,
+        String(formData.get("caseId") ?? ""),
+        String(formData.get("evidence") ?? ""),
+        String(formData.get("password") ?? ""),
+      ),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/inheritance");
 }
 
 export async function inheritanceTransferAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) =>
-    recordInheritanceRegisterUpdate(
-      db,
-      session.user.id,
-      String(formData.get("caseId") ?? ""),
-      String(formData.get("fromId") ?? ""),
-      String(formData.get("toId") ?? ""),
-      String(formData.get("shareClassId") ?? ""),
-      Number(formData.get("quantity") ?? 0),
-      String(formData.get("password") ?? ""),
-    ),
-  );
+  try {
+    await (await getStore()).update((db) =>
+      recordInheritanceRegisterUpdate(
+        db,
+        session.user.id,
+        String(formData.get("caseId") ?? ""),
+        String(formData.get("fromId") ?? ""),
+        String(formData.get("toId") ?? ""),
+        String(formData.get("shareClassId") ?? ""),
+        Number(formData.get("quantity") ?? 0),
+        String(formData.get("password") ?? ""),
+      ),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
   redirect("/admin/inheritance");
 }
 
