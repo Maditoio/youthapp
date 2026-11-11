@@ -148,6 +148,10 @@ export const errorCopy: Record<string, { fr: string; en: string }> = {
     fr: "Choisissez un secteur dans la liste.",
     en: "Choose an industry from the list.",
   },
+  ISSUER_REQUIRED: {
+    fr: "Créez d'abord un émetteur, puis choisissez-le dans la liste.",
+    en: "Create an issuer first, then choose it from the list.",
+  },
   DOCUMENT_MISMATCH: {
     fr: "Ce document n'est pas accepté pour le pays de résidence. Il part en revue manuelle.",
     en: "This document is not accepted for the country of residence. It is queued for manual review.",

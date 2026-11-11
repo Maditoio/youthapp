@@ -46,10 +46,28 @@ export function isDocumentType(code: string): boolean {
   return DOCUMENT_TYPES.some((item) => item.code === code);
 }
 
-/** Industry strings already stored on seeded projects. */
+/** Industry codes stored on projects/issuers (value = French operational label). */
 export const INDUSTRIES = [
   { code: "Agroalimentaire", fr: "Agroalimentaire", en: "Food processing" },
+  { code: "Agriculture", fr: "Agriculture", en: "Agriculture" },
+  { code: "Élevage", fr: "Élevage", en: "Livestock" },
+  { code: "Pêche", fr: "Pêche", en: "Fishing" },
   { code: "Emballage", fr: "Emballage", en: "Packaging" },
+  { code: "Manufacturing", fr: "Manufacture", en: "Manufacturing" },
+  { code: "Énergie", fr: "Énergie", en: "Energy" },
+  { code: "Mines", fr: "Mines", en: "Mining" },
+  { code: "Construction", fr: "Construction", en: "Construction" },
+  { code: "Transport", fr: "Transport et logistique", en: "Transport and logistics" },
+  { code: "Commerce", fr: "Commerce", en: "Trade / retail" },
+  { code: "Technologie", fr: "Technologie", en: "Technology" },
+  { code: "Télécoms", fr: "Télécommunications", en: "Telecoms" },
+  { code: "Santé", fr: "Santé", en: "Healthcare" },
+  { code: "Éducation", fr: "Éducation", en: "Education" },
+  { code: "Finance", fr: "Services financiers", en: "Financial services" },
+  { code: "Tourisme", fr: "Tourisme et hôtellerie", en: "Tourism and hospitality" },
+  { code: "Immobilier", fr: "Immobilier", en: "Real estate" },
+  { code: "Médias", fr: "Médias et divertissement", en: "Media and entertainment" },
+  { code: "Autre", fr: "Autre", en: "Other" },
 ] as const;
 
 export function isIndustry(code: string): boolean {

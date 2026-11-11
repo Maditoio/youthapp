@@ -17,6 +17,7 @@ import {
   cancelSubscription,
   castVote,
   createDraftProject,
+  createIssuer,
   createSubscription,
   createTicket,
   completeInvestorOnboarding,
@@ -529,16 +530,42 @@ export async function offeringTransitionAction(formData: FormData) {
   redirect(`/admin/offerings/${String(formData.get("offeringId") ?? "")}`);
 }
 
+export async function createIssuerAction(formData: FormData) {
+  const session = await requireStaff();
+  try {
+    await (await getStore()).update((db) =>
+      createIssuer(db, session.user.id, {
+        legalName: String(formData.get("legalName") ?? ""),
+        tradingName: String(formData.get("tradingName") ?? ""),
+        registrationNumber: String(formData.get("registrationNumber") ?? ""),
+        jurisdiction: String(formData.get("jurisdiction") ?? ""),
+        legalForm: String(formData.get("legalForm") ?? ""),
+        registeredAddress: String(formData.get("registeredAddress") ?? ""),
+        industry: String(formData.get("industry") ?? ""),
+        website: String(formData.get("website") ?? ""),
+      }),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(`/admin/issuers?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+  }
+  const next = String(formData.get("next") ?? "").trim();
+  redirect(next.startsWith("/admin/") ? next : "/admin/issuers");
+}
+
 export async function createProjectAction(formData: FormData) {
   const session = await requireStaff();
   const price = parseMajorToMinor(String(formData.get("price") ?? ""));
   const min = parseMajorToMinor(String(formData.get("min") ?? ""));
   const max = parseMajorToMinor(String(formData.get("max") ?? ""));
   if (price === null || min === null || max === null) redirect("/admin/projects/new?error=AMOUNT_INVALID");
+  const issuerId = String(formData.get("issuerId") ?? "").trim();
+  if (!issuerId) redirect("/admin/projects/new?error=ISSUER_REQUIRED");
   try {
     const created = await (await getStore()).update((db) =>
       createDraftProject(db, session.user.id, {
-        issuerId: String(formData.get("issuerId") ?? ""),
+        issuerId,
         titleFr: String(formData.get("titleFr") ?? ""),
         titleEn: String(formData.get("titleEn") ?? ""),
         location: String(formData.get("location") ?? ""),

@@ -1567,6 +1567,72 @@ export function transitionOffering(
   audit(db, actorId, `offering.${to.toLowerCase()}`, "offering", offering.id, reason);
 }
 
+function ensureOrdinaryShareClass(db: Database, issuerId: string, at: string): string {
+  const existing = db.shareClasses.find((item) => item.issuerId === issuerId);
+  if (existing) return existing.id;
+  const id = uid();
+  db.shareClasses.push({
+    id,
+    issuerId,
+    className: "Actions ordinaires",
+    classCode: "ORD",
+    currencyCode: "USD",
+    votingRightsFr: "Une voix par action.",
+    votingRightsEn: "One vote per share.",
+    dividendRightsFr: "Droit aux dividendes déclarés, s'il y en a.",
+    dividendRightsEn: "Right to declared dividends, if any.",
+    transferRestrictionsFr: "Cession soumise aux conditions de l'offre et de la société.",
+    transferRestrictionsEn: "Transfers subject to the offering and company terms.",
+    createdAt: at,
+  });
+  return id;
+}
+
+/** Creates an issuer company plus a default ordinary share class. */
+export function createIssuer(
+  db: Database,
+  actorId: string,
+  input: {
+    legalName: string;
+    tradingName?: string;
+    registrationNumber: string;
+    jurisdiction: string;
+    legalForm: string;
+    registeredAddress: string;
+    industry: string;
+    website?: string;
+  },
+): { issuerId: string; shareClassId: string } {
+  requirePermission(db, actorId, "issuers.write");
+  const legalName = input.legalName.trim();
+  const registrationNumber = input.registrationNumber.trim();
+  assert(legalName.length >= 2, "INVALID_STATE");
+  assert(registrationNumber.length >= 2, "INVALID_STATE");
+  assert(isIndustry(input.industry), "INDUSTRY_INVALID");
+  assert(input.jurisdiction.trim().length >= 2, "INVALID_STATE");
+  assert(input.legalForm.trim().length >= 2, "INVALID_STATE");
+  assert(input.registeredAddress.trim().length >= 2, "INVALID_STATE");
+  const at = now(db);
+  const issuerId = uid();
+  db.issuers.push({
+    id: issuerId,
+    legalName,
+    tradingName: (input.tradingName ?? legalName).trim() || legalName,
+    registrationNumber,
+    jurisdiction: input.jurisdiction.trim(),
+    legalForm: input.legalForm.trim(),
+    registeredAddress: input.registeredAddress.trim(),
+    industry: input.industry,
+    companyStatus: "ACTIVE",
+    website: (input.website ?? "").trim(),
+    createdAt: at,
+    updatedAt: at,
+  });
+  const shareClassId = ensureOrdinaryShareClass(db, issuerId, at);
+  audit(db, actorId, "issuer.create", "issuer", issuerId);
+  return { issuerId, shareClassId };
+}
+
 export function createDraftProject(
   db: Database,
   actorId: string,
@@ -1591,8 +1657,7 @@ export function createDraftProject(
   const at = now(db);
   const projectId = uid();
   const offeringId = uid();
-  const shareClass = db.shareClasses.find((item) => item.issuerId === issuer.id);
-  assert(shareClass, "NOT_FOUND");
+  const shareClassId = ensureOrdinaryShareClass(db, issuer.id, at);
   const slug = input.titleEn.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || projectId;
   db.projects.push({
     id: projectId,
@@ -1658,7 +1723,7 @@ export function createDraftProject(
   db.offeringShareTerms.push({
     id: uid(),
     offeringId,
-    shareClassId: shareClass.id,
+    shareClassId,
     issuePriceMinor: input.issuePriceMinor,
     sharesOffered: input.sharesOffered,
     maximumSharesPerInvestor: 200,

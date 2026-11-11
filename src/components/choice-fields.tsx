@@ -115,3 +115,50 @@ export function IndustrySelect({
     </select>
   );
 }
+
+/** Select backed by DB rows. Shows a clear empty state when there is nothing to choose. */
+export function EntitySelect({
+  locale,
+  name,
+  options,
+  emptyLabel,
+  chooseLabel,
+  required = true,
+  className,
+  defaultValue = "",
+}: {
+  locale: AppLocale;
+  name: string;
+  options: { value: string; label: string }[];
+  emptyLabel: string;
+  chooseLabel?: string;
+  required?: boolean;
+  className?: string;
+  defaultValue?: string;
+}) {
+  if (options.length === 0) {
+    return (
+      <select
+        name={name}
+        required={required}
+        disabled
+        defaultValue=""
+        aria-invalid
+        className={cn(choiceField, "opacity-70", className)}
+      >
+        <option value="">{emptyLabel}</option>
+      </select>
+    );
+  }
+  const selected = options.some((item) => item.value === defaultValue) ? defaultValue : "";
+  return (
+    <select name={name} required={required} defaultValue={selected} className={cn(choiceField, className)}>
+      <option value="">{chooseLabel ?? tx(locale, "Choisir…", "Choose…")}</option>
+      {options.map((item) => (
+        <option key={item.value} value={item.value}>
+          {item.label}
+        </option>
+      ))}
+    </select>
+  );
+}

@@ -1,4 +1,5 @@
 import { DatePicker } from "@/components/ui/date-picker";
+import { EntitySelect } from "@/components/choice-fields";
 import { issuerProfitAction } from "@/server/actions";
 import { issuerScope } from "@/server/issuer-scope";
 import { formatMoney } from "@/lib/format";
@@ -14,10 +15,15 @@ export default async function IssuerProfits({ searchParams }: { searchParams: Pr
   const locale = await getLocale();
   const error = (await searchParams).error;
   const db = scope.session.db;
+  const issuerOptions = [...scope.issuerIds].map((id) => ({
+    value: id,
+    label: db.issuers.find((item) => item.id === id)?.legalName ?? id,
+  }));
   const classes = db.shareClasses.filter((item) => scope.issuerIds.has(item.issuerId));
   const financed = db.companyFinancings.filter((item) => scope.issuerIds.has(item.issuerId));
   const financedMinor = financed.reduce((sum, item) => sum + item.amountMinor, 0);
   const declarations = db.dividendDeclarations.filter((item) => scope.issuerIds.has(item.issuerId));
+  const canPropose = issuerOptions.length > 0 && classes.length > 0;
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Bénéfices", "Profits")}</h1>
@@ -42,16 +48,29 @@ export default async function IssuerProfits({ searchParams }: { searchParams: Pr
           )}
         </p>
         {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
-        <select name="issuerId" className="h-12 w-full rounded-2xl border px-3">
-          {[...scope.issuerIds].map((id) => (
-            <option key={id} value={id}>{db.issuers.find((item) => item.id === id)?.legalName ?? id}</option>
-          ))}
-        </select>
-        <select name="shareClassId" className="h-12 w-full rounded-2xl border px-3">
-          {classes.map((item) => (
-            <option key={item.id} value={item.id}>{item.className}</option>
-          ))}
-        </select>
+        {!canPropose ? (
+          <p className="text-sm text-muted">
+            {tx(
+              locale,
+              "Aucune société ou classe d'actions n'est disponible pour votre compte.",
+              "No company or share class is available for your account.",
+            )}
+          </p>
+        ) : null}
+        <EntitySelect
+          locale={locale}
+          name="issuerId"
+          options={issuerOptions}
+          emptyLabel={tx(locale, "Aucune société", "No company")}
+          chooseLabel={tx(locale, "Choisir la société", "Choose a company")}
+        />
+        <EntitySelect
+          locale={locale}
+          name="shareClassId"
+          options={classes.map((item) => ({ value: item.id, label: item.className }))}
+          emptyLabel={tx(locale, "Aucune classe d'actions", "No share classes")}
+          chooseLabel={tx(locale, "Choisir la classe", "Choose a share class")}
+        />
         <input name="perShare" required placeholder={tx(locale, "Montant par action USD", "Amount per share USD")} className="h-12 w-full rounded-2xl border px-3" />
         <input name="withholdingBps" required defaultValue="1000" placeholder="1000" className="h-12 w-full rounded-2xl border px-3" />
         <label className="block text-sm font-semibold">
@@ -62,7 +81,7 @@ export default async function IssuerProfits({ searchParams }: { searchParams: Pr
           {tx(locale, "Date de paiement", "Payment date")}
           <DatePicker locale={locale} name="paymentDate" required className="mt-1" />
         </label>
-        <button className="rounded-full bg-violet px-4 py-2 font-semibold text-white">
+        <button className="rounded-full bg-violet px-4 py-2 font-semibold text-white disabled:opacity-50" disabled={!canPropose}>
           {tx(locale, "Proposer le versement", "Propose the payment")}
         </button>
       </form>
