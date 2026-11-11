@@ -2,10 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Lint the app source. The generated Prisma contract is excluded so its empty codec maps cannot fail the build.
-  eslint: {
-    dirs: ["src/app", "src/components", "src/features", "src/lib", "src/messages", "src/server", "src/styles"],
-  },
   // Headers that help PWA install prompts and basic hardening.
   async headers() {
     return [
