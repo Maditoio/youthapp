@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { appConfig } from "@/lib/config";
 import { signPayload } from "@/server/domain/crypto";
 import { AppError } from "@/server/domain/errors";
 import { applySandboxPayment } from "@/server/domain/mutate";
 import { asAppError, getStore } from "@/server/db/store";
 
 export async function POST(request: Request) {
+  if (!appConfig.sandboxPaymentsEnabled) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
   const body = await request.text();
   const secret = process.env.SANDBOX_WEBHOOK_SECRET || "sandbox-demo-webhook-secret";
   const signature = request.headers.get("x-sandbox-signature") ?? "";

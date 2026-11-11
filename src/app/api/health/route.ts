@@ -6,5 +6,6 @@ export function GET() {
     ok: true,
     product: appConfig.productName,
     demoMode: appConfig.demoMode,
+    sandboxPaymentsEnabled: appConfig.sandboxPaymentsEnabled,
   });
 }

@@ -115,7 +115,7 @@ Citizens aged 18 through 35 can join and buy. Raised money is assigned to the co
 
 When `DATABASE_URL` is set, screens read and write PostgreSQL through the Prisma 8 contract (`src/prisma/contract.prisma`). Without it, the local demo file `data/demo-db.json` is used. Put your connection string in `.env` / Vercel, then run `npx prisma db init` with Node.js 22.18 or newer to create the tables. Production Postgres starts empty (no fictional Amina/tomato seed).
 
-Payments stay in the sandbox. Money is stored in integer cents, the ledger balances, and a sandbox payment does not issue shares. A real statutory register, licensed custody, and production identity checks are not in place. Do not treat the figures as a real offer.
+Payments stay in the sandbox. Money is stored in integer cents, the ledger balances, and a sandbox payment does not issue shares. Sandbox simulate-payment (investor subscription detail) and `POST /api/webhooks/payments/sandbox` are on when `NEXT_PUBLIC_DEMO_MODE` is not `false`, or when `SANDBOX_PAYMENTS_ENABLED=true` for process testing without the demo banner/seed. A real statutory register, licensed custody, and production identity checks are not in place. Do not treat the figures as a real offer.
 
 ## License
 

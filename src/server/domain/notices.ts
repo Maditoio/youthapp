@@ -15,7 +15,7 @@ export const noticeCopy: Record<string, { fr: string; en: string }> = {
   DEATH_REPORTED: { fr: "Dossier de succession ouvert.", en: "Estate case opened." },
   SUBSCRIPTION_CREATED: { fr: "Souscription créée.", en: "Subscription created." },
   SUBSCRIPTION_CANCELLED: { fr: "Souscription annulée.", en: "Subscription cancelled." },
-  PAYMENT_RECORDED: { fr: "Paiement de démonstration enregistré.", en: "Sandbox payment recorded." },
+  PAYMENT_RECORDED: { fr: "Paiement de test (bac à sable) enregistré.", en: "Sandbox test payment recorded." },
   VOTE_CAST: { fr: "Vote enregistré.", en: "Vote recorded." },
   TICKET_SENT: { fr: "Message envoyé.", en: "Message sent." },
   REPLY_SENT: { fr: "Réponse envoyée.", en: "Reply sent." },

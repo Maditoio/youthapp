@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { cancelSubAction, sandboxPayAction } from "@/server/actions";
+import { appConfig } from "@/lib/config";
 import { formatMoney } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
@@ -24,6 +25,7 @@ export default async function SubscriptionDetail({
   const subscription = session.db.subscriptions.find((item) => item.id === id && item.investorProfileId === profile?.id);
   if (!subscription) notFound();
   const holding = session.db.shareIssuances.some((item) => item.subscriptionId === subscription.id);
+  const sandboxPayments = appConfig.sandboxPaymentsEnabled;
   return (
     <div className="space-y-4 px-4 md:px-0">
       <h1 className="text-3xl font-bold">{subscription.reference}</h1>
@@ -33,24 +35,48 @@ export default async function SubscriptionDetail({
       </p>
       {paid ? (
         <p className="rounded-2xl bg-lilac p-4 text-sm">
-          {tx(locale, "Le paiement de démonstration est enregistré. Cette page ne crée pas d'actions.", "The demo payment is recorded. This page does not create shares.")}{" "}
+          {tx(
+            locale,
+            "Le paiement de test (bac à sable) est enregistré. Cette page ne crée pas d'actions.",
+            "The sandbox test payment is recorded. This page does not create shares.",
+          )}{" "}
           {holding ? tx(locale, "Une émission existe déjà.", "An issuance already exists.") : tx(locale, "Aucune action n'est encore émise.", "No shares are issued yet.")}
         </p>
       ) : null}
       {subscription.status === "PENDING_PAYMENT" ? (
-        <div className="flex flex-wrap gap-2">
-          <form action={sandboxPayAction}>
-            <input type="hidden" name="id" value={subscription.id} />
-            <SubmitButton>
-              {tx(locale, "Payer dans le bac à sable", "Pay in the sandbox")}
-            </SubmitButton>
-          </form>
-          <form action={cancelSubAction}>
-            <input type="hidden" name="id" value={subscription.id} />
-            <SubmitButton variant="secondary">
-              {tx(locale, "Annuler", "Cancel")}
-            </SubmitButton>
-          </form>
+        <div className="space-y-3">
+          {sandboxPayments ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted">
+                {tx(
+                  locale,
+                  "Rail de test uniquement — aucun argent réel. Simule un paiement confirmé pour enchaîner KYC, clôture et allotissement.",
+                  "Test rail only — no real money. Simulate a confirmed payment so you can exercise KYC, closing and allotment.",
+                )}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <form action={sandboxPayAction}>
+                  <input type="hidden" name="id" value={subscription.id} />
+                  <SubmitButton>
+                    {tx(locale, "Simuler le paiement (bac à sable)", "Simulate payment (sandbox)")}
+                  </SubmitButton>
+                </form>
+                <form action={cancelSubAction}>
+                  <input type="hidden" name="id" value={subscription.id} />
+                  <SubmitButton variant="secondary">
+                    {tx(locale, "Annuler", "Cancel")}
+                  </SubmitButton>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <form action={cancelSubAction}>
+              <input type="hidden" name="id" value={subscription.id} />
+              <SubmitButton variant="secondary">
+                {tx(locale, "Annuler", "Cancel")}
+              </SubmitButton>
+            </form>
+          )}
         </div>
       ) : null}
       {subscription.status === "PAID_AWAITING_CLOSING" ? (

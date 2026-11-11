@@ -16,6 +16,10 @@ describe("appConfig", () => {
     expect(appConfig.defaultLocale).toBe("fr");
     expect(appConfig.demoMode).toBe(true);
   });
+
+  it("enables sandbox payments when demo mode is on", () => {
+    expect(appConfig.sandboxPaymentsEnabled).toBe(true);
+  });
 });
 
 describe("i18n", () => {

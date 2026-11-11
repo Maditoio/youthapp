@@ -456,6 +456,7 @@ export async function cancelSubAction(formData: FormData) {
 }
 
 export async function sandboxPayAction(formData: FormData) {
+  if (!appConfig.sandboxPaymentsEnabled) throw new AppError("FORBIDDEN");
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const subscriptionId = String(formData.get("id") ?? "");
