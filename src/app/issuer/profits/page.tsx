@@ -1,5 +1,6 @@
 import { DatePicker } from "@/components/ui/date-picker";
 import { EntitySelect } from "@/components/choice-fields";
+import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
 import { issuerProfitAction } from "@/server/actions";
 import { issuerScope } from "@/server/issuer-scope";
 import { formatMoney } from "@/lib/format";
@@ -10,7 +11,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function IssuerProfits({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function IssuerProfits({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; modal?: string }>;
+}) {
   const scope = await issuerScope();
   if (!scope) return null;
   const locale = await getLocale();
@@ -27,9 +32,19 @@ export default async function IssuerProfits({ searchParams }: { searchParams: Pr
   const canPropose = issuerOptions.length > 0 && classes.length > 0;
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold">{tx(locale, "Bénéfices", "Profits")}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-bold">{tx(locale, "Bénéfices", "Profits")}</h1>
+        <ModalOpenLink
+          href="/issuer/profits?modal=propose"
+          className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white"
+        >
+          {tx(locale, "Proposer", "Propose")}
+        </ModalOpenLink>
+      </div>
       <article className="rounded-[28px] bg-white p-5">
-        <p className="text-sm text-muted">{tx(locale, "Fonds déjà affectés à la société", "Money already assigned to the company")}</p>
+        <p className="text-sm text-muted">
+          {tx(locale, "Fonds déjà affectés à la société", "Money already assigned to the company")}
+        </p>
         <p className="text-3xl font-bold">{formatMoney(financedMinor, "USD", locale)}</p>
         <p className="mt-2 text-sm text-muted">
           {tx(
@@ -39,58 +54,74 @@ export default async function IssuerProfits({ searchParams }: { searchParams: Pr
           )}
         </p>
       </article>
-      <form action={issuerProfitAction} className="space-y-2 rounded-[28px] bg-white p-5">
-        <h2 className="text-lg font-bold">{tx(locale, "Décider d'un versement", "Decide a profit payment")}</h2>
-        <p className="text-sm text-muted">
-          {tx(
-            locale,
-            "Le montant est multiplié par le nombre d'actions de chaque actionnaire à la date d'arrêté. Un autre administrateur doit encore approuver le versement.",
-            "The amount is multiplied by each shareholder's number of shares on the record date. Another administrator must still approve the payment.",
-          )}
-        </p>
-        {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
-        {!canPropose ? (
-          <p className="text-sm text-muted">
-            {tx(
-              locale,
-              "Aucune société ou classe d'actions n'est disponible pour votre compte.",
-              "No company or share class is available for your account.",
-            )}
-          </p>
-        ) : null}
-        <EntitySelect
-          locale={locale}
-          name="issuerId"
-          options={issuerOptions}
-          emptyLabel={tx(locale, "Aucune société", "No company")}
-          chooseLabel={tx(locale, "Choisir la société", "Choose a company")}
-        />
-        <EntitySelect
-          locale={locale}
-          name="shareClassId"
-          options={classes.map((item) => ({ value: item.id, label: item.className }))}
-          emptyLabel={tx(locale, "Aucune classe d'actions", "No share classes")}
-          chooseLabel={tx(locale, "Choisir la classe", "Choose a share class")}
-        />
-        <input name="perShare" required placeholder={tx(locale, "Montant par action USD", "Amount per share USD")} className="h-12 w-full rounded-2xl border px-3" />
-        <input name="withholdingBps" required defaultValue="1000" placeholder="1000" className="h-12 w-full rounded-2xl border px-3" />
-        <label className="block text-sm font-semibold">
-          {tx(locale, "Date d'arrêté", "Record date")}
-          <DatePicker locale={locale} name="recordDate" required className="mt-1" />
-        </label>
-        <label className="block text-sm font-semibold">
-          {tx(locale, "Date de paiement", "Payment date")}
-          <DatePicker locale={locale} name="paymentDate" required className="mt-1" />
-        </label>
-        <SubmitButton size="sm" disabled={!canPropose}>
-          {tx(locale, "Proposer le versement", "Propose the payment")}
-        </SubmitButton>
-      </form>
       {declarations.map((item) => (
         <p key={item.id} className="rounded-2xl bg-white p-3 text-sm">
           {formatMoney(item.perShareMinor, item.currencyCode, locale)} / {tx(locale, "action", "share")} · {item.status}
         </p>
       ))}
+
+      <SearchParamModal
+        param="modal"
+        value="propose"
+        title={tx(locale, "Décider d'un versement", "Decide a profit payment")}
+        description={tx(
+          locale,
+          "Le montant est multiplié par le nombre d'actions de chaque actionnaire à la date d'arrêté. Un autre administrateur doit encore approuver le versement.",
+          "The amount is multiplied by each shareholder's number of shares on the record date. Another administrator must still approve the payment.",
+        )}
+        size="lg"
+      >
+        <form action={issuerProfitAction} className="space-y-2">
+          {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
+          {!canPropose ? (
+            <p className="text-sm text-muted">
+              {tx(
+                locale,
+                "Aucune société ou classe d'actions n'est disponible pour votre compte.",
+                "No company or share class is available for your account.",
+              )}
+            </p>
+          ) : null}
+          <EntitySelect
+            locale={locale}
+            name="issuerId"
+            options={issuerOptions}
+            emptyLabel={tx(locale, "Aucune société", "No company")}
+            chooseLabel={tx(locale, "Choisir la société", "Choose a company")}
+          />
+          <EntitySelect
+            locale={locale}
+            name="shareClassId"
+            options={classes.map((item) => ({ value: item.id, label: item.className }))}
+            emptyLabel={tx(locale, "Aucune classe d'actions", "No share classes")}
+            chooseLabel={tx(locale, "Choisir la classe", "Choose a share class")}
+          />
+          <input
+            name="perShare"
+            required
+            placeholder={tx(locale, "Montant par action USD", "Amount per share USD")}
+            className="h-12 w-full rounded-2xl border px-3"
+          />
+          <input
+            name="withholdingBps"
+            required
+            defaultValue="1000"
+            placeholder="1000"
+            className="h-12 w-full rounded-2xl border px-3"
+          />
+          <label className="block text-sm font-semibold">
+            {tx(locale, "Date d'arrêté", "Record date")}
+            <DatePicker locale={locale} name="recordDate" required className="mt-1" />
+          </label>
+          <label className="block text-sm font-semibold">
+            {tx(locale, "Date de paiement", "Payment date")}
+            <DatePicker locale={locale} name="paymentDate" required className="mt-1" />
+          </label>
+          <SubmitButton size="sm" disabled={!canPropose}>
+            {tx(locale, "Proposer le versement", "Propose the payment")}
+          </SubmitButton>
+        </form>
+      </SearchParamModal>
     </div>
   );
 }
