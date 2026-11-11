@@ -70,7 +70,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
       userMeta={session.user.email}
       groups={groups}
       mobileTabs={[dashboard, statistics, offers, portfolio]}
-      footer={<SidebarFooter locale={locale} settingsHref="/investor/settings" />}
+      footer={<SidebarFooter locale={locale} />}
       labels={{
         nav: t("Navigation investisseur", "Investor navigation"),
         menu: t("Ouvrir le menu", "Open menu"),

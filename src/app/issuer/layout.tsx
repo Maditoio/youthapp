@@ -50,7 +50,7 @@ export default async function IssuerLayout({ children }: { children: React.React
       userName={session.user.legalFirstName}
       userMeta={session.user.email}
       groups={groups}
-      footer={<SidebarFooter locale={locale} settingsHref="/issuer/settings" />}
+      footer={<SidebarFooter locale={locale} />}
       labels={{
         nav: t("Navigation émetteur", "Issuer navigation"),
         menu: t("Ouvrir le menu", "Open menu"),
