@@ -6,12 +6,25 @@ import { Store } from "./store";
 
 type PgClient = ReturnType<typeof openDatabase>;
 
+type OrmFilter = Record<string, unknown> | ((row: { id: FieldOps; countryCode: FieldOps }) => unknown);
+
+type FieldOps = {
+  eq: (value: string) => unknown;
+  neq: (value: string) => unknown;
+};
+
 type OrmModel = {
   all: () => PromiseLike<Record<string, unknown>[]>;
   createAll: (rows: Record<string, unknown>[]) => PromiseLike<unknown>;
   create: (row: Record<string, unknown>) => PromiseLike<unknown>;
-  where: (filter: Record<string, unknown>) => { deleteAll: () => PromiseLike<unknown> };
+  where: (filter: OrmFilter) => {
+    deleteAll: () => PromiseLike<unknown>;
+    updateAll: (data: Record<string, unknown>) => PromiseLike<unknown>;
+    upsert: (args: { create: Record<string, unknown>; update: Record<string, unknown> }) => PromiseLike<unknown>;
+  };
 };
+
+const PLATFORM_STATE_ID = "jeunese";
 
 /** Child → parent order for deletes. Inserts run in reverse. */
 const MODEL_ORDER = [
@@ -171,7 +184,7 @@ function fromLoginRow(row: Record<string, unknown>): Database["loginAttempts"][n
 
 function rowsForModel(db: Database, model: ModelName): Record<string, unknown>[] {
   if (model === "PlatformState") {
-    return [{ id: "jeunese", version: db.version, clock: db.clock }];
+    return [{ id: PLATFORM_STATE_ID, version: db.version, clock: db.clock }];
   }
   const key = COLLECTION_BY_MODEL[model];
   if (!key) return [];
@@ -264,24 +277,45 @@ async function hydrate(client: PgClient): Promise<Database> {
   }
 }
 
+/**
+ * Prisma 8 object `where` is equality-only. `{ id: { not: "" } }` never matches,
+ * so deleteAll was a no-op and createAll hit PlatformState_pkey (and other PKs).
+ * Use equality filters or field-proxy `.neq("")` instead.
+ */
+async function clearModel(txOrm: Record<string, OrmModel>, model: ModelName): Promise<void> {
+  if (model === "PlatformState") {
+    await txOrm[model].where({ id: PLATFORM_STATE_ID }).deleteAll();
+    return;
+  }
+  if (model === "IdentityPolicy") {
+    await txOrm[model].where((row) => row.countryCode.neq("")).deleteAll();
+    return;
+  }
+  await txOrm[model].where((row) => row.id.neq("")).deleteAll();
+}
+
+async function persistPlatformState(txOrm: Record<string, OrmModel>, db: Database): Promise<void> {
+  const row = { id: PLATFORM_STATE_ID, version: db.version, clock: db.clock };
+  // deleteAll + create (not single-row update/upsert): single-row writers can hang inside tx.
+  await txOrm.PlatformState.where({ id: PLATFORM_STATE_ID }).deleteAll();
+  await txOrm.PlatformState.create(row);
+}
+
 async function persistAll(client: PgClient, db: Database): Promise<void> {
   await client.transaction(async (tx) => {
     const txOrm = (tx as unknown as { orm: { public: Record<string, OrmModel> } }).orm.public;
     for (const model of MODEL_ORDER) {
       try {
-        // Match every row: ids / country codes are non-empty in practice.
-        if (model === "IdentityPolicy") {
-          await txOrm[model].where({ countryCode: { not: "" } }).deleteAll();
-        } else if (model === "PlatformState") {
-          await txOrm[model].where({ id: { not: "" } }).deleteAll();
-        } else {
-          await txOrm[model].where({ id: { not: "" } }).deleteAll();
-        }
+        await clearModel(txOrm, model);
       } catch {
-        // Table may be empty or missing until db init.
+        // Table may be missing until `prisma db init` has been run.
       }
     }
     for (const model of [...MODEL_ORDER].reverse()) {
+      if (model === "PlatformState") {
+        await persistPlatformState(txOrm, db);
+        continue;
+      }
       const rows = rowsForModel(db, model);
       if (!rows.length) continue;
       await txOrm[model].createAll(rows);

@@ -166,7 +166,9 @@ export async function bindClerkSession(profile?: ClerkBindProfile): Promise<void
     redirect(await destinationFor(linked.userId, linked.created));
   } catch (error) {
     if (isRedirect(error)) throw error;
-    console.error("bind_clerk_session_failed");
+    const name = error instanceof Error ? error.name : typeof error;
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("bind_clerk_session_failed", { name, message });
     throw error;
   }
 }
