@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { maskValue } from "@/lib/format";
@@ -19,8 +20,9 @@ export default async function InvestorsPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <h1 className="text-3xl font-bold">{tx(locale, "Investisseurs", "Investors")}</h1>
-      <form className="my-3">
+      <form className="my-3 flex flex-wrap items-center gap-2">
         <input name="q" defaultValue={q} placeholder={tx(locale, "Nom, numéro, e-mail, téléphone", "Name, number, email, phone")} className="h-12 w-full max-w-md rounded-full border bg-white px-4" />
+        <SubmitButton size="sm">{tx(locale, "Filtrer", "Filter")}</SubmitButton>
       </form>
       <div className="overflow-x-auto rounded-[24px] bg-white">
         <table className="w-full text-left text-sm">
