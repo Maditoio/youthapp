@@ -19,6 +19,7 @@ import {
   createDraftProject,
   createSubscription,
   createTicket,
+  completeInvestorOnboarding,
   isInvestorOnboardingComplete,
   linkOrCreateClerk,
   linkOrCreateGoogle,
@@ -206,33 +207,49 @@ export async function googleDemoAction() {
   redirect(result.created ? "/investor/onboarding" : "/investor");
 }
 
+function profileFieldsFromForm(formData: FormData) {
+  return {
+    firstName: String(formData.get("firstName") ?? ""),
+    middleName: String(formData.get("middleName") ?? ""),
+    lastName: String(formData.get("lastName") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+    country: String(formData.get("country") ?? ""),
+    language: (formData.get("language") === "en" ? "en" : "fr") as Locale,
+    dateOfBirth: String(formData.get("dateOfBirth") ?? ""),
+    nationality: String(formData.get("nationality") ?? ""),
+    addressLine: String(formData.get("addressLine") ?? ""),
+    city: String(formData.get("city") ?? ""),
+    taxResidency: String(formData.get("taxResidency") ?? ""),
+    taxId: String(formData.get("taxId") ?? ""),
+    sourceOfFunds: String(formData.get("sourceOfFunds") ?? ""),
+    pepStatus: (formData.get("pep") === "YES" ? "YES" : "NO") as "YES" | "NO",
+    payoutLabel: String(formData.get("payoutLabel") ?? ""),
+    gender: String(formData.get("gender") ?? ""),
+  };
+}
+
 export async function profileAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await getSession();
   if (!session) return { error: "FORBIDDEN" };
   try {
-    await (await getStore()).update((db) =>
-      updateInvestorDetails(db, session.user.id, {
-        firstName: String(formData.get("firstName") ?? ""),
-        middleName: String(formData.get("middleName") ?? ""),
-        lastName: String(formData.get("lastName") ?? ""),
-        phone: String(formData.get("phone") ?? ""),
-        country: String(formData.get("country") ?? ""),
-        language: formData.get("language") === "en" ? "en" : "fr",
-        dateOfBirth: String(formData.get("dateOfBirth") ?? ""),
-        nationality: String(formData.get("nationality") ?? ""),
-        addressLine: String(formData.get("addressLine") ?? ""),
-        city: String(formData.get("city") ?? ""),
-        taxResidency: String(formData.get("taxResidency") ?? ""),
-        taxId: String(formData.get("taxId") ?? ""),
-        sourceOfFunds: String(formData.get("sourceOfFunds") ?? ""),
-        pepStatus: formData.get("pep") === "YES" ? "YES" : "NO",
-        payoutLabel: String(formData.get("payoutLabel") ?? ""),
-        gender: String(formData.get("gender") ?? ""),
-      }),
-    );
+    await (await getStore()).update((db) => updateInvestorDetails(db, session.user.id, profileFieldsFromForm(formData)));
     revalidatePath("/investor");
     return { ok: true };
   } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function onboardingAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { error: "FORBIDDEN" };
+  try {
+    await (await getStore()).update((db) => completeInvestorOnboarding(db, session.user.id, profileFieldsFromForm(formData)));
+    revalidatePath("/investor/onboarding");
+    revalidatePath("/investor");
+    redirect("/investor");
+  } catch (error) {
+    if (isRedirect(error)) throw error;
     return fail(error);
   }
 }

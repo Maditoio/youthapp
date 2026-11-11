@@ -13,6 +13,7 @@ import {
   applySandboxPayment,
   approveAllotment,
   createSubscription,
+  completeInvestorOnboarding,
   isInvestorOnboardingComplete,
   linkOrCreateClerk,
   linkOrCreateGoogle,
@@ -359,5 +360,68 @@ describe("money and ownership rules", async () => {
     expect(linked.created).toBe(false);
     expect(linked.userId).toBe(ids.amina);
     expect(isInvestorOnboardingComplete(memory.db, linked.userId)).toBe(true);
+  });
+
+  it("completes onboarding without approving KYC and enforces age 18–35", async () => {
+    const memory = store();
+    const created = await memory.update((draft) =>
+      linkOrCreateClerk(draft, {
+        clerkUserId: "clerk_onboard",
+        email: "onboard@demo.jeunese.test",
+        firstName: "New",
+        lastName: "Citizen",
+      }),
+    );
+    const kycBefore = memory.db.kycCases.find(
+      (item) => item.investorProfileId === memory.db.investorProfiles.find((profile) => profile.userId === created.userId)?.id,
+    );
+    expect(kycBefore?.status).toBe("NOT_STARTED");
+    await expect(
+      memory.update((draft) =>
+        completeInvestorOnboarding(draft, created.userId, {
+          firstName: "New",
+          middleName: "",
+          lastName: "Citizen",
+          phone: "+243812345680",
+          country: "CD",
+          language: "fr",
+          dateOfBirth: "2012-01-01",
+          nationality: "CD",
+          addressLine: "Kin",
+          city: "Kinshasa",
+          taxResidency: "CD",
+          taxId: "",
+          sourceOfFunds: "Salaire",
+          pepStatus: "NO",
+          payoutLabel: "",
+          gender: "female",
+        }),
+      ),
+    ).rejects.toBeInstanceOf(AppError);
+    await memory.update((draft) =>
+      completeInvestorOnboarding(draft, created.userId, {
+        firstName: "New",
+        middleName: "M",
+        lastName: "Citizen",
+        phone: "+243812345680",
+        country: "CD",
+        language: "fr",
+        dateOfBirth: "1999-03-15",
+        nationality: "CD",
+        addressLine: "Kin",
+        city: "Kinshasa",
+        taxResidency: "CD",
+        taxId: "",
+        sourceOfFunds: "Salaire",
+        pepStatus: "NO",
+        payoutLabel: "",
+        gender: "female",
+      }),
+    );
+    expect(isInvestorOnboardingComplete(memory.db, created.userId)).toBe(true);
+    const profile = memory.db.investorProfiles.find((item) => item.userId === created.userId);
+    const kyc = memory.db.kycCases.find((item) => item.investorProfileId === profile?.id);
+    expect(profile?.onboardingStatus).toBe("IN_PROGRESS");
+    expect(kyc?.status).toBe("NOT_STARTED");
   });
 });

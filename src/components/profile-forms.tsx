@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { kycAction, nominationAction, profileAction } from "@/server/actions";
+import { kycAction, nominationAction, onboardingAction, profileAction } from "@/server/actions";
 import { CountrySelect, DocumentTypeSelect, GenderSelect } from "@/components/choice-fields";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -109,6 +109,112 @@ export function ProfileForm({
       {state.error ? <p className="text-sm text-danger md:col-span-2">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700 md:col-span-2">{tx(locale, "Enregistré.", "Saved.")}</p> : null}
       <Button type="submit" disabled={pending}>{tx(locale, "Enregistrer", "Save")}</Button>
+    </form>
+  );
+}
+
+export function OnboardingForm({
+  locale,
+  defaults,
+}: {
+  locale: AppLocale;
+  defaults: Record<string, string>;
+}) {
+  const [state, action, pending] = useActionState(onboardingAction, {});
+  return (
+    <form action={action} className="grid gap-3 md:grid-cols-2">
+      <label className="text-sm font-semibold">
+        {tx(locale, "Prénom légal", "Legal first name")}
+        <input name="firstName" required defaultValue={defaults.firstName ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Deuxième prénom", "Middle name")}
+        <input name="middleName" defaultValue={defaults.middleName ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Nom légal", "Legal last name")}
+        <input name="lastName" required defaultValue={defaults.lastName ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Téléphone", "Phone")}
+        <input name="phone" required defaultValue={defaults.phone ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Pays de résidence", "Country of residence")}
+        <CountrySelect locale={locale} name="country" defaultValue={defaults.country ?? "CD"} required className="mt-1" />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Genre", "Gender")}
+        <GenderSelect locale={locale} defaultValue={defaults.gender ?? ""} required className="mt-1" />
+        <span className="mt-1 block text-xs font-normal text-muted">
+          {tx(locale, "Donnée démographique uniquement.", "Demographic information only.")}
+        </span>
+      </label>
+      <label className="text-sm font-semibold md:col-span-2">
+        {tx(locale, "Date de naissance", "Date of birth")}
+        <DatePicker locale={locale} name="dateOfBirth" required defaultValue={defaults.dateOfBirth ?? ""} className="mt-1" />
+        <span className="mt-1 block text-xs font-normal text-muted">
+          {tx(locale, "Ouvert de 18 à 35 ans inclus.", "Open from age 18 through 35 inclusive.")}
+        </span>
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Nationalité", "Nationality")}
+        <CountrySelect
+          locale={locale}
+          name="nationality"
+          defaultValue={defaults.nationality ?? ""}
+          placeholder={tx(locale, "Choisir la nationalité", "Choose a nationality")}
+          className="mt-1"
+        />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Ville", "City")}
+        <input name="city" defaultValue={defaults.city ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold md:col-span-2">
+        {tx(locale, "Adresse", "Address")}
+        <input name="addressLine" defaultValue={defaults.addressLine ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Résidence fiscale", "Tax residency")}
+        <CountrySelect
+          locale={locale}
+          name="taxResidency"
+          defaultValue={defaults.taxResidency ?? ""}
+          placeholder={tx(locale, "Choisir la résidence fiscale", "Choose a tax residency")}
+          className="mt-1"
+        />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Identifiant fiscal", "Tax id")}
+        <input name="taxId" defaultValue={defaults.taxId ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Origine des fonds", "Source of funds")}
+        <input name="sourceOfFunds" defaultValue={defaults.sourceOfFunds ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Libellé de paiement", "Payout label")}
+        <input name="payoutLabel" defaultValue={defaults.payoutLabel ?? ""} className={`${field} mt-1`} />
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Langue", "Language")}
+        <select name="language" defaultValue={defaults.language ?? locale} className={`${field} mt-1`}>
+          <option value="fr">Français</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <label className="text-sm font-semibold">
+        {tx(locale, "Personne politiquement exposée", "Politically exposed person")}
+        <select name="pep" defaultValue={defaults.pep ?? "NO"} className={`${field} mt-1`}>
+          <option value="NO">{tx(locale, "Non", "No")}</option>
+          <option value="YES">{tx(locale, "Oui", "Yes")}</option>
+        </select>
+      </label>
+      {state.error ? <p className="text-sm text-danger md:col-span-2">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
+      <Button type="submit" className="md:col-span-2" disabled={pending}>
+        {tx(locale, "Terminer l'inscription", "Finish onboarding")}
+      </Button>
     </form>
   );
 }

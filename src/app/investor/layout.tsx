@@ -3,6 +3,7 @@ import { InvestorShell, type ShellLabels } from "@/components/investor-shell";
 import { getDictionary, getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
+import { isInvestorOnboardingComplete } from "@/server/domain/mutate";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,14 @@ export default async function InvestorLayout({ children }: { children: React.Rea
   if (!session.roles.includes("investor")) {
     redirect(session.roles.includes("issuer_manager") ? "/issuer" : "/admin");
   }
+
+  const { headers } = await import("next/headers");
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const onOnboarding = pathname.includes("/investor/onboarding");
+  if (!onOnboarding && !isInvestorOnboardingComplete(session.db, session.user.id)) {
+    redirect("/investor/onboarding");
+  }
+
   const locale = await getLocale();
   const dict = await getDictionary(locale);
   const labels: ShellLabels = {

@@ -616,6 +616,45 @@ export function isInvestorOnboardingComplete(db: Database, userId: string): bool
   return investorAgeCode(profile.dateOfBirth, now(db)) === null;
 }
 
+/** Finish eligibility profile without approving identity/KYC. */
+export function completeInvestorOnboarding(
+  db: Database,
+  userId: string,
+  input: {
+    firstName: string;
+    middleName: string;
+    lastName: string;
+    phone: string;
+    country: string;
+    language: Locale;
+    dateOfBirth: string;
+    nationality: string;
+    addressLine: string;
+    city: string;
+    taxResidency: string;
+    taxId: string;
+    sourceOfFunds: string;
+    pepStatus: "NO" | "YES";
+    payoutLabel: string;
+    gender: string;
+  },
+): void {
+  assert(input.firstName.trim() && input.lastName.trim(), "PROFILE_INCOMPLETE");
+  assert(input.dateOfBirth.trim(), "DATE_OF_BIRTH_REQUIRED");
+  const ageCode = investorAgeCode(input.dateOfBirth, now(db));
+  assert(!ageCode, ageCode ?? "DATE_OF_BIRTH_REQUIRED");
+  updateInvestorDetails(db, userId, input);
+  const profile = db.investorProfiles.find((item) => item.userId === userId);
+  assert(profile, "NOT_FOUND");
+  const kyc = db.kycCases.find((item) => item.investorProfileId === profile.id);
+  if (kyc) {
+    kyc.status = "NOT_STARTED";
+    kyc.updatedAt = now(db);
+  }
+  if (profile.onboardingStatus === "NOT_STARTED") profile.onboardingStatus = "IN_PROGRESS";
+  audit(db, userId, "investor.onboarding_complete", "investor_profile", profile.id);
+}
+
 export function updateInvestorDetails(
   db: Database,
   userId: string,
@@ -673,11 +712,7 @@ export function updateInvestorDetails(
   profile.payoutLabel = input.payoutLabel || null;
   profile.updatedAt = now(db);
   if (profile.onboardingStatus === "NOT_STARTED") profile.onboardingStatus = "IN_PROGRESS";
-  const kyc = db.kycCases.find((item) => item.investorProfileId === profile.id);
-  if (kyc && kyc.status === "NOT_STARTED") {
-    kyc.status = "IN_PROGRESS";
-    kyc.updatedAt = now(db);
-  }
+  // Profile edits never advance or approve KYC — only document submit + staff review do.
   audit(db, userId, "investor.profile_update", "investor_profile", profile.id);
 }
 
