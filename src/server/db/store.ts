@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 /**
  * Demo persistence. Screens use this file store.
@@ -53,8 +54,12 @@ export class FileStore extends Store {
   }
 
   persist() {
-    mkdirSync(path.dirname(this.filePath), { recursive: true });
-    writeFileSync(this.filePath, JSON.stringify(this.db));
+    try {
+      mkdirSync(path.dirname(this.filePath), { recursive: true });
+      writeFileSync(this.filePath, JSON.stringify(this.db));
+    } catch {
+      // The demo still serves from memory when the host filesystem is read-only.
+    }
   }
 
   reset() {
@@ -73,7 +78,8 @@ export function getStore(): FileStore {
 }
 
 export function defaultPath(): string {
-  return path.join(process.cwd(), "data", "demo-db.json");
+  const root = process.env.VERCEL ? path.join(os.tmpdir(), "jeunese") : path.join(process.cwd(), "data");
+  return path.join(root, "demo-db.json");
 }
 
 export function asAppError(error: unknown): AppError | null {
