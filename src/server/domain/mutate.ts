@@ -13,6 +13,14 @@ import { digest, hashCode, hashPassword, randomDigits, uid, verifyCode, verifyPa
 import type { Database, InheritanceStatus, KycStatus, Locale, OfferingStatus, Role } from "./types";
 import { DEMO_NOW } from "./types";
 import { isGender, isIndustry, isPermittedCountry } from "@/lib/choices";
+import {
+  encodeKycReviewNotes,
+  isKycReasonCode,
+  isKycReviewDecision,
+  isRequestableDocumentType,
+  kycReasonLabel,
+  requestableDocumentLabel,
+} from "@/lib/kyc-decisions";
 
 const PHONE = /^\+[1-9]\d{7,14}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -974,6 +982,7 @@ export function reviewKyc(
   reasonCode: string,
   notes: string,
   password: string,
+  requestedDocumentTypes: string[] = [],
 ): void {
   requirePermission(db, actorId, "kyc.review");
   stepUp(db, actorId, password);
@@ -982,7 +991,12 @@ export function reviewKyc(
   const profile = db.investorProfiles.find((item) => item.id === kyc.investorProfileId);
   assert(profile, "NOT_FOUND");
   assert(profile.userId !== actorId, "MAKER_CHECKER");
-  assert(reasonCode.trim().length > 0, "INVALID_STATE");
+  assert(isKycReviewDecision(decision), "INVALID_STATE");
+  assert(isKycReasonCode(decision, reasonCode.trim()), "INVALID_STATE");
+  const requested = requestedDocumentTypes.map((item) => item.trim()).filter(isRequestableDocumentType);
+  if (decision === "ADDITIONAL_INFORMATION_REQUIRED") {
+    assert(requested.length > 0, "INVALID_STATE");
+  }
   const at = now(db);
   kyc.status = decision === "APPROVED" ? "UNDER_REVIEW" : decision;
   if (decision === "APPROVED") {
@@ -1003,22 +1017,25 @@ export function reviewKyc(
     const doc = [...db.kycDocuments].reverse().find((item) => item.kycCaseId === kyc.id);
     if (doc) {
       doc.verificationStatus = "REJECTED";
-      doc.rejectionReasonCode = reasonCode;
+      doc.rejectionReasonCode = reasonCode.trim();
       doc.reviewedBy = actorId;
       doc.reviewedAt = at;
     }
   }
   kyc.reviewedAt = at;
   kyc.reviewedBy = actorId;
-  kyc.reasonCode = reasonCode;
-  kyc.reviewNotes = notes;
+  kyc.reasonCode = reasonCode.trim();
+  kyc.reviewNotes = encodeKycReviewNotes(
+    notes,
+    decision === "ADDITIONAL_INFORMATION_REQUIRED" ? requested : [],
+  );
   kyc.updatedAt = at;
   if (kyc.status === "APPROVED") profile.onboardingStatus = "APPROVED";
   if (decision !== "APPROVED") profile.onboardingStatus = decision;
   profile.updatedAt = at;
-  audit(db, actorId, `kyc.${kyc.status.toLowerCase()}`, "kyc_case", kyc.id, reasonCode);
+  audit(db, actorId, `kyc.${kyc.status.toLowerCase()}`, "kyc_case", kyc.id, reasonCode.trim());
   const status = profile.onboardingStatus;
-  const copy = kycDecisionNotifyCopy(status, reasonCode, notes);
+  const copy = kycDecisionNotifyCopy(status, reasonCode.trim(), notes, requested);
   notify(db, profile.userId, "kyc.status", copy.titleFr, copy.titleEn, copy.bodyFr, copy.bodyEn);
 }
 
@@ -1026,9 +1043,13 @@ function kycDecisionNotifyCopy(
   status: KycStatus,
   reasonCode: string,
   notes: string,
+  requestedDocumentTypes: string[] = [],
 ): { titleFr: string; titleEn: string; bodyFr: string; bodyEn: string } {
   const note = notes.trim();
-  const reason = reasonCode.trim();
+  const reasonFr = kycReasonLabel("fr", isKycReviewDecision(status) ? status : null, reasonCode);
+  const reasonEn = kycReasonLabel("en", isKycReviewDecision(status) ? status : null, reasonCode);
+  const docsFr = requestedDocumentTypes.map((code) => requestableDocumentLabel("fr", code)).join(", ");
+  const docsEn = requestedDocumentTypes.map((code) => requestableDocumentLabel("en", code)).join(", ");
   if (status === "APPROVED") {
     return {
       titleFr: "Identité approuvée",
@@ -1041,31 +1062,31 @@ function kycDecisionNotifyCopy(
     return {
       titleFr: "Documents complémentaires requis",
       titleEn: "Additional documents required",
-      bodyFr: `Motif : ${reason}.${note ? ` ${note}` : ""} Retournez à la vérification pour déposer de nouveaux documents.`,
-      bodyEn: `Reason: ${reason}.${note ? ` ${note}` : ""} Return to verification to upload new documents.`,
+      bodyFr: `Motif : ${reasonFr}.${docsFr ? ` Documents : ${docsFr}.` : ""}${note ? ` ${note}` : ""} Retournez à la vérification pour déposer de nouveaux documents.`,
+      bodyEn: `Reason: ${reasonEn}.${docsEn ? ` Documents: ${docsEn}.` : ""}${note ? ` ${note}` : ""} Return to verification to upload new documents.`,
     };
   }
   if (status === "REJECTED") {
     return {
       titleFr: "Vérification refusée",
       titleEn: "Verification rejected",
-      bodyFr: `Motif : ${reason}.${note ? ` ${note}` : ""}`,
-      bodyEn: `Reason: ${reason}.${note ? ` ${note}` : ""}`,
+      bodyFr: `Motif : ${reasonFr}.${note ? ` ${note}` : ""}`,
+      bodyEn: `Reason: ${reasonEn}.${note ? ` ${note}` : ""}`,
     };
   }
   if (status === "SUSPENDED") {
     return {
       titleFr: "Vérification suspendue",
       titleEn: "Verification suspended",
-      bodyFr: `Motif : ${reason}.${note ? ` ${note}` : ""}`,
-      bodyEn: `Reason: ${reason}.${note ? ` ${note}` : ""}`,
+      bodyFr: `Motif : ${reasonFr}.${note ? ` ${note}` : ""}`,
+      bodyEn: `Reason: ${reasonEn}.${note ? ` ${note}` : ""}`,
     };
   }
   return {
     titleFr: "Mise à jour de vérification",
     titleEn: "Verification update",
-    bodyFr: `Statut : ${status}. Motif : ${reason}.`,
-    bodyEn: `Status: ${status}. Reason: ${reason}.`,
+    bodyFr: `Statut : ${status}. Motif : ${reasonFr}.`,
+    bodyEn: `Status: ${status}. Reason: ${reasonEn}.`,
   };
 }
 

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { RequestedDocumentsPanel } from "@/components/kyc-status-card";
 import { getLocale } from "@/lib/i18n/get-dictionary";
+import { kycReasonLabel, parseKycReviewNotes } from "@/lib/kyc-decisions";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
 
@@ -16,36 +18,29 @@ export default async function DocumentsPage() {
   const needsMore =
     profile?.onboardingStatus === "ADDITIONAL_INFORMATION_REQUIRED" ||
     kyc?.status === "ADDITIONAL_INFORMATION_REQUIRED";
+  const parsed = parseKycReviewNotes(kyc?.reviewNotes);
+  const reason = kycReasonLabel(locale, "ADDITIONAL_INFORMATION_REQUIRED", kyc?.reasonCode ?? null);
   return (
     <div className="space-y-3 px-4 md:px-0">
       <h1 className="text-3xl font-bold">{tx(locale, "Documents", "Documents")}</h1>
-      {needsMore ? (
-        <p className="rounded-2xl bg-lilac/60 px-4 py-3 text-sm">
-          {tx(
-            locale,
-            "Le personnel a demandé des documents complémentaires. Ajoutez une pièce depuis la vérification.",
-            "Staff requested additional documents. Add a document from verification.",
-          )}{" "}
-          <Link href="/investor/onboarding" className="font-semibold text-violet">
-            {tx(locale, "Ouvrir la vérification", "Open verification")}
-          </Link>
-        </p>
-      ) : null}
-      {kyc?.reasonCode || kyc?.reviewNotes ? (
-        <p className="text-sm text-muted">
-          {kyc.reasonCode ? `${kyc.reasonCode}` : ""}
-          {kyc.reviewNotes ? ` · ${kyc.reviewNotes}` : ""}
+      {needsMore ? <RequestedDocumentsPanel locale={locale} kyc={kyc} /> : null}
+      {!needsMore && (kyc?.reasonCode || parsed.notes) ? (
+        <p className="min-w-0 break-words text-sm text-muted">
+          {reason || kyc?.reasonCode || ""}
+          {parsed.notes ? ` · ${parsed.notes}` : ""}
         </p>
       ) : null}
       {session.db.offeringDocuments.filter((item) => item.visibility === "PUBLIC").map((doc) => (
-        <a key={doc.id} href={`/api/documents/${doc.id}`} className="block rounded-[28px] bg-white p-4 font-semibold text-violet">
-          {tx(locale, doc.titleFr, doc.titleEn)}
+        <a key={doc.id} href={`/api/documents/${doc.id}`} className="block min-w-0 overflow-hidden rounded-[28px] bg-white p-4 font-semibold text-violet">
+          <span className="break-words">{tx(locale, doc.titleFr, doc.titleEn)}</span>
         </a>
       ))}
       {docs.map((doc) => (
-        <a key={doc.id} href={`/api/documents/${doc.id}`} className="block rounded-[28px] bg-white p-4 text-sm">
-          {doc.documentType} · {doc.verificationStatus}
-          {doc.rejectionReasonCode ? ` · ${doc.rejectionReasonCode}` : ""}
+        <a key={doc.id} href={`/api/documents/${doc.id}`} className="block min-w-0 overflow-hidden rounded-[28px] bg-white p-4 text-sm">
+          <span className="break-words">
+            {doc.documentType} · {doc.verificationStatus}
+            {doc.rejectionReasonCode ? ` · ${doc.rejectionReasonCode}` : ""}
+          </span>
         </a>
       ))}
       {kyc && kyc.status !== "APPROVED" && kyc.status !== "REJECTED" && kyc.status !== "SUSPENDED" ? (

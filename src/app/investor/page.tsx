@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell, FileText, ScanLine, Store, WalletCards } from "lucide-react";
 import { DeskTop } from "@/components/investor-shell";
+import { KycStatusCard } from "@/components/kyc-status-card";
 import { AreaChart, StatusPill } from "@/components/visuals";
 import { formatDate, formatMoney } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-dictionary";
@@ -154,17 +155,14 @@ export default async function InvestorHomePage() {
                   </p>
                 </Link>
               ))}
-              <article className="rounded-[28px] bg-white p-4 shadow-sm">
-                <h3 className="font-bold">{tx(locale, "Vérification", "Verification")}</h3>
-                <p className="mt-2 text-sm text-muted">{snap.profile.onboardingStatus}</p>
-                <Link href="/investor/onboarding" className="mt-4 inline-block text-sm font-semibold text-violet">
-                  {snap.profile.onboardingStatus === "ADDITIONAL_INFORMATION_REQUIRED"
-                    ? tx(locale, "Déposer des documents", "Upload documents")
-                    : snap.profile.onboardingStatus === "APPROVED"
-                      ? tx(locale, "Voir le statut", "View status")
-                      : tx(locale, "Continuer", "Continue")}
-                </Link>
-              </article>
+              {snap.profile.onboardingStatus !== "APPROVED" ? (
+                <KycStatusCard
+                  locale={locale}
+                  status={snap.profile.onboardingStatus}
+                  kyc={session.db.kycCases.find((item) => item.investorProfileId === snap.profile.id)}
+                  compact
+                />
+              ) : null}
               <article className="rounded-[28px] bg-white p-4 shadow-sm">
                 <h3 className="font-bold">{tx(locale, "Votes ouverts", "Open votes")}</h3>
                 <p className="mt-2 text-sm text-muted">

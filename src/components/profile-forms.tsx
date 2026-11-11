@@ -219,7 +219,17 @@ export function OnboardingForm({
   );
 }
 
-export function KycForm({ locale, country, gender = "" }: { locale: AppLocale; country: string; gender?: string }) {
+export function KycForm({
+  locale,
+  country,
+  gender = "",
+  preferredDocumentTypes,
+}: {
+  locale: AppLocale;
+  country: string;
+  gender?: string;
+  preferredDocumentTypes?: string[];
+}) {
   const [state, action, pending] = useActionState(kycAction, {});
   return (
     <form action={action} className="space-y-3 rounded-[28px] bg-white p-5">
@@ -232,7 +242,7 @@ export function KycForm({ locale, country, gender = "" }: { locale: AppLocale; c
       </label>
       <label className="block text-sm font-semibold">
         {tx(locale, "Type de document", "Document type")}
-        <DocumentTypeSelect locale={locale} className="mt-1" />
+        <DocumentTypeSelect locale={locale} allowedCodes={preferredDocumentTypes} className="mt-1" />
       </label>
       <label className="block text-sm font-semibold">
         {tx(locale, "Pays émetteur", "Issuing country")}

@@ -40,6 +40,10 @@ export const DOCUMENT_TYPES = [
   { code: "national_id", fr: "Carte d'identité", en: "National ID" },
   { code: "passport", fr: "Passeport", en: "Passport" },
   { code: "residence_permit", fr: "Titre de séjour", en: "Residence permit" },
+  { code: "proof_of_address", fr: "Justificatif de domicile", en: "Proof of address" },
+  { code: "proof_of_funds", fr: "Justificatif de ressources", en: "Proof of funds" },
+  { code: "selfie_with_id", fr: "Selfie avec pièce d'identité", en: "Selfie with ID" },
+  { code: "secondary_id", fr: "Pièce d'identité secondaire", en: "Secondary ID" },
 ] as const;
 
 export function isDocumentType(code: string): boolean {

@@ -235,7 +235,16 @@ describe("money and ownership rules", async () => {
     });
     await expect(
       memory.update((draft) =>
-        reviewKyc(draft, ids.kyc, "kyc-sarah", "ADDITIONAL_INFORMATION_REQUIRED", "ADDRESS_PROOF", "Need proof", "wrong"),
+        reviewKyc(
+          draft,
+          ids.kyc,
+          "kyc-sarah",
+          "ADDITIONAL_INFORMATION_REQUIRED",
+          "ADDRESS_PROOF",
+          "Need proof",
+          "wrong",
+          ["proof_of_address"],
+        ),
       ),
     ).rejects.toBeInstanceOf(AppError);
     await expect(
@@ -248,6 +257,7 @@ describe("money and ownership rules", async () => {
           "ADDRESS_PROOF",
           "Need proof",
           DEMO_STAFF_CODES.admin,
+          ["proof_of_address"],
         ),
       ),
     ).rejects.toBeInstanceOf(AppError);
@@ -260,10 +270,29 @@ describe("money and ownership rules", async () => {
         "ADDRESS_PROOF",
         "Need utility bill",
         kycCode,
+        ["proof_of_address"],
       ),
     );
-    const profile = memory.db.investorProfiles.find((item) => item.id === ids.profileSarah)!;
-    expect(profile.onboardingStatus).toBe("ADDITIONAL_INFORMATION_REQUIRED");
+    expect(memory.db.investorProfiles.find((item) => item.id === ids.profileSarah)?.onboardingStatus).toBe(
+      "ADDITIONAL_INFORMATION_REQUIRED",
+    );
+    expect(memory.db.kycCases.find((item) => item.id === "kyc-sarah")?.reviewNotes).toContain(
+      "@@REQUESTED_DOCS:proof_of_address@@",
+    );
+    await expect(
+      memory.update((draft) =>
+        reviewKyc(
+          draft,
+          ids.kyc,
+          "kyc-sarah",
+          "ADDITIONAL_INFORMATION_REQUIRED",
+          "ADDRESS_PROOF",
+          "Need utility bill",
+          kycCode,
+          [],
+        ),
+      ),
+    ).rejects.toBeInstanceOf(AppError);
     expect(memory.db.notifications.some((item) => item.userId === ids.sarah && item.templateKey === "kyc.status")).toBe(true);
     await memory.update((draft) =>
       submitIdentityDocument(draft, ids.sarah, {
@@ -274,7 +303,7 @@ describe("money and ownership rules", async () => {
       }),
     );
     expect(memory.db.kycCases.find((item) => item.id === "kyc-sarah")?.status).toBe("SUBMITTED");
-    expect(profile.onboardingStatus).toBe("SUBMITTED");
+    expect(memory.db.investorProfiles.find((item) => item.id === ids.profileSarah)?.onboardingStatus).toBe("SUBMITTED");
     await memory.update((draft) =>
       reviewKyc(draft, ids.kyc, "kyc-sarah", "APPROVED", "ID_OK", "Documents sufficient for demo", kycCode),
     );

@@ -506,6 +506,10 @@ export async function kycDecisionAction(formData: FormData) {
   >;
   const allowed = new Set(["APPROVED", "REJECTED", "ADDITIONAL_INFORMATION_REQUIRED", "SUSPENDED"]);
   if (!allowed.has(decision)) redirect("/admin/kyc?error=STATUS_REQUIRED");
+  const requestedDocs = formData
+    .getAll("requestedDocs")
+    .map((item) => String(item).trim())
+    .filter(Boolean);
   try {
     await (await getStore()).update((db) =>
       reviewKyc(
@@ -516,6 +520,7 @@ export async function kycDecisionAction(formData: FormData) {
         String(formData.get("reason") ?? ""),
         String(formData.get("notes") ?? ""),
         String(formData.get("password") ?? ""),
+        requestedDocs,
       ),
     );
   } catch (error) {

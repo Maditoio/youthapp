@@ -979,7 +979,10 @@ function kyc(
     reviewedAt: reviewedBy ? "2026-02-20T10:00:00.000Z" : null,
     reviewedBy,
     reasonCode: status === "ADDITIONAL_INFORMATION_REQUIRED" ? "ADDRESS_PROOF" : null,
-    reviewNotes: status === "ADDITIONAL_INFORMATION_REQUIRED" ? "Justificatif de domicile à fournir." : null,
+    reviewNotes:
+      status === "ADDITIONAL_INFORMATION_REQUIRED"
+        ? "@@REQUESTED_DOCS:proof_of_address@@\nJustificatif de domicile à fournir."
+        : null,
     createdAt: at,
     updatedAt: at,
   };

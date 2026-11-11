@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { KycForm, OnboardingForm } from "@/components/profile-forms";
+import { RequestedDocumentsPanel } from "@/components/kyc-status-card";
+import { StatusPill } from "@/components/visuals";
 import { readGender } from "@/lib/choices";
 import { maskValue } from "@/lib/format";
+import {
+  kycReasonLabel,
+  kycStatusLabel,
+  kycStatusTone,
+  parseKycReviewNotes,
+} from "@/lib/kyc-decisions";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
@@ -77,6 +85,17 @@ export default async function OnboardingPage() {
     !kyc ||
     (kyc.status !== "APPROVED" && kyc.status !== "REJECTED" && kyc.status !== "SUSPENDED");
   const needsMoreDocs = status === "ADDITIONAL_INFORMATION_REQUIRED" || kyc?.status === "ADDITIONAL_INFORMATION_REQUIRED";
+  const parsed = parseKycReviewNotes(kyc?.reviewNotes);
+  const reason = kycReasonLabel(
+    locale,
+    status === "ADDITIONAL_INFORMATION_REQUIRED" ||
+      status === "REJECTED" ||
+      status === "SUSPENDED" ||
+      status === "APPROVED"
+      ? status
+      : null,
+    kyc?.reasonCode ?? null,
+  );
 
   if (!complete) {
     return (
@@ -116,17 +135,12 @@ export default async function OnboardingPage() {
 
   return (
     <div className="space-y-4 px-4 md:px-0">
-      <h1 className="text-3xl font-bold">{tx(locale, "Vérification", "Verification")}</h1>
-      <p className="text-sm text-muted">{statusGuidance(status, locale)}</p>
-      {needsMoreDocs ? (
-        <p className="rounded-2xl bg-lilac/60 px-4 py-3 text-sm font-semibold text-ink">
-          {tx(
-            locale,
-            "Action requise : fournissez les documents demandés pour reprendre la revue.",
-            "Action required: provide the requested documents to resume review.",
-          )}
-        </p>
-      ) : null}
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-bold">{tx(locale, "Vérification", "Verification")}</h1>
+        <StatusPill tone={kycStatusTone(status)}>{kycStatusLabel(locale, status)}</StatusPill>
+      </div>
+      <p className="max-w-2xl break-words text-sm leading-relaxed text-muted">{statusGuidance(status, locale)}</p>
+      {needsMoreDocs ? <RequestedDocumentsPanel locale={locale} kyc={kyc} /> : null}
       <p>
         <Link href="/investor" className="text-sm font-semibold text-violet">
           {tx(locale, "Aller au tableau de bord", "Go to dashboard")}
@@ -135,22 +149,36 @@ export default async function OnboardingPage() {
         <Link href="/investor/notifications" className="text-sm font-semibold text-violet">
           {tx(locale, "Notifications", "Notifications")}
         </Link>
+        {" · "}
+        <Link href="/investor/profile" className="text-sm font-semibold text-violet">
+          {tx(locale, "Profil", "Profile")}
+        </Link>
       </p>
-      <div className="h-2 rounded-full bg-white">
+      <div className="h-2 overflow-hidden rounded-full bg-white">
         <div className="h-full rounded-full bg-violet" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
       </div>
-      <p className="text-sm">
-        {profile.onboardingStatus}
-        {kyc ? ` · KYC ${kyc.status}` : ""}
-        {kyc?.reasonCode ? ` · ${kyc.reasonCode}` : ""}
-      </p>
-      {kyc?.reviewNotes ? <p className="text-sm text-muted">{kyc.reviewNotes}</p> : null}
-      <ul className="text-sm">
+      {reason || parsed.notes ? (
+        <article className="min-w-0 overflow-hidden rounded-[28px] bg-white p-4 shadow-sm">
+          {reason ? (
+            <p className="break-words text-sm">
+              <span className="font-semibold">{tx(locale, "Motif", "Reason")}: </span>
+              {reason}
+            </p>
+          ) : null}
+          {parsed.notes ? <p className="mt-1 break-words text-sm text-muted">{parsed.notes}</p> : null}
+        </article>
+      ) : null}
+      <ul className="space-y-2">
         {docs.map((doc) => (
-          <li key={doc.id}>
-            {doc.documentType} · {doc.issuingCountryCode} · {maskValue(doc.documentNumber)} · {doc.verificationStatus}
-            {doc.manualReviewRequired ? ` · ${tx(locale, "revue manuelle", "manual review")}` : ""}
-            {doc.rejectionReasonCode ? ` · ${doc.rejectionReasonCode}` : ""}
+          <li key={doc.id} className="min-w-0 overflow-hidden rounded-[28px] bg-white p-4 text-sm shadow-sm">
+            <p className="break-words font-semibold">
+              {doc.documentType} · {doc.verificationStatus}
+            </p>
+            <p className="mt-1 break-words text-muted">
+              {doc.issuingCountryCode} · {maskValue(doc.documentNumber)}
+              {doc.manualReviewRequired ? ` · ${tx(locale, "revue manuelle", "manual review")}` : ""}
+              {doc.rejectionReasonCode ? ` · ${doc.rejectionReasonCode}` : ""}
+            </p>
           </li>
         ))}
       </ul>
@@ -161,7 +189,12 @@ export default async function OnboardingPage() {
               {tx(locale, "Déposer des documents complémentaires", "Upload additional documents")}
             </h2>
           ) : null}
-          <KycForm locale={locale} country={profile.countryOfResidence ?? "CD"} gender={readGender(profile.gender) ?? ""} />
+          <KycForm
+            locale={locale}
+            country={profile.countryOfResidence ?? "CD"}
+            gender={readGender(profile.gender) ?? ""}
+            preferredDocumentTypes={needsMoreDocs ? parsed.requestedDocumentTypes : undefined}
+          />
         </>
       ) : null}
     </div>

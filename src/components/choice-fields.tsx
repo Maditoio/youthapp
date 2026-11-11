@@ -7,7 +7,6 @@ import {
   INDUSTRIES,
   PERMITTED_COUNTRIES,
   genderLabel,
-  isDocumentType,
   isGender,
   isIndustry,
   isPermittedCountry,
@@ -73,17 +72,27 @@ export function DocumentTypeSelect({
   locale,
   name = "documentType",
   defaultValue = "national_id",
+  allowedCodes,
   className,
 }: {
   locale: AppLocale;
   name?: string;
   defaultValue?: string;
+  /** When set, only these document types are offered (e.g. KYC requested docs). */
+  allowedCodes?: string[];
   className?: string;
 }) {
-  const selected = isDocumentType(defaultValue) ? defaultValue : "national_id";
+  const options =
+    allowedCodes && allowedCodes.length > 0
+      ? DOCUMENT_TYPES.filter((item) => allowedCodes.includes(item.code))
+      : DOCUMENT_TYPES;
+  const list = options.length > 0 ? options : DOCUMENT_TYPES;
+  const selected = list.some((item) => item.code === defaultValue)
+    ? defaultValue
+    : list[0]?.code ?? "national_id";
   return (
     <select name={name} required defaultValue={selected} className={cn(choiceField, className)}>
-      {DOCUMENT_TYPES.map((item) => (
+      {list.map((item) => (
         <option key={item.code} value={item.code}>
           {tx(locale, item.fr, item.en)}
         </option>
