@@ -182,17 +182,23 @@ function SidebarBody({
         ))}
       </nav>
 
-      <div className="border-t border-border px-4 py-3">
-        <div className="flex items-center gap-3">
+      <div className="border-t border-border px-3 py-3">
+        <div className="flex items-center gap-2">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet text-sm font-bold text-white">
             {userName.slice(0, 1).toUpperCase()}
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-ink">{userName}</p>
-            {userMeta ? <p className="truncate text-xs text-muted">{userMeta}</p> : null}
+          <div
+            className={cn(
+              "min-w-0 flex-1 overflow-hidden",
+              "[mask-image:linear-gradient(to_right,black_0%,black_calc(100%-1.25rem),transparent_100%)]",
+              "[-webkit-mask-image:linear-gradient(to_right,black_0%,black_calc(100%-1.25rem),transparent_100%)]",
+            )}
+          >
+            <p className="whitespace-nowrap text-sm font-semibold text-ink">{userName}</p>
+            {userMeta ? <p className="whitespace-nowrap text-xs text-muted">{userMeta}</p> : null}
           </div>
+          {footer}
         </div>
-        {footer ? <div className="mt-2">{footer}</div> : null}
       </div>
     </div>
   );

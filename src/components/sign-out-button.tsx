@@ -1,22 +1,21 @@
 "use client";
 
 import { useClerk } from "@clerk/nextjs";
-import { useTransition } from "react";
+import { useTransition, type ButtonHTMLAttributes } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { signOutAction } from "@/server/actions";
+
+type SignOutButtonProps = {
+  children: React.ReactNode;
+  className?: string;
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "onClick" | "disabled" | "children">;
 
 /** Full page load so no cached authenticated RSC payload or Clerk client state survives. */
 function leave() {
   window.location.assign("/");
 }
 
-function JeuneseSignOutButton({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function JeuneseSignOutButton({ children, className, ...rest }: SignOutButtonProps) {
   const [pending, startTransition] = useTransition();
   return (
     <button
@@ -24,6 +23,7 @@ function JeuneseSignOutButton({
       className={className}
       disabled={pending}
       aria-busy={pending || undefined}
+      {...rest}
       onClick={() => {
         startTransition(async () => {
           try {
@@ -40,13 +40,7 @@ function JeuneseSignOutButton({
   );
 }
 
-function ClerkAwareSignOutButton({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function ClerkAwareSignOutButton({ children, className, ...rest }: SignOutButtonProps) {
   const clerk = useClerk();
   const [pending, startTransition] = useTransition();
   return (
@@ -55,6 +49,7 @@ function ClerkAwareSignOutButton({
       className={className}
       disabled={pending}
       aria-busy={pending || undefined}
+      {...rest}
       onClick={() => {
         startTransition(async () => {
           // Jeunese cookie first: Clerk's signOut navigates away and would cut a later request short.
@@ -84,7 +79,7 @@ function ClerkAwareSignOutButton({
 }
 
 /** Clears the Jeunese session cookie, then Clerk (when configured), then reloads on `/`. */
-export function SignOutButton(props: { children: React.ReactNode; className?: string }) {
+export function SignOutButton(props: SignOutButtonProps) {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     return <JeuneseSignOutButton {...props} />;
   }

@@ -72,7 +72,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       userName={session.user.legalFirstName}
       userMeta={session.user.email}
       groups={groups}
-      footer={<SidebarFooter locale={locale} />}
+      footer={<SidebarFooter locale={locale} shell="admin" />}
       labels={{
         nav: t("Navigation administration", "Admin navigation"),
         menu: t("Ouvrir le menu", "Open menu"),
