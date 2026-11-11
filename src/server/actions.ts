@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getStore, asAppError } from "./db/store";
+import { describeDbError } from "./db/errors";
 import { peekDemoCode, stashDemoCode } from "./auth/demo-codes";
 import { clearSession, getSession, readMfaPending, setMfaPending, setSession } from "./auth/session";
 import { AppError } from "./domain/errors";
@@ -74,7 +75,7 @@ export interface ActionState {
 function fail(error: unknown): ActionState {
   const known = asAppError(error);
   if (known) return { error: known.code };
-  console.error("action_failed");
+  console.error("action_failed", describeDbError(error));
   return { error: "INVALID_STATE" };
 }
 
@@ -135,19 +136,24 @@ function clerkMetadataProfile(clerkUser: {
   return { phone, country, gender, dateOfBirth, language };
 }
 
-/** Bridges an active Clerk session into the Jeunese `jeunese_session` cookie, then redirects. */
-export async function bindClerkSession(profile?: ClerkBindProfile): Promise<void> {
+export type ClerkBindResult = { error: string };
+
+/**
+ * Bridges an active Clerk session into the Jeunese `jeunese_session` cookie, then redirects.
+ * Failures return an error code instead of redirecting so /sign-in ↔ /sign-in/clerk cannot loop.
+ */
+export async function bindClerkSession(profile?: ClerkBindProfile): Promise<ClerkBindResult> {
   const { auth, currentUser } = await import("@clerk/nextjs/server");
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) redirect("/sign-in");
-  const clerkUser = await currentUser();
-  const email =
-    clerkUser?.emailAddresses.find((item) => item.id === clerkUser.primaryEmailAddressId)?.emailAddress ??
-    clerkUser?.emailAddresses[0]?.emailAddress;
-  if (!email) redirect("/sign-in");
-
-  const seed = profile ?? clerkMetadataProfile(clerkUser);
   try {
+    const clerkUser = await currentUser();
+    const email =
+      clerkUser?.emailAddresses.find((item) => item.id === clerkUser.primaryEmailAddressId)?.emailAddress ??
+      clerkUser?.emailAddresses[0]?.emailAddress;
+    if (!email) throw new AppError("INVALID_EMAIL");
+
+    const seed = profile ?? clerkMetadataProfile(clerkUser);
     const linked = await (await getStore()).update((db) =>
       linkOrCreateClerk(db, {
         clerkUserId,
@@ -169,10 +175,8 @@ export async function bindClerkSession(profile?: ClerkBindProfile): Promise<void
     redirect(await destinationFor(linked.userId, linked.created));
   } catch (error) {
     if (isRedirect(error)) throw error;
-    const name = error instanceof Error ? error.name : typeof error;
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("bind_clerk_session_failed", { name, message });
-    throw error;
+    console.error("bind_clerk_session_failed", describeDbError(error));
+    return { error: asAppError(error)?.code ?? "SESSION_BIND_FAILED" };
   }
 }
 
@@ -216,9 +220,14 @@ export async function mfaAction(_prev: ActionState, formData: FormData): Promise
   }
 }
 
-export async function signOutAction() {
+/**
+ * Clears the Jeunese cookies. Navigation is left to the caller so the browser-side Clerk sign-out
+ * (which clears Clerk's own cookies) can run afterwards. `revokeClerk` is the fallback for when
+ * that browser-side sign-out failed.
+ */
+export async function signOutAction(options?: { revokeClerk?: boolean }): Promise<{ ok: true }> {
   await clearSession();
-  if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY) {
+  if (options?.revokeClerk && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY) {
     try {
       const { auth, clerkClient } = await import("@clerk/nextjs/server");
       const session = await auth();
@@ -226,11 +235,11 @@ export async function signOutAction() {
         const client = await clerkClient();
         await client.sessions.revokeSession(session.sessionId);
       }
-    } catch {
-      // Jeunese cookie is already cleared; Clerk revoke is best-effort.
+    } catch (error) {
+      console.error("clerk_revoke_failed", describeDbError(error));
     }
   }
-  redirect("/");
+  return { ok: true };
 }
 
 export async function googleDemoAction() {

@@ -1,30 +1,36 @@
+import { randomUUID } from "node:crypto";
 import { openDatabase } from "@/prisma/db";
 import type { Database } from "../domain/types";
 import { STORE_VERSION } from "../domain/types";
+import { describeDbError } from "./errors";
 import { createEmptyDatabase } from "./seed";
 import { Store } from "./store";
 
 type PgClient = ReturnType<typeof openDatabase>;
 
-type OrmFilter = Record<string, unknown> | ((row: { id: FieldOps; countryCode: FieldOps }) => unknown);
-
 type FieldOps = {
-  eq: (value: string) => unknown;
-  neq: (value: string) => unknown;
+  in: (values: string[]) => unknown;
 };
+
+type OrmFilter = Record<string, unknown> | ((row: Record<string, FieldOps>) => unknown);
 
 type OrmModel = {
   all: () => PromiseLike<Record<string, unknown>[]>;
   createAll: (rows: Record<string, unknown>[]) => PromiseLike<unknown>;
-  create: (row: Record<string, unknown>) => PromiseLike<unknown>;
   where: (filter: OrmFilter) => {
     deleteAll: () => PromiseLike<unknown>;
     updateAll: (data: Record<string, unknown>) => PromiseLike<unknown>;
-    upsert: (args: { create: Record<string, unknown>; update: Record<string, unknown> }) => PromiseLike<unknown>;
   };
 };
 
+type OrmTx = {
+  orm: { public: Record<string, OrmModel> };
+  query: (plan: unknown) => PromiseLike<unknown[]>;
+};
+
 const PLATFORM_STATE_ID = "jeunese";
+
+const BATCH_SIZE = 200;
 
 /** Child → parent order for deletes. Inserts run in reverse. */
 const MODEL_ORDER = [
@@ -164,9 +170,17 @@ function fromOfferingRow(row: Record<string, unknown>): Database["offerings"][nu
   };
 }
 
-function toLoginRow(attempt: Database["loginAttempts"][number], index: number): Record<string, unknown> {
+/** Login attempts carry no id in the domain model; remember the row id of each loaded object. */
+const loginAttemptIds = new WeakMap<object, string>();
+
+function toLoginRow(attempt: Database["loginAttempts"][number]): Record<string, unknown> {
+  let id = loginAttemptIds.get(attempt);
+  if (!id) {
+    id = `login-${randomUUID()}`;
+    loginAttemptIds.set(attempt, id);
+  }
   return {
-    id: `login-${index}-${attempt.at}-${attempt.email}`,
+    id,
     email: attempt.email,
     userId: null,
     at: attempt.at,
@@ -175,11 +189,13 @@ function toLoginRow(attempt: Database["loginAttempts"][number], index: number): 
 }
 
 function fromLoginRow(row: Record<string, unknown>): Database["loginAttempts"][number] {
-  return {
+  const attempt = {
     email: String(row.email ?? ""),
     at: String(row.at ?? ""),
     success: Boolean(row.success),
   };
+  loginAttemptIds.set(attempt, String(row.id));
+  return attempt;
 }
 
 function rowsForModel(db: Database, model: ModelName): Record<string, unknown>[] {
@@ -191,7 +207,7 @@ function rowsForModel(db: Database, model: ModelName): Record<string, unknown>[]
   const items = db[key] as unknown[];
   if (model === "Project") return (items as Database["projects"]).map(toProjectRow);
   if (model === "Offering") return (items as Database["offerings"]).map(toOfferingRow);
-  if (model === "LoginAttempt") return (items as Database["loginAttempts"]).map(toLoginRow);
+  if (model === "LoginAttempt") return (items as Database["loginAttempts"]).map((item) => toLoginRow(item));
   return items.map((item) => ({ ...(item as Record<string, unknown>) }));
 }
 
@@ -221,8 +237,118 @@ function applyRows(db: Database, model: ModelName, rows: Record<string, unknown>
   (db as unknown as Record<string, unknown[]>)[key] = rows;
 }
 
+type RawTables = Map<ModelName, Record<string, unknown>[]>;
+type IndexedRows = Map<string, { row: Record<string, unknown>; signature: string }>;
+type Baseline = Map<ModelName, IndexedRows>;
+
+function primaryKeyOf(model: ModelName): string {
+  return model === "IdentityPolicy" ? "countryCode" : "id";
+}
+
+/** Key-order independent; `undefined` and `null` compare equal. */
+function signatureOf(row: Record<string, unknown>): string {
+  return JSON.stringify(row, (_key, value: unknown) => {
+    if (value === undefined) return null;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+      );
+    }
+    return value;
+  });
+}
+
+function indexRows(model: ModelName, rows: Record<string, unknown>[]): IndexedRows {
+  const pk = primaryKeyOf(model);
+  const indexed: IndexedRows = new Map();
+  for (const row of rows) indexed.set(String(row[pk]), { row, signature: signatureOf(row) });
+  return indexed;
+}
+
+async function readTables(orm: Record<string, OrmModel>, parallel: boolean): Promise<RawTables> {
+  const tables: RawTables = new Map();
+  if (parallel) {
+    const results = await Promise.all(MODEL_ORDER.map((model) => orm[model].all()));
+    MODEL_ORDER.forEach((model, index) => tables.set(model, results[index]));
+  } else {
+    for (const model of MODEL_ORDER) tables.set(model, await orm[model].all());
+  }
+  return tables;
+}
+
+/** A database with no rows at all starts from the empty seed; it is written on the first update. */
+function buildDatabase(tables: RawTables): Database {
+  const db = createEmptyDatabase();
+  if (![...tables.values()].some((rows) => rows.length)) return db;
+  for (const model of MODEL_ORDER) applyRows(db, model, tables.get(model) ?? []);
+  return db;
+}
+
+function baselineOf(tables: RawTables): Baseline {
+  const baseline: Baseline = new Map();
+  for (const model of MODEL_ORDER) baseline.set(model, indexRows(model, tables.get(model) ?? []));
+  return baseline;
+}
+
+function chunks<T>(items: T[]): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += BATCH_SIZE) out.push(items.slice(i, i + BATCH_SIZE));
+  return out;
+}
+
+function withoutKey(row: Record<string, unknown>, pk: string): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (key !== pk && value !== undefined) data[key] = value;
+  }
+  return data;
+}
+
+/** Writes only rows that changed since `baseline`: inserts/updates parent → child, deletes child → parent. */
+async function applyDiff(orm: Record<string, OrmModel>, baseline: Baseline, db: Database): Promise<void> {
+  const next = new Map<ModelName, IndexedRows>();
+  for (const model of MODEL_ORDER) next.set(model, indexRows(model, rowsForModel(db, model)));
+
+  for (const model of [...MODEL_ORDER].reverse()) {
+    const pk = primaryKeyOf(model);
+    const before = baseline.get(model) ?? new Map();
+    const inserts: Record<string, unknown>[] = [];
+    const updates: Array<[string, Record<string, unknown>]> = [];
+    for (const [key, item] of next.get(model) ?? new Map()) {
+      const previous = before.get(key);
+      if (!previous) inserts.push(item.row);
+      else if (previous.signature !== item.signature) updates.push([key, item.row]);
+    }
+    for (const batch of chunks(inserts)) await orm[model].createAll(batch);
+    for (const [key, row] of updates) {
+      const data = withoutKey(row, pk);
+      if (Object.keys(data).length) await orm[model].where({ [pk]: key }).updateAll(data);
+    }
+  }
+
+  for (const model of MODEL_ORDER) {
+    const pk = primaryKeyOf(model);
+    const after = next.get(model) ?? new Map();
+    const removed = [...(baseline.get(model)?.keys() ?? [])].filter((key) => !after.has(key));
+    for (const batch of chunks(removed)) {
+      await orm[model].where((row) => row[pk].in(batch)).deleteAll();
+    }
+  }
+}
+
+/** Postgres error classes that are safe to retry with a fresh read. */
+const RETRYABLE_SQL_STATES = new Set(["40001", "40P01", "25P02", "55P03", "23505"]);
+
+function isRetryable(error: unknown): boolean {
+  const { sqlState } = describeDbError(error);
+  return Boolean(sqlState && RETRYABLE_SQL_STATES.has(sqlState));
+}
+
 export class PostgresStore extends Store {
   private client: PgClient;
+  private loadedAt = 0;
+  private generation = 0;
+  private inflight: Promise<void> | null = null;
 
   private constructor(db: Database, client: PgClient) {
     super(db);
@@ -230,101 +356,86 @@ export class PostgresStore extends Store {
   }
 
   static async open(): Promise<PostgresStore> {
-    const client = openDatabase();
-    const db = await hydrate(client);
-    return new PostgresStore(db, client);
+    const store = new PostgresStore(createEmptyDatabase(), openDatabase());
+    await store.refresh();
+    return store;
   }
 
-  /** Reload from Postgres so SQL / other-instance writes are not overwritten by stale memory. */
-  async refresh(): Promise<void> {
-    this.db = await hydrate(this.client);
+  /** Reloads every table unless the in-memory copy is younger than `maxAgeMs`. Concurrent callers share one read. */
+  async refresh(maxAgeMs = 0): Promise<void> {
+    if (maxAgeMs > 0 && Date.now() - this.loadedAt < maxAgeMs) return;
+    if (!this.inflight) {
+      const generation = this.generation;
+      this.inflight = readTables(ormOf(this.client), true)
+        .then((tables) => {
+          // An update committed meanwhile already installed newer data.
+          if (this.generation !== generation) return;
+          this.db = buildDatabase(tables);
+          this.loadedAt = Date.now();
+        })
+        .catch((error: unknown) => {
+          console.error("store_refresh_failed", describeDbError(error));
+          throw error;
+        })
+        .finally(() => {
+          this.inflight = null;
+        });
+    }
+    await this.inflight;
   }
 
-  async persist(): Promise<void> {
-    await persistAll(this.client, this.db);
-  }
-
+  /**
+   * Runs `fn` against a fresh read taken under a global advisory lock, then writes only the rows
+   * it changed, all in one transaction. Nothing inside the transaction swallows errors: a failed
+   * statement aborts the transaction, so it must surface and roll back.
+   */
   async update<T>(fn: (db: Database) => T): Promise<T> {
-    await this.refresh();
-    const snapshot = structuredClone(this.db);
-    try {
-      const result = fn(this.db);
-      await this.persist();
-      return result;
-    } catch (error) {
-      this.db = snapshot;
-      throw error;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const { db, result } = await this.client.transaction(async (rawTx) => {
+          const tx = rawTx as unknown as OrmTx;
+          await this.lockForWrite(tx);
+          const tables = await readTables(tx.orm.public, false);
+          const baseline = baselineOf(tables);
+          const db = buildDatabase(tables);
+          const result = fn(db);
+          await applyDiff(tx.orm.public, baseline, db);
+          return { db, result };
+        });
+        this.db = db;
+        this.generation++;
+        this.loadedAt = Date.now();
+        return result;
+      } catch (error) {
+        if (attempt < 3 && isRetryable(error)) {
+          console.warn("store_update_retry", { attempt, ...describeDbError(error) });
+          continue;
+        }
+        if (describeDbError(error).sqlState) console.error("store_update_failed", describeDbError(error));
+        throw error;
+      }
     }
   }
 
   async reset(): Promise<void> {
-    this.db = createEmptyDatabase();
-    await this.persist();
+    await this.update((db) => {
+      Object.assign(db, createEmptyDatabase());
+    });
+  }
+
+  private async lockForWrite(tx: OrmTx): Promise<void> {
+    const raw = (this.client as unknown as { raw: { sql: RawSqlTag } }).raw;
+    await tx.query(
+      raw.sql`SELECT set_config('lock_timeout', '20s', true) AS value`.returnsRow({ value: "pg/text@1" }).build(),
+    );
+    // Key 727274 is arbitrary but must be the same for every writer.
+    await tx.query(
+      raw.sql`SELECT true AS locked FROM pg_advisory_xact_lock(727274)`.returnsRow({ locked: "pg/bool@1" }).build(),
+    );
   }
 }
 
-async function hydrate(client: PgClient): Promise<Database> {
-  const orm = ormOf(client);
-  const empty = createEmptyDatabase();
-  try {
-    const stateRows = await orm.PlatformState.all();
-    if (!stateRows.length) {
-      await persistAll(client, empty);
-      return empty;
-    }
-    for (const model of MODEL_ORDER) {
-      const rows = await orm[model].all();
-      applyRows(empty, model, rows);
-    }
-    return empty;
-  } catch {
-    // Tables may not exist until `npx prisma db init` has been run.
-    return empty;
-  }
-}
-
-/**
- * Prisma 8 object `where` is equality-only. `{ id: { not: "" } }` never matches,
- * so deleteAll was a no-op and createAll hit PlatformState_pkey (and other PKs).
- * Use equality filters or field-proxy `.neq("")` instead.
- */
-async function clearModel(txOrm: Record<string, OrmModel>, model: ModelName): Promise<void> {
-  if (model === "PlatformState") {
-    await txOrm[model].where({ id: PLATFORM_STATE_ID }).deleteAll();
-    return;
-  }
-  if (model === "IdentityPolicy") {
-    await txOrm[model].where((row) => row.countryCode.neq("")).deleteAll();
-    return;
-  }
-  await txOrm[model].where((row) => row.id.neq("")).deleteAll();
-}
-
-async function persistPlatformState(txOrm: Record<string, OrmModel>, db: Database): Promise<void> {
-  const row = { id: PLATFORM_STATE_ID, version: db.version, clock: db.clock };
-  // deleteAll + create (not single-row update/upsert): single-row writers can hang inside tx.
-  await txOrm.PlatformState.where({ id: PLATFORM_STATE_ID }).deleteAll();
-  await txOrm.PlatformState.create(row);
-}
-
-async function persistAll(client: PgClient, db: Database): Promise<void> {
-  await client.transaction(async (tx) => {
-    const txOrm = (tx as unknown as { orm: { public: Record<string, OrmModel> } }).orm.public;
-    for (const model of MODEL_ORDER) {
-      try {
-        await clearModel(txOrm, model);
-      } catch {
-        // Table may be missing until `prisma db init` has been run.
-      }
-    }
-    for (const model of [...MODEL_ORDER].reverse()) {
-      if (model === "PlatformState") {
-        await persistPlatformState(txOrm, db);
-        continue;
-      }
-      const rows = rowsForModel(db, model);
-      if (!rows.length) continue;
-      await txOrm[model].createAll(rows);
-    }
-  });
-}
+type RawSqlTag = (
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+) => { returnsRow: (columns: Record<string, string>) => { build: () => unknown } };

@@ -7,9 +7,9 @@ import { bindClerkSession } from "@/server/actions";
  */
 export async function GET(request: Request) {
   try {
+    // Redirects on success; returning means the bind failed (already logged).
     await bindClerkSession();
-    // bindClerkSession redirects on success; if it returns, send the user onward.
-    return NextResponse.redirect(new URL("/investor", request.url));
+    return NextResponse.redirect(new URL("/sign-in/clerk", request.url));
   } catch (error) {
     if (
       error &&

@@ -15,7 +15,8 @@ import { AppError } from "../domain/errors";
 export class Store {
   constructor(public db: Database) {}
 
-  async refresh(): Promise<void> {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async refresh(_maxAgeMs?: number): Promise<void> {}
 
   async persist(): Promise<void> {}
 
@@ -84,17 +85,25 @@ export function hasDatabaseUrl(): boolean {
 
 export async function getStore(): Promise<Store> {
   if (!globalStore.jeuneseStorePromise) {
-    globalStore.jeuneseStorePromise = openStore().then((store) => {
-      globalStore.jeuneseStore = store;
-      return store;
-    });
+    globalStore.jeuneseStorePromise = openStore().then(
+      (store) => {
+        globalStore.jeuneseStore = store;
+        return store;
+      },
+      (error: unknown) => {
+        // Let the next request retry instead of caching the failure for the instance's lifetime.
+        globalStore.jeuneseStorePromise = undefined;
+        throw error;
+      },
+    );
   }
   const store = globalStore.jeuneseStore ?? (await globalStore.jeuneseStorePromise);
-  // Postgres: always re-read before serving so SQL / other-instance writes are not
-  // served from stale memory and then wiped by persistAll.
-  if (hasDatabaseUrl()) await store.refresh();
+  // Reads may lag other instances by this much; writes always re-read under a lock.
+  if (hasDatabaseUrl()) await store.refresh(READ_MAX_AGE_MS);
   return store;
 }
+
+const READ_MAX_AGE_MS = 2000;
 
 async function openStore(): Promise<Store> {
   if (hasDatabaseUrl()) {

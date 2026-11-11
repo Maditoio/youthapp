@@ -19,17 +19,23 @@ function isNextRedirect(error: unknown): boolean {
 /** Invokes the bind Server Action (cookie writes are illegal during RSC render). */
 export function ClerkBindClient({ locale }: { locale: AppLocale }) {
   const [failed, setFailed] = useState(false);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const started = useRef(false);
 
   function runBind() {
     startTransition(() => {
       void bindClerkSession()
-        .then(() => {
-          // redirect() usually settles navigation before this; keep UI quiet on success.
+        .then((result) => {
+          // On success the action redirects and this never resolves with a value.
+          if (result?.error) {
+            setErrorCode(result.error);
+            setFailed(true);
+          }
         })
         .catch((error: unknown) => {
           if (isNextRedirect(error)) return;
+          setErrorCode(null);
           setFailed(true);
         });
     });
@@ -52,6 +58,7 @@ export function ClerkBindClient({ locale }: { locale: AppLocale }) {
             "Your Clerk account is signed in, but the Jeunese session could not be opened. Try again, or sign out to start over.",
           )}
         </p>
+        {errorCode ? <p className="text-xs text-muted">{tx(locale, "Code", "Code")}: {errorCode}</p> : null}
         <button
           type="button"
           className="inline-flex font-semibold text-violet"
