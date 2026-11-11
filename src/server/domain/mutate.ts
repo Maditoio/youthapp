@@ -440,6 +440,26 @@ export type ClerkProfileSeed = {
   language?: Locale;
 };
 
+/** Emails listed in ADMIN_EMAILS (comma-separated) receive platform_admin without wiping investor. */
+export function ensureBootstrapAdmin(db: Database, userId: string, email: string): void {
+  const allow = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  if (!allow.includes(email.trim().toLowerCase())) return;
+  if (db.userRoles.some((item) => item.userId === userId && item.role === "platform_admin")) return;
+  db.userRoles.push({
+    id: uid(),
+    userId,
+    role: "platform_admin",
+    scopeType: "PLATFORM",
+    scopeId: null,
+    assignedBy: null,
+    createdAt: now(db),
+  });
+  audit(db, userId, "auth.bootstrap_admin", "user", userId);
+}
+
 export function linkOrCreateClerk(
   db: Database,
   input: {
@@ -457,6 +477,7 @@ export function linkOrCreateClerk(
   );
   if (existing) {
     if (input.profile) applyClerkProfileSeed(db, existing.userId, input.profile, input.firstName, input.lastName);
+    ensureBootstrapAdmin(db, existing.userId, email);
     return { userId: existing.userId, created: false };
   }
   const named = {
@@ -476,6 +497,7 @@ export function linkOrCreateClerk(
     });
     if (!user.emailVerifiedAt) user.emailVerifiedAt = at;
     if (input.profile) applyClerkProfileSeed(db, user.id, input.profile, named.first, named.last);
+    ensureBootstrapAdmin(db, user.id, email);
     audit(db, user.id, "auth.clerk_link", "user", user.id);
     return { userId: user.id, created: false };
   }
@@ -559,6 +581,7 @@ export function linkOrCreateClerk(
     assignedBy: null,
     createdAt: at,
   });
+  ensureBootstrapAdmin(db, userId, email);
   audit(db, userId, "auth.clerk_create", "user", userId);
   return { userId, created: true };
 }

@@ -745,9 +745,21 @@ export async function currentDemoCode(email: string): Promise<string | null> {
   return peekDemoCode(user.id) ?? null;
 }
 
+const STAFF_ROLES = [
+  "platform_admin",
+  "kyc_officer",
+  "finance_officer",
+  "project_analyst",
+  "offering_approver",
+  "support_agent",
+  "auditor",
+] as const;
+
 async function requireStaff() {
   const session = await getSession();
-  if (!session || session.roles.every((role) => role === "investor")) redirect("/sign-in");
+  if (!session || !session.roles.some((role) => (STAFF_ROLES as readonly string[]).includes(role))) {
+    redirect("/sign-in");
+  }
   return session;
 }
 

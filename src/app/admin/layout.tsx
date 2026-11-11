@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { signOutAction } from "@/server/actions";
+import { SignOutButton } from "@/components/sign-out-button";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
@@ -50,9 +50,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </Link>
           ))}
         </nav>
-        <form action={signOutAction} className="px-4 pb-4">
-          <button className="text-sm text-white/80">{tx(locale, "Sortir", "Sign out")}</button>
-        </form>
+        <div className="px-4 pb-4">
+          <SignOutButton className="text-sm text-white/80">{tx(locale, "Sortir", "Sign out")}</SignOutButton>
+        </div>
       </aside>
       <div className="min-w-0 flex-1">
         <header className="flex items-center justify-end px-4 py-3">

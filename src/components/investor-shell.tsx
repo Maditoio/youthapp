@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { BarChart3, FolderKanban, Home, PieChart, UserRound, Vote } from "lucide-react";
-import { signOutAction } from "@/server/actions";
+import { SignOutButton } from "@/components/sign-out-button";
 import { cn } from "@/lib/utils";
 import { Logo } from "./visuals";
 
@@ -67,11 +67,9 @@ export function InvestorShell({
               );
             })}
           </nav>
-          <form action={signOutAction}>
-            <button type="submit" className="rounded-full px-2 py-2 text-[10px] font-semibold text-white/80">
-              {labels.signOut}
-            </button>
-          </form>
+          <SignOutButton className="rounded-full px-2 py-2 text-[10px] font-semibold text-white/80">
+            {labels.signOut}
+          </SignOutButton>
         </aside>
         <div className="min-w-0 flex-1 pb-36 md:pb-0">{children}</div>
       </div>

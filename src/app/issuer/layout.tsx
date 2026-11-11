@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { signOutAction } from "@/server/actions";
+import { SignOutButton } from "@/components/sign-out-button";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
@@ -33,7 +33,7 @@ export default async function IssuerLayout({ children }: { children: React.React
         </nav>
         <div className="flex items-center gap-3">
           <LanguageSwitcher locale={locale} labels={{ language: "Language", french: "FR", english: "EN" }} returnTo="/issuer" />
-          <form action={signOutAction}><button className="text-sm">{tx(locale, "Sortir", "Sign out")}</button></form>
+          <SignOutButton className="text-sm">{tx(locale, "Sortir", "Sign out")}</SignOutButton>
         </div>
       </header>
       <nav className="flex gap-3 overflow-x-auto bg-violet px-4 pb-3 text-sm text-white md:hidden">

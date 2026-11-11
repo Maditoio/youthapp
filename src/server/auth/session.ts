@@ -11,6 +11,19 @@ function secret(): string {
   return process.env.SESSION_SECRET || "jeunese-demo-session-secret-change-me";
 }
 
+function cookieSecure(): boolean {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+}
+
+function cookieBase() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    path: "/",
+    secure: cookieSecure(),
+  };
+}
+
 function sign(payload: string): string {
   const mac = createHmac("sha256", secret()).update(payload).digest("base64url");
   return `${payload}.${mac}`;
@@ -46,20 +59,16 @@ function encode(userId: string, hours: number): string {
 export async function setSession(userId: string) {
   const jar = await cookies();
   jar.set(COOKIE, encode(userId, 24 * 12), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
+    ...cookieBase(),
     maxAge: 60 * 60 * 24 * 12,
   });
-  jar.delete(MFA_COOKIE);
+  jar.delete(MFA_COOKIE, cookieBase());
 }
 
 export async function setMfaPending(userId: string) {
   const jar = await cookies();
   jar.set(MFA_COOKIE, encode(userId, 0.5), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
+    ...cookieBase(),
     maxAge: 60 * 30,
   });
 }
@@ -71,8 +80,12 @@ export async function readMfaPending(): Promise<string | null> {
 
 export async function clearSession() {
   const jar = await cookies();
-  jar.delete(COOKIE);
-  jar.delete(MFA_COOKIE);
+  const base = cookieBase();
+  // Match path/secure used at set-time so browsers actually drop the cookie.
+  jar.set(COOKIE, "", { ...base, maxAge: 0 });
+  jar.set(MFA_COOKIE, "", { ...base, maxAge: 0 });
+  jar.delete(COOKIE, base);
+  jar.delete(MFA_COOKIE, base);
 }
 
 export interface Session {

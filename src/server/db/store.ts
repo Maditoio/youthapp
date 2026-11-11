@@ -15,6 +15,8 @@ import { AppError } from "../domain/errors";
 export class Store {
   constructor(public db: Database) {}
 
+  async refresh(): Promise<void> {}
+
   async persist(): Promise<void> {}
 
   async update<T>(fn: (db: Database) => T): Promise<T> {
@@ -81,14 +83,17 @@ export function hasDatabaseUrl(): boolean {
 }
 
 export async function getStore(): Promise<Store> {
-  if (globalStore.jeuneseStore) return globalStore.jeuneseStore;
   if (!globalStore.jeuneseStorePromise) {
     globalStore.jeuneseStorePromise = openStore().then((store) => {
       globalStore.jeuneseStore = store;
       return store;
     });
   }
-  return globalStore.jeuneseStorePromise;
+  const store = globalStore.jeuneseStore ?? (await globalStore.jeuneseStorePromise);
+  // Postgres: always re-read before serving so SQL / other-instance writes are not
+  // served from stale memory and then wiped by persistAll.
+  if (hasDatabaseUrl()) await store.refresh();
+  return store;
 }
 
 async function openStore(): Promise<Store> {

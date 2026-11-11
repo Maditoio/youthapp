@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { bindClerkSession, signOutAction } from "@/server/actions";
+import { bindClerkSession } from "@/server/actions";
+import { SignOutButton } from "@/components/sign-out-button";
 import type { AppLocale } from "@/lib/config";
 import { tx } from "@/lib/i18n/tx";
 
@@ -62,11 +63,9 @@ export function ClerkBindClient({ locale }: { locale: AppLocale }) {
         >
           {tx(locale, "Réessayer", "Try again")}
         </button>
-        <form action={signOutAction}>
-          <button type="submit" className="text-sm font-semibold text-violet">
-            {tx(locale, "Se déconnecter et recommencer", "Sign out and start over")}
-          </button>
-        </form>
+        <SignOutButton className="text-sm font-semibold text-violet">
+          {tx(locale, "Se déconnecter et recommencer", "Sign out and start over")}
+        </SignOutButton>
         <p className="text-xs text-muted">
           <Link href="/sign-in" className="font-semibold text-violet">
             {tx(locale, "Retour à la connexion", "Back to sign in")}

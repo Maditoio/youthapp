@@ -235,11 +235,17 @@ export class PostgresStore extends Store {
     return new PostgresStore(db, client);
   }
 
+  /** Reload from Postgres so SQL / other-instance writes are not overwritten by stale memory. */
+  async refresh(): Promise<void> {
+    this.db = await hydrate(this.client);
+  }
+
   async persist(): Promise<void> {
     await persistAll(this.client, this.db);
   }
 
   async update<T>(fn: (db: Database) => T): Promise<T> {
+    await this.refresh();
     const snapshot = structuredClone(this.db);
     try {
       const result = fn(this.db);
