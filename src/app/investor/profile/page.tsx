@@ -83,7 +83,7 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <nav className="grid grid-cols-3 gap-2">
+      <nav className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
           { href: "/investor/profile/contacts", label: tx(locale, "Proches", "Next of kin") },
           { href: "/investor/profile/beneficiaries", label: tx(locale, "Bénéficiaires", "Beneficiaries") },
@@ -91,11 +91,12 @@ export default async function ProfilePage() {
             href: approved ? "/investor/profile" : "/investor/onboarding",
             label: tx(locale, "Identité", "Identity"),
           },
+          { href: "/investor/settings", label: tx(locale, "Réglages", "Settings") },
         ].map((item) => (
           <Link
             key={item.href + item.label}
             href={item.href}
-            className="rounded-2xl bg-white px-3 py-3 text-center text-xs font-semibold text-violet shadow-sm"
+            className="rounded-2xl bg-surface px-3 py-3 text-center text-xs font-semibold text-violet shadow-sm"
           >
             {item.label}
           </Link>
@@ -103,7 +104,7 @@ export default async function ProfilePage() {
       </nav>
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
-        <section className="overflow-hidden rounded-[28px] bg-white px-4 shadow-sm">
+        <section className="overflow-hidden rounded-[28px] bg-surface px-4 shadow-sm">
           <div className="border-b border-border/70 py-3">
             <h2 className="text-sm font-bold">{tx(locale, "Compte", "Account")}</h2>
           </div>
@@ -130,7 +131,7 @@ export default async function ProfilePage() {
           </dl>
         </section>
 
-        <section className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm">
+        <section className="overflow-hidden rounded-[28px] bg-surface p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-bold">{tx(locale, "Modifier le profil", "Edit profile")}</h2>
             <p className="text-xs text-muted">{tx(locale, "Champs éditables", "Editable fields")}</p>

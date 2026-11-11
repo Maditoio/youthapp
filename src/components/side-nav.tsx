@@ -182,17 +182,17 @@ function SidebarBody({
         ))}
       </nav>
 
-      <div className="space-y-3 border-t border-border px-4 py-4">
+      <div className="border-t border-border px-4 py-3">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet text-sm font-bold text-white">
             {userName.slice(0, 1).toUpperCase()}
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-ink">{userName}</p>
             {userMeta ? <p className="truncate text-xs text-muted">{userMeta}</p> : null}
           </div>
         </div>
-        {footer}
+        {footer ? <div className="mt-2">{footer}</div> : null}
       </div>
     </div>
   );
@@ -330,7 +330,7 @@ export function SidebarShell({
       {mobileTabs ? (
         <nav
           aria-label={labels.nav}
-          className="fixed inset-x-3 bottom-3 z-30 rounded-[28px] border border-white/80 bg-white/90 px-2 py-2 shadow-[var(--shadow-card)] backdrop-blur lg:hidden"
+          className="fixed inset-x-3 bottom-3 z-30 rounded-[28px] border border-border bg-surface/95 px-2 py-2 shadow-[var(--shadow-card)] backdrop-blur lg:hidden"
         >
           <ul className="mx-auto flex max-w-lg items-end justify-between">
             {mobileTabs.map((item) => {

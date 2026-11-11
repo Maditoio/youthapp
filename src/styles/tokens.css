@@ -41,4 +41,46 @@
 
   --demo-banner-bg: #3a2a86;
   --demo-banner-fg: #ffffff;
+  --selection-bg: #ddd4ff;
+  --input-focus-ring: rgba(109, 77, 255, 0.14);
+  --card-fallback: #ffffff;
+}
+
+/**
+ * Brand-safe dark palette: deep indigo canvas, elevated violet-tinted
+ * surfaces, readable ink — not a generic purple glow theme.
+ */
+.dark {
+  --brand-violet: #8b75ff;
+  --brand-violet-deep: #a08fff;
+  --brand-violet-ink: #c4b8ff;
+  --brand-pink: #ff8fc0;
+  --brand-pink-soft: #4a2f3d;
+  --brand-lilac: #2a2440;
+  --brand-gold: #e6b84f;
+
+  --brand-forest: var(--brand-violet);
+  --brand-green: #9a86ff;
+  --brand-copper: var(--brand-pink);
+
+  --surface: #1a1628;
+  --surface-muted: #221d34;
+  --canvas: #100e18;
+  --text-primary: #f0ecfa;
+  --text-secondary: #a39bb8;
+  --text-on-forest: #ffffff;
+  --text-on-green: #ffffff;
+  --border: #322b48;
+  --success: #3dba7a;
+  --warning: #e8b45c;
+  --danger: #f07a86;
+  --focus-ring: #8b75ff;
+
+  --shadow-card: 0 18px 40px rgba(0, 0, 0, 0.45);
+
+  --demo-banner-bg: #241b4a;
+  --demo-banner-fg: #f0ecfa;
+  --selection-bg: #3a2f66;
+  --input-focus-ring: rgba(139, 117, 255, 0.28);
+  --card-fallback: #1a1628;
 }

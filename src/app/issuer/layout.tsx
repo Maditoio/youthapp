@@ -37,6 +37,10 @@ export default async function IssuerLayout({ children }: { children: React.React
         { href: "/issuer/documents", label: t("Documents", "Documents"), icon: "file" },
       ],
     },
+    {
+      label: t("Compte", "Account"),
+      items: [{ href: "/issuer/settings", label: t("Réglages", "Settings"), icon: "settings" }],
+    },
   ];
 
   return (
@@ -46,7 +50,7 @@ export default async function IssuerLayout({ children }: { children: React.React
       userName={session.user.legalFirstName}
       userMeta={session.user.email}
       groups={groups}
-      footer={<SidebarFooter locale={locale} returnTo="/issuer" />}
+      footer={<SidebarFooter locale={locale} settingsHref="/issuer/settings" />}
       labels={{
         nav: t("Navigation émetteur", "Issuer navigation"),
         menu: t("Ouvrir le menu", "Open menu"),

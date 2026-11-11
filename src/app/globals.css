@@ -28,6 +28,11 @@
 
 html {
   font-size: var(--font-size-base);
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
@@ -43,7 +48,16 @@ body {
 }
 
 ::selection {
-  background: #ddd4ff;
+  background: var(--selection-bg);
+}
+
+/*
+ * Many screens still hard-code card whites. Remap those fills in dark mode
+ * so the shell and existing cards stay readable without a full rewrite.
+ * Opacity variants (bg-white/12 etc.) keep their intended overlays.
+ */
+html.dark .bg-white {
+  background-color: var(--card-fallback);
 }
 
 /* Softer than a circular arc: cards and controls use a squircle where the browser supports it. */
@@ -142,7 +156,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--brand-violet);
-  box-shadow: 0 0 0 4px rgba(109, 77, 255, 0.14);
+  box-shadow: 0 0 0 4px var(--input-focus-ring);
 }
 
 .page-enter {

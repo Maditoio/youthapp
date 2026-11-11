@@ -54,6 +54,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
       label: t("Compte", "Account"),
       items: [
         { href: "/investor/profile", label: dict.nav.profile, icon: "user" },
+        { href: "/investor/settings", label: t("Réglages", "Settings"), icon: "settings" },
         { href: "/investor/documents", label: t("Documents", "Documents"), icon: "file" },
         { href: "/investor/notifications", label: t("Notifications", "Notifications"), icon: "bell", badge: unread },
         { href: "/investor/support", label: t("Assistance", "Support"), icon: "support" },
@@ -69,7 +70,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
       userMeta={session.user.email}
       groups={groups}
       mobileTabs={[dashboard, statistics, offers, portfolio]}
-      footer={<SidebarFooter locale={locale} returnTo="/investor" />}
+      footer={<SidebarFooter locale={locale} settingsHref="/investor/settings" />}
       labels={{
         nav: t("Navigation investisseur", "Investor navigation"),
         menu: t("Ouvrir le menu", "Open menu"),
