@@ -4,6 +4,7 @@ import { formatDate } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +36,9 @@ export default async function VotesPage() {
               <form action={voteAction} className="mt-3 flex flex-wrap gap-2">
                 <input type="hidden" name="resolutionId" value={resolution.id} />
                 {(["FOR", "AGAINST", "ABSTAIN"] as const).map((choice) => (
-                  <button key={choice} name="choice" value={choice} className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
+                  <SubmitButton key={choice} name="choice" value={choice} size="sm">
                     {choice === "FOR" ? tx(locale, "Pour", "For") : choice === "AGAINST" ? tx(locale, "Contre", "Against") : tx(locale, "Abstention", "Abstain")}
-                  </button>
+                  </SubmitButton>
                 ))}
               </form>
             ) : null}

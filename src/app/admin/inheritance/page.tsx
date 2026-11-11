@@ -4,6 +4,7 @@ import { INHERITANCE_NEXT } from "@/server/domain/mutate";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function InheritanceAdmin({ searchParams }: { searchParams:
             <input type="hidden" name="caseId" value={item.id} />
             <input name="evidence" placeholder={tx(locale, "Référence de preuve", "Evidence reference")} className="h-10 rounded-full border px-3" />
             <input name="password" type="password" required className="h-10 rounded-full border px-3" />
-            <button className="rounded-full bg-violet px-3 text-white">{tx(locale, "Approuver", "Approve")}</button>
+            <SubmitButton size="sm" className="h-10">{tx(locale, "Approuver", "Approve")}</SubmitButton>
           </form>
           <form action={inheritanceAdvanceAction} className="flex flex-wrap gap-2">
             <input type="hidden" name="caseId" value={item.id} />
@@ -44,7 +45,7 @@ export default async function InheritanceAdmin({ searchParams }: { searchParams:
             )}
             <input name="notes" className="h-10 rounded-full border px-3" />
             <input name="password" type="password" required className="h-10 rounded-full border px-3" />
-            <button className="rounded-full border px-3">{tx(locale, "Changer l'état", "Change state")}</button>
+            <SubmitButton variant="secondary" size="sm" className="h-10">{tx(locale, "Changer l'état", "Change state")}</SubmitButton>
           </form>
           <form action={inheritanceTransferAction} className="grid gap-2 md:grid-cols-2">
             <input type="hidden" name="caseId" value={item.id} />
@@ -53,7 +54,7 @@ export default async function InheritanceAdmin({ searchParams }: { searchParams:
             <input name="shareClassId" placeholder="class-ordinary" className="h-10 rounded-full border px-3" />
             <input name="quantity" type="number" className="h-10 rounded-full border px-3" />
             <input name="password" type="password" required className="h-10 rounded-full border px-3" />
-            <button className="rounded-full bg-ink px-3 py-2 text-white">{tx(locale, "Écrire le transfert", "Record the transfer")}</button>
+            <SubmitButton variant="ink" size="sm" className="h-10">{tx(locale, "Écrire le transfert", "Record the transfer")}</SubmitButton>
           </form>
         </article>
       ))}

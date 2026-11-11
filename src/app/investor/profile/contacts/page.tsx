@@ -6,6 +6,7 @@ import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
 import { errorCopy } from "@/server/domain/errors";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +30,8 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
           <GenderSelect locale={locale} defaultValue={readGender(person.gender) ?? ""} required />
           <input name="email" defaultValue={person.email} className="h-12 rounded-2xl border px-3" />
           <input name="phone" defaultValue={person.phone} className="h-12 rounded-2xl border px-3" />
-          <button className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">{tx(locale, "Mettre à jour", "Update")}</button>
-          <button formAction={deleteKinAction} className="text-sm font-semibold text-danger">{tx(locale, "Retirer", "Remove")}</button>
+          <SubmitButton name="intent" value="update" size="sm">{tx(locale, "Mettre à jour", "Update")}</SubmitButton>
+          <SubmitButton formAction={deleteKinAction} variant="danger" size="inline">{tx(locale, "Retirer", "Remove")}</SubmitButton>
         </form>
       ))}
       <form action={kinAction} className="grid gap-2 rounded-[28px] bg-white p-4 md:grid-cols-2 xl:grid-cols-3">
@@ -39,7 +40,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
         <GenderSelect locale={locale} required />
         <input name="email" placeholder="email" className="h-12 rounded-2xl border px-3" />
         <input name="phone" placeholder="+243..." className="h-12 rounded-2xl border px-3" />
-        <button className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">{tx(locale, "Ajouter", "Add")}</button>
+        <SubmitButton size="sm">{tx(locale, "Ajouter", "Add")}</SubmitButton>
       </form>
     </div>
   );

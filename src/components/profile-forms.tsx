@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { useActionFeedback } from "@/components/use-action-feedback";
 import { kycAction, nominationAction, onboardingAction, profileAction } from "@/server/actions";
 import { CountrySelect, DocumentTypeSelect, GenderSelect } from "@/components/choice-fields";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { DatePicker } from "@/components/ui/date-picker";
 import type { AppLocale } from "@/lib/config";
 import { errorCopy } from "@/server/domain/errors";
@@ -18,7 +19,8 @@ export function ProfileForm({
   locale: AppLocale;
   defaults: Record<string, string>;
 }) {
-  const [state, action, pending] = useActionState(profileAction, {});
+  const [state, action] = useActionState(profileAction, {});
+  useActionFeedback(state, locale, "PROFILE_SAVED");
   return (
     <form action={action} className="grid gap-3 md:grid-cols-2">
       <label className="text-sm font-semibold">
@@ -108,7 +110,7 @@ export function ProfileForm({
       </label>
       {state.error ? <p className="text-sm text-danger md:col-span-2">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700 md:col-span-2">{tx(locale, "Enregistré.", "Saved.")}</p> : null}
-      <Button type="submit" disabled={pending}>{tx(locale, "Enregistrer", "Save")}</Button>
+      <SubmitButton>{tx(locale, "Enregistrer", "Save")}</SubmitButton>
     </form>
   );
 }
@@ -120,7 +122,8 @@ export function OnboardingForm({
   locale: AppLocale;
   defaults: Record<string, string>;
 }) {
-  const [state, action, pending] = useActionState(onboardingAction, {});
+  const [state, action] = useActionState(onboardingAction, {});
+  useActionFeedback(state, locale);
   return (
     <form action={action} className="grid gap-3 md:grid-cols-2">
       <label className="text-sm font-semibold">
@@ -212,9 +215,9 @@ export function OnboardingForm({
         </select>
       </label>
       {state.error ? <p className="text-sm text-danger md:col-span-2">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
-      <Button type="submit" className="md:col-span-2" disabled={pending}>
+      <SubmitButton className="md:col-span-2">
         {tx(locale, "Terminer l'inscription", "Finish onboarding")}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }
@@ -230,7 +233,8 @@ export function KycForm({
   gender?: string;
   preferredDocumentTypes?: string[];
 }) {
-  const [state, action, pending] = useActionState(kycAction, {});
+  const [state, action] = useActionState(kycAction, {});
+  useActionFeedback(state, locale, "KYC_SUBMITTED");
   return (
     <form action={action} className="space-y-3 rounded-[28px] bg-white p-5">
       <p className="text-sm text-muted">
@@ -260,13 +264,14 @@ export function KycForm({
       </label>
       {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700">{tx(locale, "Dossier soumis. L'envoi d'un fichier ne l'approuve pas.", "File submitted. Uploading a file does not approve it.")}</p> : null}
-      <Button type="submit" disabled={pending}>{tx(locale, "Soumettre", "Submit")}</Button>
+      <SubmitButton>{tx(locale, "Soumettre", "Submit")}</SubmitButton>
     </form>
   );
 }
 
 export function NominationForm({ locale }: { locale: AppLocale }) {
-  const [state, action, pending] = useActionState(nominationAction, {});
+  const [state, action] = useActionState(nominationAction, {});
+  useActionFeedback(state, locale, "NOMINATION_SAVED");
   return (
     <form action={action} className="space-y-3">
       {[0, 1, 2].map((index) => (
@@ -289,7 +294,7 @@ export function NominationForm({ locale }: { locale: AppLocale }) {
       </label>
       {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700">{tx(locale, "Nomination enregistrée.", "Nomination saved.")}</p> : null}
-      <Button type="submit" disabled={pending}>{tx(locale, "Enregistrer la nomination", "Save nomination")}</Button>
+      <SubmitButton>{tx(locale, "Enregistrer la nomination", "Save nomination")}</SubmitButton>
     </form>
   );
 }

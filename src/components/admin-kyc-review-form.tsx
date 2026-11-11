@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AdminStepUpField } from "@/components/admin-step-up-field";
+import { SubmitButton } from "@/components/ui/submit-button";
 import type { AppLocale } from "@/lib/config";
 import {
   KYC_REASON_CODES,
@@ -130,13 +131,9 @@ export function AdminKycReviewForm({
         ownStaffCode={ownStaffCode}
         className={field}
       />
-      <button
-        type="submit"
-        disabled={ownCase}
-        className="rounded-full bg-violet px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
-      >
+      <SubmitButton disabled={ownCase} size="sm">
         {tx(locale, "Enregistrer la décision", "Save decision")}
-      </button>
+      </SubmitButton>
     </form>
   );
 }

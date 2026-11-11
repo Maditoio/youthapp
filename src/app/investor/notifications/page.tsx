@@ -4,6 +4,7 @@ import { formatDateTime } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function NotificationsPage() {
           {note.status === "UNREAD" ? (
             <form action={readNoteAction}>
               <input type="hidden" name="id" value={note.id} />
-              <button className="mt-2 text-sm font-semibold text-violet">{tx(locale, "Marquer comme lu", "Mark read")}</button>
+              <SubmitButton variant="link" size="inline" className="mt-2">{tx(locale, "Marquer comme lu", "Mark read")}</SubmitButton>
             </form>
           ) : null}
         </article>

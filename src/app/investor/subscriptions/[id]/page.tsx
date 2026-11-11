@@ -4,6 +4,7 @@ import { formatMoney } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -40,15 +41,15 @@ export default async function SubscriptionDetail({
         <div className="flex flex-wrap gap-2">
           <form action={sandboxPayAction}>
             <input type="hidden" name="id" value={subscription.id} />
-            <button className="rounded-full bg-violet px-5 py-3 text-sm font-semibold text-white">
+            <SubmitButton>
               {tx(locale, "Payer dans le bac à sable", "Pay in the sandbox")}
-            </button>
+            </SubmitButton>
           </form>
           <form action={cancelSubAction}>
             <input type="hidden" name="id" value={subscription.id} />
-            <button className="rounded-full bg-white px-5 py-3 text-sm font-semibold">
+            <SubmitButton variant="secondary">
               {tx(locale, "Annuler", "Cancel")}
-            </button>
+            </SubmitButton>
           </form>
         </div>
       ) : null}

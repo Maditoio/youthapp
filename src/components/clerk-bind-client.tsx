@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { bindClerkSession } from "@/server/actions";
 import { SignOutButton } from "@/components/sign-out-button";
+import { Button } from "@/components/ui/button";
 import type { AppLocale } from "@/lib/config";
 import { tx } from "@/lib/i18n/tx";
 
@@ -59,17 +60,18 @@ export function ClerkBindClient({ locale }: { locale: AppLocale }) {
           )}
         </p>
         {errorCode ? <p className="text-xs text-muted">{tx(locale, "Code", "Code")}: {errorCode}</p> : null}
-        <button
-          type="button"
-          className="inline-flex font-semibold text-violet"
-          disabled={pending}
+        <Button
+          variant="link"
+          size="inline"
+          className="flex"
+          loading={pending}
           onClick={() => {
             setFailed(false);
             runBind();
           }}
         >
           {tx(locale, "Réessayer", "Try again")}
-        </button>
+        </Button>
         <SignOutButton className="text-sm font-semibold text-violet">
           {tx(locale, "Se déconnecter et recommencer", "Sign out and start over")}
         </SignOutButton>

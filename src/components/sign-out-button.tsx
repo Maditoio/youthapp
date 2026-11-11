@@ -2,6 +2,7 @@
 
 import { useClerk } from "@clerk/nextjs";
 import { useTransition } from "react";
+import { Spinner } from "@/components/ui/spinner";
 import { signOutAction } from "@/server/actions";
 
 /** Full page load so no cached authenticated RSC payload or Clerk client state survives. */
@@ -22,6 +23,7 @@ function JeuneseSignOutButton({
       type="button"
       className={className}
       disabled={pending}
+      aria-busy={pending || undefined}
       onClick={() => {
         startTransition(async () => {
           try {
@@ -32,6 +34,7 @@ function JeuneseSignOutButton({
         });
       }}
     >
+      {pending ? <Spinner /> : null}
       {children}
     </button>
   );
@@ -51,6 +54,7 @@ function ClerkAwareSignOutButton({
       type="button"
       className={className}
       disabled={pending}
+      aria-busy={pending || undefined}
       onClick={() => {
         startTransition(async () => {
           // Jeunese cookie first: Clerk's signOut navigates away and would cut a later request short.
@@ -73,6 +77,7 @@ function ClerkAwareSignOutButton({
         });
       }}
     >
+      {pending ? <Spinner /> : null}
       {children}
     </button>
   );

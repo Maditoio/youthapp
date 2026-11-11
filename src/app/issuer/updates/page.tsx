@@ -3,6 +3,7 @@ import { EntitySelect } from "@/components/choice-fields";
 import { issuerScope } from "@/server/issuer-scope";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -44,9 +45,9 @@ export default async function IssuerUpdates() {
         <input name="titleEn" required placeholder="Title" className="h-12 w-full rounded-2xl border px-3" />
         <textarea name="bodyFr" required className="min-h-20 w-full rounded-2xl border px-3 py-2" />
         <textarea name="bodyEn" required className="min-h-20 w-full rounded-2xl border px-3 py-2" />
-        <button className="rounded-full bg-violet px-4 py-2 font-semibold text-white disabled:opacity-50" disabled={projects.length === 0}>
+        <SubmitButton size="sm" disabled={projects.length === 0}>
           {tx(locale, "Soumettre à relecture", "Submit for review")}
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

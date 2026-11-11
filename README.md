@@ -82,6 +82,33 @@ npm run build
 
 French is the default. English is available from the language switch.
 
+## UI requirements
+
+These apply to every screen. New work must follow them.
+
+### Action buttons show a loading state
+
+- Every button that runs an action (form submit, server action, async click handler) shows a spinner while the action is in flight.
+- The button is disabled while pending so it cannot be submitted twice. Its label stays visible next to the spinner (or an `sr-only` label when the button is icon-only).
+- Form submits use `SubmitButton` (`src/components/ui/submit-button.tsx`), which reads `useFormStatus()`. When several submit buttons share a form, all are disabled and only the one that was pressed spins. Give buttons that share a form a distinct `formAction` or `name`/`value`.
+- Client click handlers use `<Button loading={pending}>` (`src/components/ui/button.tsx`), with `pending` from `useTransition`, `useActionState` or local state.
+- Links styled as buttons only navigate and do not need a spinner.
+
+### Spinners use the brand tints
+
+- Spinner: `src/components/ui/spinner.tsx`. `Button` picks the tone from its variant.
+- On filled buttons (`primary` violet `#6d4dff`, `ink` `#1d1633`, `copper`/pink `#ff6fae`): lilac track (`#efeaff` at 35%) with a white arc.
+- On light buttons (`secondary`, `ghost`, `link`, `danger`, white or lilac surfaces): lilac track (`#efeaff`) with a violet arc (`#6d4dff`).
+- Do not use grey or default browser spinners.
+
+### Outcomes appear as in-app notifications
+
+- Never use `window.alert`, `window.confirm`, `window.prompt` or any other native browser popup.
+- Results of create, update, delete, approve, reject and status-change actions appear as toasts from `ToastProvider` (`src/components/ui/toast.tsx`): green success, red error, violet info. Toasts sit top-right on desktop and at the top on mobile. They close on their own (5 s, 8 s for errors), pause on hover or focus, can be dismissed, and are announced through `aria-live` (`role="status"`, or `role="alert"` for errors).
+- Server actions that redirect report the outcome in the URL: `withNotice(path, CODE)` adds `?notice=CODE` and `withError(path, CODE)` adds `?error=CODE` (`src/server/domain/notices.ts`). `FlashToaster` in the root layout shows the toast once, then removes the parameter without reloading the page. Inline `?error=` text on the page stays visible.
+- Server actions used with `useActionState` return `{ ok }` or `{ error }`. Call `useActionFeedback(state, locale, NOTICE_CODE)` to show the matching toast.
+- Copy is always French and English: success messages live in `noticeCopy` (`src/server/domain/notices.ts`) and errors in `errorCopy` (`src/server/domain/errors.ts`). Add new codes there instead of hard-coding strings in toasts.
+
 ## Known limits
 
 Citizens aged 18 through 35 can join and buy. Raised money is assigned to the company only when shares are issued, either to start it or to finance it. Profit payments are an amount per share, proposed by the company and approved by a different administrator.

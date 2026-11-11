@@ -4,6 +4,7 @@ import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { formatMoney } from "@/lib/format";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -23,14 +24,14 @@ export default async function PaymentsAdmin({ searchParams }: { searchParams: Pr
           {payment.status === "CONFIRMED" ? (
             <form action={settleAction}>
               <input type="hidden" name="paymentId" value={payment.id} />
-              <button className="mt-2 text-violet">{tx(locale, "Marquer réglé", "Mark settled")}</button>
+              <SubmitButton variant="link" size="inline" className="mt-2">{tx(locale, "Marquer réglé", "Mark settled")}</SubmitButton>
             </form>
           ) : null}
           {payment.status !== "REFUNDED" ? (
             <form action={refundRequestAction} className="mt-2 flex gap-2">
               <input type="hidden" name="paymentId" value={payment.id} />
               <input name="reason" placeholder={tx(locale, "Motif", "Reason")} className="h-10 rounded-full border px-3" />
-              <button className="text-sm font-semibold">{tx(locale, "Demander un remboursement", "Request refund")}</button>
+              <SubmitButton variant="secondary" size="sm">{tx(locale, "Demander un remboursement", "Request refund")}</SubmitButton>
             </form>
           ) : null}
         </article>
@@ -43,7 +44,7 @@ export default async function PaymentsAdmin({ searchParams }: { searchParams: Pr
           {refund.status === "REQUESTED" ? (
             <>
               <input name="password" type="password" required placeholder={tx(locale, "Mot de passe d'une autre personne", "Another person's password")} className="mt-2 h-10 rounded-full border px-3" />
-              <button className="ml-2 rounded-full bg-violet px-3 py-2 text-white">{tx(locale, "Approuver", "Approve")}</button>
+              <SubmitButton size="sm" className="ml-2">{tx(locale, "Approuver", "Approve")}</SubmitButton>
             </>
           ) : null}
         </form>

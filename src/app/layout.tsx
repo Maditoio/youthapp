@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Suspense } from "react";
 import { AppProviders } from "@/components/app-providers";
 import { DemoModeBanner } from "@/components/demo-mode-banner";
+import { FlashToaster } from "@/components/flash-toaster";
+import { ToastProvider } from "@/components/ui/toast";
 import { MotionRoot } from "@/components/motion";
 import { PwaRegister } from "@/components/pwa-register";
 import { appConfig } from "@/lib/config";
@@ -52,9 +55,14 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={`${plusJakarta.variable} antialiased`}>
         <AppProviders clerk={Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)}>
-          <DemoModeBanner message={dict.common.demoBanner} />
-          <MotionRoot>{children}</MotionRoot>
-          <PwaRegister />
+          <ToastProvider locale={locale}>
+            <DemoModeBanner message={dict.common.demoBanner} />
+            <MotionRoot>{children}</MotionRoot>
+            <Suspense fallback={null}>
+              <FlashToaster locale={locale} />
+            </Suspense>
+            <PwaRegister />
+          </ToastProvider>
         </AppProviders>
       </body>
     </html>

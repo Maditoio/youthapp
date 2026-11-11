@@ -6,6 +6,7 @@ import { deathReportAction } from "@/server/actions";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function BeneficiariesPage() {
         </article>
       ))}
       <NominationForm locale={locale} />
-      <form action={deathReportAction} className="space-y-2 rounded-[28px] bg-white p-4">
+      <form action={deathReportAction} className="max-w-3xl space-y-2 rounded-[28px] bg-white p-4">
         <h2 className="font-bold">{tx(locale, "Signaler un décès", "Report a death")}</h2>
         <p className="text-sm text-muted">{tx(locale, "Le signalement n'est pas une preuve et ne déplace aucune action.", "The report is not proof and does not move any shares.")}</p>
         <label className="block text-sm font-semibold">
@@ -53,7 +54,7 @@ export default async function BeneficiariesPage() {
           />
         </label>
         <textarea name="notes" className="min-h-24 w-full rounded-2xl border px-3 py-2" />
-        <button className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">{tx(locale, "Ouvrir un dossier", "Open a case")}</button>
+        <SubmitButton variant="ink" size="sm">{tx(locale, "Ouvrir un dossier", "Open a case")}</SubmitButton>
       </form>
     </div>
   );

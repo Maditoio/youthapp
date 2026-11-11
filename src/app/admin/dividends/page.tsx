@@ -7,6 +7,7 @@ import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { formatMoney } from "@/lib/format";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -74,9 +75,9 @@ export default async function DividendsAdmin({ searchParams }: { searchParams: P
             className="mt-1 h-11 rounded-2xl border px-3"
           />
         </label>
-        <button className="rounded-full bg-violet px-4 py-2 font-semibold text-white disabled:opacity-50" disabled={!canPropose}>
+        <SubmitButton size="sm" disabled={!canPropose}>
           {tx(locale, "Proposer", "Propose")}
-        </button>
+        </SubmitButton>
       </form>
       {session.db.dividendDeclarations.map((declaration) => (
         <article key={declaration.id} className="rounded-[24px] bg-white p-4 text-sm">
@@ -88,7 +89,7 @@ export default async function DividendsAdmin({ searchParams }: { searchParams: P
             <form action={dividendApproveAction} className="mt-2 flex gap-2">
               <input type="hidden" name="declarationId" value={declaration.id} />
               <input name="password" type="password" required className="h-10 rounded-full border px-3" />
-              <button className="rounded-full bg-violet px-3 text-white">{tx(locale, "Approuver", "Approve")}</button>
+              <SubmitButton size="sm" className="h-10">{tx(locale, "Approuver", "Approve")}</SubmitButton>
             </form>
           ) : null}
         </article>
@@ -98,9 +99,9 @@ export default async function DividendsAdmin({ searchParams }: { searchParams: P
         .map((payment) => (
           <form key={payment.id} action={dividendPayAction}>
             <input type="hidden" name="paymentId" value={payment.id} />
-            <button className="text-sm font-semibold text-violet">
+            <SubmitButton variant="link" size="inline">
               {tx(locale, "Marquer payé", "Mark paid")} {payment.providerReference}
-            </button>
+            </SubmitButton>
           </form>
         ))}
     </div>

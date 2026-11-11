@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useActionState } from "react";
 import { quoteAction, subscribeAction } from "@/server/actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { useActionFeedback } from "@/components/use-action-feedback";
 import type { AppLocale } from "@/lib/config";
 import { errorCopy } from "@/server/domain/errors";
 import { tx } from "@/lib/i18n/tx";
@@ -17,7 +18,8 @@ export function SubscribeForm({
   offeringId: string;
   documents: { id: string; title: string }[];
 }) {
-  const [state, action, pending] = useActionState(subscribeAction, {});
+  const [state, action] = useActionState(subscribeAction, {});
+  useActionFeedback(state, locale);
   const [quote, setQuote] = useState<string>("");
   return (
     <form action={action} className="space-y-3 rounded-[28px] bg-white p-5">
@@ -58,9 +60,9 @@ export function SubscribeForm({
         {tx(locale, "Je peux perdre tout le montant. Aucun rendement, aucune liquidité et aucun rachat ne sont promis.", "I can lose the entire amount. No return, liquidity or buyback is promised.")}
       </label>
       {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
+      <SubmitButton>
         {tx(locale, "Créer la souscription", "Create subscription")}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

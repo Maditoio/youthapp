@@ -1,0 +1,14 @@
+---
+description: Loading buttons and in-app toast notifications for every action
+globs: src/**/*.tsx,src/server/actions.ts
+alwaysApply: false
+---
+
+Follow "UI requirements" in `README.md`. In short:
+
+- Action buttons use `SubmitButton` (form submits) or `<Button loading={pending}>` (client handlers): spinner + disabled while pending, label kept.
+- Spinners use brand tints only (`Spinner` tone `onBrand` on violet/ink/pink fills, `brand` on light surfaces).
+- No `alert` / `confirm` / `prompt`. CRUD outcomes surface as toasts:
+  - redirecting server actions: `redirect(withNotice(path, CODE))` / `withError(path, CODE)` from `src/server/domain/notices.ts`;
+  - `useActionState` actions: `useActionFeedback(state, locale, CODE)`.
+- Add FR/EN copy to `noticeCopy` (success) or `errorCopy` (errors); never hard-code toast text.

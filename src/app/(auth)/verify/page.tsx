@@ -2,6 +2,7 @@ import { VerifyForm } from "@/components/auth-forms";
 import { resendCodeAction, currentDemoCode } from "@/server/actions";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ email?: string }> }) {
   const locale = await getLocale();
@@ -13,7 +14,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
       <VerifyForm locale={locale} email={email} demoCode={demoCode} />
       <form action={resendCodeAction}>
         <input type="hidden" name="email" value={email} />
-        <button className="text-sm font-semibold text-violet">{tx(locale, "Renvoyer le code", "Resend code")}</button>
+        <SubmitButton variant="link" size="inline">{tx(locale, "Renvoyer le code", "Resend code")}</SubmitButton>
       </form>
     </div>
   );

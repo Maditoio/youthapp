@@ -2,6 +2,7 @@ import { replyAction } from "@/server/actions";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function SupportAdmin() {
             <input type="hidden" name="ticketId" value={ticket.id} />
             <textarea name="message" required className="min-h-20 w-full rounded-2xl border px-3 py-2" />
             <label className="flex gap-2 text-xs"><input type="checkbox" name="internal" />{tx(locale, "Note interne", "Internal note")}</label>
-            <button className="rounded-full bg-violet px-3 py-2 text-white">{tx(locale, "Répondre", "Reply")}</button>
+            <SubmitButton size="sm">{tx(locale, "Répondre", "Reply")}</SubmitButton>
           </form>
         </article>
       ))}

@@ -14,6 +14,9 @@ import {
 import { CountrySelect, GenderSelect } from "@/components/choice-fields";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { useToast } from "@/components/ui/toast";
+import { useActionFeedback } from "@/components/use-action-feedback";
 import { clerkContinueHref } from "@/lib/auth/clerk-continue";
 import type { AppLocale } from "@/lib/config";
 import { errorCopy } from "@/server/domain/errors";
@@ -26,13 +29,22 @@ function continueToJeunese() {
   window.location.assign(clerkContinueHref());
 }
 
+/** Clerk errors arrive as raw strings; surface each one as a toast too. */
+function useErrorToast(error: string) {
+  const { toast } = useToast();
+  useEffect(() => {
+    if (error) toast({ variant: "error", title: error });
+  }, [error, toast]);
+}
+
 export function SignInForm({ locale, useClerk = false }: { locale: AppLocale; useClerk?: boolean }) {
   if (useClerk) return <ClerkSignInForm locale={locale} />;
   return <DemoSignInForm locale={locale} />;
 }
 
 function DemoSignInForm({ locale }: { locale: AppLocale }) {
-  const [state, action, pending] = useActionState(signInAction, {});
+  const [state, action] = useActionState(signInAction, {});
+  useActionFeedback(state, locale);
   return (
     <form action={action} className="space-y-3">
       <label className="block text-sm font-semibold">
@@ -44,9 +56,9 @@ function DemoSignInForm({ locale }: { locale: AppLocale }) {
         <input name="password" type="password" required className={`${field} mt-1`} defaultValue="Demo-Jeunese-2026" />
       </label>
       {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <SubmitButton name="intent" value="password" className="w-full">
         {tx(locale, "Se connecter", "Sign in")}
-      </Button>
+      </SubmitButton>
       <div className="grid grid-cols-3 gap-2 text-xs">
         {[
           ["amina@demo.jeunese.test", tx(locale, "Investisseur", "Investor")],
@@ -71,9 +83,9 @@ function DemoSignInForm({ locale }: { locale: AppLocale }) {
       <p className="text-xs text-muted">
         {tx(locale, "Mot de passe démo pour tous les comptes : Demo-Jeunese-2026. Le personnel saisit ensuite son code personnel (Admin → Personnel).", "Demo password for every account: Demo-Jeunese-2026. Staff then enter their personal code (Admin → Staff).")}
       </p>
-      <button formAction={googleDemoAction} className="h-12 w-full rounded-full border border-border text-sm font-semibold">
+      <SubmitButton formAction={googleDemoAction} variant="secondary" size="lg" className="w-full text-sm">
         {tx(locale, "Continuer avec Google (bac à sable)", "Continue with Google (sandbox)")}
-      </button>
+      </SubmitButton>
     </form>
   );
 }
@@ -83,6 +95,8 @@ function ClerkSignInForm({ locale }: { locale: AppLocale }) {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  useErrorToast(error);
 
   useEffect(() => {
     if (authLoaded && isSignedIn) continueToJeunese();
@@ -125,22 +139,31 @@ function ClerkSignInForm({ locale }: { locale: AppLocale }) {
       <input name="email" type="email" required autoComplete="email" placeholder={tx(locale, "E-mail", "Email")} className={field} />
       <input name="password" type="password" required autoComplete="current-password" placeholder={tx(locale, "Mot de passe", "Password")} className={field} />
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending || !isLoaded}>
+      <Button type="submit" className="w-full" loading={pending} disabled={!isLoaded || redirecting}>
         {tx(locale, "Se connecter", "Sign in")}
       </Button>
-      <button
-        type="button"
-        className="h-12 w-full rounded-full border border-border text-sm font-semibold"
-        onClick={() =>
-          signIn?.authenticateWithRedirect({
-            strategy: "oauth_google",
-            redirectUrl: "/sign-in/sso-callback",
-            redirectUrlComplete: clerkContinueHref(),
-          })
-        }
+      <Button
+        variant="secondary"
+        size="lg"
+        className="w-full text-sm"
+        loading={redirecting}
+        disabled={!isLoaded || pending}
+        onClick={() => {
+          setRedirecting(true);
+          signIn
+            ?.authenticateWithRedirect({
+              strategy: "oauth_google",
+              redirectUrl: "/sign-in/sso-callback",
+              redirectUrlComplete: clerkContinueHref(),
+            })
+            .catch((caught: unknown) => {
+              setRedirecting(false);
+              setError(caught instanceof Error ? caught.message : "INVALID_STATE");
+            });
+        }}
       >
         {tx(locale, "Continuer avec Google", "Continue with Google")}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -151,14 +174,15 @@ export function SignUpForm({ locale, useClerk = false }: { locale: AppLocale; us
 }
 
 function DemoSignUpForm({ locale }: { locale: AppLocale }) {
-  const [state, action, pending] = useActionState(signUpAction, {});
+  const [state, action] = useActionState(signUpAction, {});
+  useActionFeedback(state, locale);
   return (
     <form action={action} className="space-y-3">
       <SignUpFields locale={locale} />
       {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <SubmitButton className="w-full">
         {tx(locale, "Créer le compte", "Create account")}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }
@@ -170,6 +194,8 @@ function ClerkSignUpForm({ locale }: { locale: AppLocale }) {
   const [pending, setPending] = useState(false);
   const [needsCode, setNeedsCode] = useState(false);
   const [profile, setProfile] = useState<ClerkBindProfile | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
+  useErrorToast(error);
 
   useEffect(() => {
     if (authLoaded && isSignedIn) continueToJeunese();
@@ -263,7 +289,7 @@ function ClerkSignUpForm({ locale }: { locale: AppLocale }) {
         </p>
         <input name="code" inputMode="numeric" required className={field} placeholder="000000" />
         {error ? <p className="text-sm text-danger">{error}</p> : null}
-        <Button type="submit" className="w-full" disabled={pending || !isLoaded}>
+        <Button type="submit" className="w-full" loading={pending} disabled={!isLoaded}>
           {tx(locale, "Vérifier et continuer", "Verify and continue")}
         </Button>
       </form>
@@ -274,22 +300,31 @@ function ClerkSignUpForm({ locale }: { locale: AppLocale }) {
     <form onSubmit={onSubmit} className="space-y-3">
       <SignUpFields locale={locale} />
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending || !isLoaded}>
+      <Button type="submit" className="w-full" loading={pending} disabled={!isLoaded || redirecting}>
         {tx(locale, "Créer le compte", "Create account")}
       </Button>
-      <button
-        type="button"
-        className="h-12 w-full rounded-full border border-border text-sm font-semibold"
-        onClick={() =>
-          signUp?.authenticateWithRedirect({
-            strategy: "oauth_google",
-            redirectUrl: "/sign-in/sso-callback",
-            redirectUrlComplete: clerkContinueHref(),
-          })
-        }
+      <Button
+        variant="secondary"
+        size="lg"
+        className="w-full text-sm"
+        loading={redirecting}
+        disabled={!isLoaded || pending}
+        onClick={() => {
+          setRedirecting(true);
+          signUp
+            ?.authenticateWithRedirect({
+              strategy: "oauth_google",
+              redirectUrl: "/sign-in/sso-callback",
+              redirectUrlComplete: clerkContinueHref(),
+            })
+            .catch((caught: unknown) => {
+              setRedirecting(false);
+              setError(caught instanceof Error ? caught.message : "INVALID_STATE");
+            });
+        }}
       >
         {tx(locale, "Continuer avec Google", "Continue with Google")}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -332,7 +367,8 @@ function SignUpFields({ locale }: { locale: AppLocale }) {
 }
 
 export function VerifyForm({ locale, email, demoCode }: { locale: AppLocale; email: string; demoCode: string | null }) {
-  const [state, action, pending] = useActionState(verifyEmailAction, {});
+  const [state, action] = useActionState(verifyEmailAction, {});
+  useActionFeedback(state, locale);
   return (
     <form action={action} className="space-y-3">
       <input type="hidden" name="email" value={email} />
@@ -344,15 +380,16 @@ export function VerifyForm({ locale, email, demoCode }: { locale: AppLocale; ema
       ) : null}
       <input name="code" inputMode="numeric" required className={field} placeholder="000000" />
       {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <SubmitButton className="w-full">
         {tx(locale, "Vérifier", "Verify")}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }
 
 export function MfaForm({ locale }: { locale: AppLocale }) {
-  const [state, action, pending] = useActionState(mfaAction, {});
+  const [state, action] = useActionState(mfaAction, {});
+  useActionFeedback(state, locale);
   return (
     <form action={action} className="space-y-3">
       <p className="text-sm text-muted">
@@ -364,9 +401,9 @@ export function MfaForm({ locale }: { locale: AppLocale }) {
       </p>
       <input name="code" required className={field} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" />
       {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <SubmitButton className="w-full">
         {tx(locale, "Confirmer", "Confirm")}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

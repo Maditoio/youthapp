@@ -1,6 +1,6 @@
 import { setLocale } from "@/lib/i18n/set-locale";
 import type { AppLocale } from "@/lib/config";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type LanguageSwitcherProps = {
   locale: AppLocale;
@@ -18,26 +18,24 @@ export function LanguageSwitcher({
       <form action={setLocale}>
         <input type="hidden" name="locale" value="fr" />
         <input type="hidden" name="returnTo" value={returnTo} />
-        <Button
-          type="submit"
+        <SubmitButton
           variant={locale === "fr" ? "primary" : "ghost"}
           size="sm"
           aria-pressed={locale === "fr"}
         >
           {labels.french}
-        </Button>
+        </SubmitButton>
       </form>
       <form action={setLocale}>
         <input type="hidden" name="locale" value="en" />
         <input type="hidden" name="returnTo" value={returnTo} />
-        <Button
-          type="submit"
+        <SubmitButton
           variant={locale === "en" ? "primary" : "ghost"}
           size="sm"
           aria-pressed={locale === "en"}
         >
           {labels.english}
-        </Button>
+        </SubmitButton>
       </form>
     </div>
   );

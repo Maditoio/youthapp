@@ -2,6 +2,7 @@ import { publishUpdateAction } from "@/server/actions";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function ContentAdmin() {
           {item.approvalStatus === "SUBMITTED" ? (
             <form action={publishUpdateAction}>
               <input type="hidden" name="updateId" value={item.id} />
-              <button className="mt-2 text-violet">{tx(locale, "Publier", "Publish")}</button>
+              <SubmitButton variant="link" size="inline" className="mt-2">{tx(locale, "Publier", "Publish")}</SubmitButton>
             </form>
           ) : null}
         </article>

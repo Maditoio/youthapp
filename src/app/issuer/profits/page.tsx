@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { errorCopy } from "@/server/domain/errors";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -81,9 +82,9 @@ export default async function IssuerProfits({ searchParams }: { searchParams: Pr
           {tx(locale, "Date de paiement", "Payment date")}
           <DatePicker locale={locale} name="paymentDate" required className="mt-1" />
         </label>
-        <button className="rounded-full bg-violet px-4 py-2 font-semibold text-white disabled:opacity-50" disabled={!canPropose}>
+        <SubmitButton size="sm" disabled={!canPropose}>
           {tx(locale, "Proposer le versement", "Propose the payment")}
-        </button>
+        </SubmitButton>
       </form>
       {declarations.map((item) => (
         <p key={item.id} className="rounded-2xl bg-white p-3 text-sm">

@@ -1,3 +1,4 @@
+import Form from "next/form";
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { StatusPill } from "@/components/visuals";
@@ -7,6 +8,7 @@ import { tx } from "@/lib/i18n/tx";
 import { getStore } from "@/server/db/store";
 import { INDUSTRIES } from "@/lib/choices";
 import { publicProjects } from "@/server/view";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +33,7 @@ export default async function ProjectsPage({
         <p className="mt-2 max-w-2xl text-sm text-muted">
           {tx(locale, "Seules les offres ouvertes et approuvées sont listées. Les brouillons restent invisibles.", "Only open, approved offerings are listed. Drafts stay hidden.")}
         </p>
-        <form className="mt-4 flex flex-wrap gap-2">
+        <Form action="/projects" className="mt-4 flex flex-wrap gap-2">
           <input name="q" defaultValue={params.q ?? ""} placeholder={tx(locale, "Rechercher", "Search")} className="h-12 flex-1 rounded-full border border-border bg-white px-4" />
           <select name="industry" defaultValue={params.industry ?? ""} className="h-12 rounded-full border border-border bg-white px-4">
             <option value="">{tx(locale, "Tous les secteurs", "All industries")}</option>
@@ -39,8 +41,8 @@ export default async function ProjectsPage({
               <option key={industry.code} value={industry.code}>{tx(locale, industry.fr, industry.en)}</option>
             ))}
           </select>
-          <button className="h-12 rounded-full bg-violet px-5 font-semibold text-white">{tx(locale, "Filtrer", "Filter")}</button>
-        </form>
+          <SubmitButton size="lg">{tx(locale, "Filtrer", "Filter")}</SubmitButton>
+        </Form>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {projects.map(({ project, issuer, offering, progress, terms }) => (
             <article key={project.id} className="rounded-[28px] bg-white p-5 shadow-sm">

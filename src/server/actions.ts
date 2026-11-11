@@ -7,6 +7,7 @@ import { describeDbError } from "./db/errors";
 import { peekDemoCode, stashDemoCode } from "./auth/demo-codes";
 import { clearSession, getSession, readMfaPending, setMfaPending, setSession } from "./auth/session";
 import { AppError } from "./domain/errors";
+import { withError, withNotice } from "./domain/notices";
 import {
   addInheritanceApproval,
   advanceInheritance,
@@ -96,7 +97,7 @@ export async function signUpAction(_prev: ActionState, formData: FormData): Prom
       }),
     );
     if (appConfig.demoMode) stashDemoCode(result.userId, result.code);
-    redirect(`/verify?email=${encodeURIComponent(String(formData.get("email") ?? ""))}`);
+    redirect(withNotice(`/verify?email=${encodeURIComponent(String(formData.get("email") ?? ""))}`, "ACCOUNT_CREATED"));
   } catch (error) {
     if (isRedirect(error)) throw error;
     return fail(error);
@@ -108,7 +109,7 @@ export async function verifyEmailAction(_prev: ActionState, formData: FormData):
   try {
     const userId = await (await getStore()).update((db) => verifyEmail(db, email, String(formData.get("code") ?? "")));
     await setSession(userId);
-    redirect("/investor/onboarding");
+    redirect(withNotice("/investor/onboarding", "EMAIL_VERIFIED"));
   } catch (error) {
     if (isRedirect(error)) throw error;
     return fail(error);
@@ -119,7 +120,7 @@ export async function resendCodeAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const result = await (await getStore()).update((db) => resendEmailCode(db, email));
   if (result && appConfig.demoMode) stashDemoCode(result.userId, result.code);
-  redirect(`/verify?email=${encodeURIComponent(email)}`);
+  redirect(withNotice(`/verify?email=${encodeURIComponent(email)}`, "CODE_RESENT"));
 }
 
 function clerkMetadataProfile(clerkUser: {
@@ -296,7 +297,7 @@ export async function onboardingAction(_prev: ActionState, formData: FormData): 
     await (await getStore()).update((db) => completeInvestorOnboarding(db, session.user.id, profileFieldsFromForm(formData)));
     revalidatePath("/investor/onboarding");
     revalidatePath("/investor");
-    redirect("/investor");
+    redirect(withNotice("/investor", "ONBOARDING_DONE"));
   } catch (error) {
     if (isRedirect(error)) throw error;
     return fail(error);
@@ -332,7 +333,7 @@ export async function kycAction(_prev: ActionState, formData: FormData): Promise
 export async function kinAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  await (await getStore()).update((db) =>
+  await attempt("/investor/profile/contacts", async () => (await getStore()).update((db) =>
     saveNextOfKin(db, session.user.id, {
       id: String(formData.get("id") ?? "") || undefined,
       fullName: String(formData.get("fullName") ?? ""),
@@ -341,15 +342,17 @@ export async function kinAction(formData: FormData) {
       phone: String(formData.get("phone") ?? ""),
       gender: String(formData.get("gender") ?? ""),
     }),
-  );
-  redirect("/investor/profile/contacts");
+  ));
+  redirect(withNotice("/investor/profile/contacts", "KIN_SAVED"));
 }
 
 export async function deleteKinAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  await (await getStore()).update((db) => removeNextOfKin(db, session.user.id, String(formData.get("id") ?? "")));
-  redirect("/investor/profile/contacts");
+  await attempt("/investor/profile/contacts", async () =>
+    (await getStore()).update((db) => removeNextOfKin(db, session.user.id, String(formData.get("id") ?? ""))),
+  );
+  redirect(withNotice("/investor/profile/contacts", "KIN_REMOVED"));
 }
 
 export async function nominationAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -384,7 +387,7 @@ export async function deathReportAction(formData: FormData) {
   if (!session) redirect("/sign-in");
   const profile = session.db.investorProfiles.find((item) => item.userId === session.user.id);
   if (!profile) redirect("/investor/profile");
-  await (await getStore()).update((db) =>
+  await attempt("/investor/profile/beneficiaries", async () => (await getStore()).update((db) =>
     reportDeath(
       db,
       session.user.id,
@@ -392,8 +395,8 @@ export async function deathReportAction(formData: FormData) {
       String(formData.get("jurisdiction") ?? "CD"),
       String(formData.get("notes") ?? ""),
     ),
-  );
-  redirect("/investor/profile/beneficiaries");
+  ));
+  redirect(withNotice("/investor/profile/beneficiaries", "DEATH_REPORTED"));
 }
 
 export async function quoteAction(offeringId: string, amountMajor: string) {
@@ -429,7 +432,7 @@ export async function subscribeAction(_prev: ActionState, formData: FormData): P
         riskAccepted: formData.get("risk") === "on",
       }),
     );
-    redirect(`/investor/subscriptions/${id}`);
+    redirect(withNotice(`/investor/subscriptions/${id}`, "SUBSCRIPTION_CREATED"));
   } catch (error) {
     if (isRedirect(error)) throw error;
     return fail(error);
@@ -439,8 +442,10 @@ export async function subscribeAction(_prev: ActionState, formData: FormData): P
 export async function cancelSubAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  await (await getStore()).update((db) => cancelSubscription(db, session.user.id, String(formData.get("id") ?? "")));
-  redirect("/investor/subscriptions");
+  await attempt("/investor/subscriptions", async () =>
+    (await getStore()).update((db) => cancelSubscription(db, session.user.id, String(formData.get("id") ?? ""))),
+  );
+  redirect(withNotice("/investor/subscriptions", "SUBSCRIPTION_CANCELLED"));
 }
 
 export async function sandboxPayAction(formData: FormData) {
@@ -449,7 +454,7 @@ export async function sandboxPayAction(formData: FormData) {
   const subscriptionId = String(formData.get("id") ?? "");
   const sub = (await getStore()).db.subscriptions.find((item) => item.id === subscriptionId);
   if (!sub) redirect("/investor/subscriptions");
-  await (await getStore()).update((db) =>
+  await attempt(`/investor/subscriptions/${subscriptionId}`, async () => (await getStore()).update((db) =>
     applySandboxPayment(db, {
       providerEventId: `sandbox-${uid()}`,
       providerTransactionId: `txn-${uid()}`,
@@ -457,28 +462,28 @@ export async function sandboxPayAction(formData: FormData) {
       amountMinor: sub.totalMinor,
       currencyCode: sub.currencyCode,
     }),
-  );
-  redirect(`/investor/subscriptions/${subscriptionId}?paid=1`);
+  ));
+  redirect(withNotice(`/investor/subscriptions/${subscriptionId}?paid=1`, "PAYMENT_RECORDED"));
 }
 
 export async function voteAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const choice = String(formData.get("choice") ?? "ABSTAIN");
-  await (await getStore()).update((db) =>
+  await attempt("/investor/votes", async () => (await getStore()).update((db) =>
     castVote(
       db,
       session.user.id,
       String(formData.get("resolutionId") ?? ""),
       choice === "FOR" || choice === "AGAINST" ? choice : "ABSTAIN",
     ),
-  );
-  redirect("/investor/votes");
+  ));
+  redirect(withNotice("/investor/votes", "VOTE_CAST"));
 }
 
 export async function ticketAction(formData: FormData) {
   const session = await getSession();
-  const id = await (await getStore()).update((db) =>
+  const id = await attempt(session ? "/investor/support" : "/contact", async () => (await getStore()).update((db) =>
     createTicket(
       db,
       session?.user.id ?? null,
@@ -486,26 +491,36 @@ export async function ticketAction(formData: FormData) {
       String(formData.get("subject") ?? ""),
       String(formData.get("message") ?? ""),
     ),
-  );
-  redirect(session ? `/investor/support/${id}` : "/contact?sent=1");
+  ));
+  redirect(withNotice(session ? `/investor/support/${id}` : "/contact?sent=1", "TICKET_SENT"));
 }
 
 export async function replyAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const ticketId = String(formData.get("ticketId") ?? "");
-  await (await getStore()).update((db) =>
+  const back = session.roles.includes("investor") ? `/investor/support/${ticketId}` : `/admin/support`;
+  await attempt(back, async () => (await getStore()).update((db) =>
     replyTicket(db, session.user.id, ticketId, String(formData.get("message") ?? ""), formData.get("internal") === "on"),
-  );
-  redirect(session.roles.includes("investor") ? `/investor/support/${ticketId}` : `/admin/support`);
+  ));
+  redirect(withNotice(back, "REPLY_SENT"));
 }
 
 export async function readNoteAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  await (await getStore()).update((db) => markNotificationRead(db, session.user.id, String(formData.get("id") ?? "")));
-  redirect("/investor/notifications");
+  await attempt("/investor/notifications", async () =>
+    (await getStore()).update((db) => markNotificationRead(db, session.user.id, String(formData.get("id") ?? ""))),
+  );
+  redirect(withNotice("/investor/notifications", "NOTIFICATION_READ"));
 }
+
+const KYC_DECISION_NOTICE: Record<string, string> = {
+  APPROVED: "KYC_APPROVED",
+  REJECTED: "KYC_REJECTED",
+  ADDITIONAL_INFORMATION_REQUIRED: "KYC_INFO_REQUESTED",
+  SUSPENDED: "KYC_SUSPENDED",
+};
 
 export async function kycDecisionAction(formData: FormData) {
   const session = await requireStaff();
@@ -537,7 +552,7 @@ export async function kycDecisionAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/kyc?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/kyc");
+  redirect(withNotice("/admin/kyc", KYC_DECISION_NOTICE[decision]));
 }
 
 export async function offeringTransitionAction(formData: FormData) {
@@ -556,7 +571,7 @@ export async function offeringTransitionAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`${back}?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect(back);
+  redirect(withNotice(back, "OFFERING_TRANSITIONED"));
 }
 
 export async function createIssuerAction(formData: FormData) {
@@ -580,7 +595,7 @@ export async function createIssuerAction(formData: FormData) {
     redirect(`/admin/issuers?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
   const next = String(formData.get("next") ?? "").trim();
-  redirect(next.startsWith("/admin/") ? next : "/admin/issuers");
+  redirect(withNotice(next.startsWith("/admin/") ? next : "/admin/issuers", "ISSUER_CREATED"));
 }
 
 export async function createProjectAction(formData: FormData) {
@@ -606,7 +621,7 @@ export async function createProjectAction(formData: FormData) {
         financingPurpose: String(formData.get("purpose") ?? "") === "START" ? "START" : "FINANCE",
       }),
     );
-    redirect(`/admin/projects/${created.projectId}`);
+    redirect(withNotice(`/admin/projects/${created.projectId}`, "PROJECT_CREATED"));
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
@@ -630,7 +645,7 @@ export async function prepareAllotmentAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/share-register?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/share-register");
+  redirect(withNotice("/admin/share-register", "ALLOTMENT_PREPARED"));
 }
 
 export async function approveAllotmentAction(formData: FormData) {
@@ -650,7 +665,7 @@ export async function approveAllotmentAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/share-register?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/share-register");
+  redirect(withNotice("/admin/share-register", "ALLOTMENT_APPROVED"));
 }
 
 export async function settleAction(formData: FormData) {
@@ -662,7 +677,7 @@ export async function settleAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/payments");
+  redirect(withNotice("/admin/payments", "PAYMENT_SETTLED"));
 }
 
 export async function refundRequestAction(formData: FormData) {
@@ -676,7 +691,7 @@ export async function refundRequestAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/payments");
+  redirect(withNotice("/admin/payments", "REFUND_REQUESTED"));
 }
 
 export async function refundApproveAction(formData: FormData) {
@@ -690,19 +705,21 @@ export async function refundApproveAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/payments");
+  redirect(withNotice("/admin/payments", "REFUND_APPROVED"));
 }
 
 export async function publishUpdateAction(formData: FormData) {
   const session = await requireStaff();
-  await (await getStore()).update((db) => publishUpdate(db, session.user.id, String(formData.get("updateId") ?? "")));
-  redirect("/admin/content");
+  await attempt("/admin/content", async () =>
+    (await getStore()).update((db) => publishUpdate(db, session.user.id, String(formData.get("updateId") ?? ""))),
+  );
+  redirect(withNotice("/admin/content", "UPDATE_PUBLISHED"));
 }
 
 export async function issuerUpdateAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  await (await getStore()).update((db) =>
+  await attempt("/issuer/updates", async () => (await getStore()).update((db) =>
     submitIssuerUpdate(db, session.user.id, {
       projectId: String(formData.get("projectId") ?? ""),
       titleFr: String(formData.get("titleFr") ?? ""),
@@ -710,8 +727,8 @@ export async function issuerUpdateAction(formData: FormData) {
       bodyFr: String(formData.get("bodyFr") ?? ""),
       bodyEn: String(formData.get("bodyEn") ?? ""),
     }),
-  );
-  redirect("/issuer/updates");
+  ));
+  redirect(withNotice("/issuer/updates", "UPDATE_SUBMITTED"));
 }
 
 export async function issuerProfitAction(formData: FormData) {
@@ -737,7 +754,7 @@ export async function issuerProfitAction(formData: FormData) {
     const code = asAppError(error)?.code ?? "INVALID_STATE";
     redirect(`/issuer/profits?error=${code}`);
   }
-  redirect("/issuer/profits");
+  redirect(withNotice("/issuer/profits", "PROFIT_PROPOSED"));
 }
 
 export async function dividendProposeAction(formData: FormData) {
@@ -760,7 +777,7 @@ export async function dividendProposeAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/dividends?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/dividends");
+  redirect(withNotice("/admin/dividends", "DIVIDEND_PROPOSED"));
 }
 
 export async function dividendApproveAction(formData: FormData) {
@@ -774,7 +791,7 @@ export async function dividendApproveAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/dividends?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/dividends");
+  redirect(withNotice("/admin/dividends", "DIVIDEND_APPROVED"));
 }
 
 export async function dividendPayAction(formData: FormData) {
@@ -786,7 +803,7 @@ export async function dividendPayAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/dividends?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/dividends");
+  redirect(withNotice("/admin/dividends", "DIVIDEND_PAID"));
 }
 
 export async function inheritanceAdvanceAction(formData: FormData) {
@@ -807,7 +824,7 @@ export async function inheritanceAdvanceAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/inheritance");
+  redirect(withNotice("/admin/inheritance", "INHERITANCE_UPDATED"));
 }
 
 export async function inheritanceApproveAction(formData: FormData) {
@@ -827,7 +844,7 @@ export async function inheritanceApproveAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/inheritance");
+  redirect(withNotice("/admin/inheritance", "INHERITANCE_APPROVED"));
 }
 
 export async function inheritanceTransferAction(formData: FormData) {
@@ -850,7 +867,7 @@ export async function inheritanceTransferAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/inheritance");
+  redirect(withNotice("/admin/inheritance", "INHERITANCE_TRANSFERRED"));
 }
 
 export async function createStaffAction(formData: FormData) {
@@ -868,7 +885,7 @@ export async function createStaffAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/staff?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/staff?ok=created");
+  redirect(withNotice("/admin/staff?ok=created", "STAFF_CREATED"));
 }
 
 export async function rotateStaffCodeAction(formData: FormData) {
@@ -883,14 +900,14 @@ export async function rotateStaffCodeAction(formData: FormData) {
     const known = asAppError(error);
     redirect(`/admin/staff?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect("/admin/staff?ok=rotated");
+  redirect(withNotice("/admin/staff?ok=rotated", "STAFF_CODE_ROTATED"));
 }
 
 export async function resetDemoAction() {
   const session = await requireStaff();
   if (!session.roles.includes("platform_admin")) throw new AppError("FORBIDDEN");
-  await (await getStore()).reset();
-  redirect("/admin/settings");
+  await attempt("/admin/settings", async () => (await getStore()).reset());
+  redirect(withNotice("/admin/settings", "DEMO_RESET"));
 }
 
 export async function currentDemoCode(email: string): Promise<string | null> {
@@ -927,6 +944,18 @@ async function destinationFor(userId: string, newlyCreated = false): Promise<str
   if (roles.includes("issuer_manager")) return "/issuer";
   if (newlyCreated || !isInvestorOnboardingComplete(db, userId)) return "/investor/onboarding";
   return "/investor";
+}
+
+/** Runs a mutation; failures return to `back` as `?error=CODE` (toast + inline copy) instead of the error page. */
+async function attempt<T>(back: string, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    if (!known) console.error("action_failed", describeDbError(error));
+    redirect(withError(back, known?.code ?? "INVALID_STATE"));
+  }
 }
 
 function isRedirect(error: unknown): boolean {

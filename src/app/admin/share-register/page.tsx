@@ -4,6 +4,7 @@ import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { ids } from "@/server/db/seed";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
             {sub.reference} · {sub.shareQuantity}
           </label>
         ))}
-        {waiting.length === 0 ? <p>{tx(locale, "Rien à préparer.", "Nothing to prepare.")}</p> : <button className="rounded-full bg-violet px-4 py-2 font-semibold text-white">{tx(locale, "Préparer le lot", "Prepare batch")}</button>}
+        {waiting.length === 0 ? <p>{tx(locale, "Rien à préparer.", "Nothing to prepare.")}</p> : <SubmitButton size="sm">{tx(locale, "Préparer le lot", "Prepare batch")}</SubmitButton>}
       </form>
       {batches.filter((batch) => batch.status === "PREPARED").map((batch) => (
         <form key={batch.id} action={approveAllotmentAction} className="space-y-2 rounded-[24px] bg-white p-4 text-sm">
@@ -35,7 +36,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
           <p>{batch.id} · {tx(locale, "préparé par", "prepared by")} {batch.preparedBy}</p>
           <input name="evidence" required placeholder={tx(locale, "Référence de preuve", "Evidence reference")} className="h-11 w-full rounded-2xl border px-3" />
           <input name="password" type="password" required placeholder={tx(locale, "Mot de passe", "Password")} className="h-11 w-full rounded-2xl border px-3" />
-          <button className="rounded-full bg-violet px-4 py-2 font-semibold text-white">{tx(locale, "Approuver l'émission", "Approve issuance")}</button>
+          <SubmitButton size="sm">{tx(locale, "Approuver l'émission", "Approve issuance")}</SubmitButton>
         </form>
       ))}
       <h2 className="text-xl font-bold">{tx(locale, "Écritures", "Events")}</h2>
