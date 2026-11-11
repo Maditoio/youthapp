@@ -62,7 +62,7 @@ export async function setSession(userId: string) {
     ...cookieBase(),
     maxAge: 60 * 60 * 24 * 12,
   });
-  jar.delete(MFA_COOKIE, cookieBase());
+  jar.delete({ name: MFA_COOKIE, ...cookieBase() });
 }
 
 export async function setMfaPending(userId: string) {
@@ -84,8 +84,8 @@ export async function clearSession() {
   // Match path/secure used at set-time so browsers actually drop the cookie.
   jar.set(COOKIE, "", { ...base, maxAge: 0 });
   jar.set(MFA_COOKIE, "", { ...base, maxAge: 0 });
-  jar.delete(COOKIE, base);
-  jar.delete(MFA_COOKIE, base);
+  jar.delete({ name: COOKIE, ...base });
+  jar.delete({ name: MFA_COOKIE, ...base });
 }
 
 export interface Session {
