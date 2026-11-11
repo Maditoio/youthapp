@@ -1,8 +1,16 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useSignIn } from "@clerk/nextjs/legacy";
-import { bindClerkSession, googleDemoAction, mfaAction, signInAction, signUpAction, verifyEmailAction } from "@/server/actions";
+import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
+import {
+  bindClerkSession,
+  googleDemoAction,
+  mfaAction,
+  signInAction,
+  signUpAction,
+  verifyEmailAction,
+  type ClerkBindProfile,
+} from "@/server/actions";
 import { CountrySelect, GenderSelect } from "@/components/choice-fields";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
@@ -118,10 +126,144 @@ function ClerkSignInForm({ locale }: { locale: AppLocale }) {
   );
 }
 
-export function SignUpForm({ locale }: { locale: AppLocale }) {
+export function SignUpForm({ locale, useClerk = false }: { locale: AppLocale; useClerk?: boolean }) {
+  if (useClerk) return <ClerkSignUpForm locale={locale} />;
+  return <DemoSignUpForm locale={locale} />;
+}
+
+function DemoSignUpForm({ locale }: { locale: AppLocale }) {
   const [state, action, pending] = useActionState(signUpAction, {});
   return (
     <form action={action} className="space-y-3">
+      <SignUpFields locale={locale} />
+      {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
+      <Button type="submit" className="w-full" disabled={pending}>
+        {tx(locale, "Créer le compte", "Create account")}
+      </Button>
+    </form>
+  );
+}
+
+function ClerkSignUpForm({ locale }: { locale: AppLocale }) {
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+  const [needsCode, setNeedsCode] = useState(false);
+  const [profile, setProfile] = useState<ClerkBindProfile | null>(null);
+
+  async function finish(sessionId: string, seed: ClerkBindProfile) {
+    if (!setActive) throw new Error("Clerk setActive unavailable");
+    await setActive({ session: sessionId });
+    await bindClerkSession(seed);
+  }
+
+  async function onSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
+    event.preventDefault();
+    if (!isLoaded || !signUp) return;
+    const data = new FormData(event.currentTarget);
+    const seed: ClerkBindProfile = {
+      firstName: String(data.get("firstName") ?? ""),
+      lastName: String(data.get("lastName") ?? ""),
+      phone: String(data.get("phone") ?? ""),
+      country: String(data.get("country") ?? ""),
+      gender: String(data.get("gender") ?? ""),
+      dateOfBirth: String(data.get("dateOfBirth") ?? ""),
+      language: data.get("language") === "en" ? "en" : "fr",
+    };
+    setPending(true);
+    setError("");
+    try {
+      const result = await signUp.create({
+        emailAddress: String(data.get("email") ?? ""),
+        password: String(data.get("password") ?? ""),
+        firstName: seed.firstName,
+        lastName: seed.lastName,
+        unsafeMetadata: {
+          phone: seed.phone,
+          country: seed.country,
+          gender: seed.gender,
+          dateOfBirth: seed.dateOfBirth,
+          language: seed.language,
+        },
+      });
+      if (result.status === "complete" && result.createdSessionId) {
+        await finish(result.createdSessionId, seed);
+        return;
+      }
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setProfile(seed);
+      setNeedsCode(true);
+      setPending(false);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "INVALID_STATE");
+      setPending(false);
+    }
+  }
+
+  async function onVerify(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
+    event.preventDefault();
+    if (!isLoaded || !signUp || !profile) return;
+    setPending(true);
+    setError("");
+    try {
+      const data = new FormData(event.currentTarget);
+      const result = await signUp.attemptEmailAddressVerification({
+        code: String(data.get("code") ?? ""),
+      });
+      if (result.status !== "complete" || !result.createdSessionId) {
+        setError(tx(locale, "Vérification incomplète.", "Verification incomplete."));
+        setPending(false);
+        return;
+      }
+      await finish(result.createdSessionId, profile);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "INVALID_CODE");
+      setPending(false);
+    }
+  }
+
+  if (needsCode) {
+    return (
+      <form onSubmit={onVerify} className="space-y-3">
+        <p className="text-sm text-muted">
+          {tx(locale, "Entrez le code envoyé par Clerk à votre e-mail.", "Enter the code Clerk sent to your email.")}
+        </p>
+        <input name="code" inputMode="numeric" required className={field} placeholder="000000" />
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
+        <Button type="submit" className="w-full" disabled={pending || !isLoaded}>
+          {tx(locale, "Vérifier et continuer", "Verify and continue")}
+        </Button>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <SignUpFields locale={locale} />
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      <Button type="submit" className="w-full" disabled={pending || !isLoaded}>
+        {tx(locale, "Créer le compte", "Create account")}
+      </Button>
+      <button
+        type="button"
+        className="h-12 w-full rounded-full border border-border text-sm font-semibold"
+        onClick={() =>
+          signUp?.authenticateWithRedirect({
+            strategy: "oauth_google",
+            redirectUrl: "/sign-in/sso-callback",
+            redirectUrlComplete: "/sign-in/clerk",
+          })
+        }
+      >
+        {tx(locale, "Continuer avec Google", "Continue with Google")}
+      </button>
+    </form>
+  );
+}
+
+function SignUpFields({ locale }: { locale: AppLocale }) {
+  return (
+    <>
       <div className="grid grid-cols-2 gap-2">
         <input name="firstName" required placeholder={tx(locale, "Prénom", "First name")} className={field} />
         <input name="lastName" required placeholder={tx(locale, "Nom", "Last name")} className={field} />
@@ -140,6 +282,9 @@ export function SignUpForm({ locale }: { locale: AppLocale }) {
       <label className="block text-sm font-semibold">
         {tx(locale, "Date de naissance", "Date of birth")}
         <DatePicker locale={locale} name="dateOfBirth" required className="mt-1" />
+        <span className="mt-1 block text-xs font-normal text-muted">
+          {tx(locale, "Ouvert de 18 à 35 ans.", "Open from age 18 through 35.")}
+        </span>
       </label>
       <select name="language" className={field} defaultValue={locale}>
         <option value="fr">Français</option>
@@ -149,11 +294,7 @@ export function SignUpForm({ locale }: { locale: AppLocale }) {
         <input type="checkbox" name="terms" className="mt-1" required />
         {tx(locale, "J'accepte les conditions de démonstration et la notice de confidentialité.", "I accept the demonstration terms and the privacy notice.")}
       </label>
-      {state.error ? <p className="text-sm text-danger">{errorCopy[state.error]?.[locale] ?? state.error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {tx(locale, "Créer le compte", "Create account")}
-      </Button>
-    </form>
+    </>
   );
 }
 

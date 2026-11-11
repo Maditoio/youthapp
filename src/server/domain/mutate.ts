@@ -432,16 +432,33 @@ export function linkOrCreateGoogle(
   return { userId: user.id, created: false };
 }
 
+export type ClerkProfileSeed = {
+  phone?: string;
+  country?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  language?: Locale;
+};
+
 export function linkOrCreateClerk(
   db: Database,
-  input: { clerkUserId: string; email: string; firstName: string; lastName: string },
-): string {
+  input: {
+    clerkUserId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    profile?: ClerkProfileSeed;
+  },
+): { userId: string; created: boolean } {
   const email = input.email.trim().toLowerCase();
   assert(EMAIL.test(email), "INVALID_EMAIL");
   const existing = db.authIdentities.find(
     (item) => item.provider === "clerk" && item.providerSubject === input.clerkUserId,
   );
-  if (existing) return existing.userId;
+  if (existing) {
+    if (input.profile) applyClerkProfileSeed(db, existing.userId, input.profile, input.firstName, input.lastName);
+    return { userId: existing.userId, created: false };
+  }
   const named = {
     first: input.firstName.trim() || email.split("@")[0] || "Jeunese",
     last: input.lastName.trim() || "—",
@@ -458,20 +475,32 @@ export function linkOrCreateClerk(
       linkedAt: at,
     });
     if (!user.emailVerifiedAt) user.emailVerifiedAt = at;
+    if (input.profile) applyClerkProfileSeed(db, user.id, input.profile, named.first, named.last);
     audit(db, user.id, "auth.clerk_link", "user", user.id);
-    return user.id;
+    return { userId: user.id, created: false };
   }
+  const seed = input.profile ?? {};
+  if (seed.phone) assert(PHONE.test(seed.phone.trim()), "INVALID_PHONE");
+  if (seed.country) assert(isPermittedCountry(seed.country), "COUNTRY_INVALID");
+  if (seed.gender) assert(isGender(seed.gender), "GENDER_REQUIRED");
+  if (seed.dateOfBirth) {
+    const ageCode = investorAgeCode(seed.dateOfBirth, now(db));
+    assert(!ageCode, ageCode ?? "DATE_OF_BIRTH_REQUIRED");
+  }
+  const gender = seed.gender && isGender(seed.gender) ? seed.gender : null;
+  const country = seed.country && isPermittedCountry(seed.country) ? seed.country : null;
+  const language: Locale = seed.language === "en" ? "en" : "fr";
   const userId = uid();
   db.users.push({
     id: userId,
     email,
-    phone: null,
+    phone: seed.phone?.trim() || null,
     passwordHash: null,
-    preferredLanguage: "fr",
+    preferredLanguage: language,
     accountStatus: "ACTIVE",
     emailVerifiedAt: at,
-    countryOfResidence: null,
-    gender: null,
+    countryOfResidence: country,
+    gender,
     legalFirstName: named.first,
     legalLastName: named.last,
     createdAt: at,
@@ -493,9 +522,9 @@ export function linkOrCreateClerk(
     legalFirstName: named.first,
     legalMiddleName: "",
     legalLastName: named.last,
-    dateOfBirth: null,
-    countryOfResidence: null,
-    gender: null,
+    dateOfBirth: seed.dateOfBirth?.trim() || null,
+    countryOfResidence: country,
+    gender,
     nationality: null,
     addressLine: null,
     city: null,
@@ -531,7 +560,60 @@ export function linkOrCreateClerk(
     createdAt: at,
   });
   audit(db, userId, "auth.clerk_create", "user", userId);
-  return userId;
+  return { userId, created: true };
+}
+
+function applyClerkProfileSeed(
+  db: Database,
+  userId: string,
+  seed: ClerkProfileSeed,
+  firstName: string,
+  lastName: string,
+) {
+  const user = db.users.find((item) => item.id === userId);
+  const profile = db.investorProfiles.find((item) => item.userId === userId);
+  if (!user || !profile) return;
+  if (seed.phone) {
+    assert(PHONE.test(seed.phone.trim()), "INVALID_PHONE");
+    user.phone = seed.phone.trim();
+  }
+  if (seed.country) {
+    assert(isPermittedCountry(seed.country), "COUNTRY_INVALID");
+    user.countryOfResidence = seed.country;
+    profile.countryOfResidence = seed.country;
+  }
+  if (seed.gender) {
+    assert(isGender(seed.gender), "GENDER_REQUIRED");
+    user.gender = seed.gender;
+    profile.gender = seed.gender;
+  }
+  if (seed.dateOfBirth) {
+    const ageCode = investorAgeCode(seed.dateOfBirth, now(db));
+    assert(!ageCode, ageCode ?? "DATE_OF_BIRTH_REQUIRED");
+    profile.dateOfBirth = seed.dateOfBirth.trim();
+  }
+  if (seed.language === "en" || seed.language === "fr") user.preferredLanguage = seed.language;
+  if (firstName.trim()) {
+    user.legalFirstName = firstName.trim();
+    profile.legalFirstName = firstName.trim();
+  }
+  if (lastName.trim()) {
+    user.legalLastName = lastName.trim();
+    profile.legalLastName = lastName.trim();
+  }
+  user.updatedAt = now(db);
+  profile.updatedAt = now(db);
+}
+
+/** Profile fields required before an investor leaves /investor/onboarding. Does not approve KYC. */
+export function isInvestorOnboardingComplete(db: Database, userId: string): boolean {
+  const profile = db.investorProfiles.find((item) => item.userId === userId);
+  if (!profile) return false;
+  if (profile.onboardingStatus === "NOT_STARTED") return false;
+  if (!profile.legalFirstName.trim() || !profile.legalLastName.trim()) return false;
+  if (!profile.countryOfResidence || !isPermittedCountry(profile.countryOfResidence)) return false;
+  if (!profile.gender || !isGender(profile.gender)) return false;
+  return investorAgeCode(profile.dateOfBirth, now(db)) === null;
 }
 
 export function updateInvestorDetails(

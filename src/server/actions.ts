@@ -19,6 +19,7 @@ import {
   createDraftProject,
   createSubscription,
   createTicket,
+  isInvestorOnboardingComplete,
   linkOrCreateClerk,
   linkOrCreateGoogle,
   markDividendPaid,
@@ -50,6 +51,16 @@ import type { InheritanceStatus, KycStatus, Locale, OfferingStatus } from "./dom
 import { parseMajorToMinor } from "@/lib/format";
 import { appConfig } from "@/lib/config";
 import { isGender } from "@/lib/choices";
+
+export type ClerkBindProfile = {
+  phone?: string;
+  country?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  language?: Locale;
+  firstName?: string;
+  lastName?: string;
+};
 
 export interface ActionState {
   error?: string;
@@ -106,23 +117,32 @@ export async function resendCodeAction(formData: FormData) {
   redirect(`/verify?email=${encodeURIComponent(email)}`);
 }
 
-export async function bindClerkSession(): Promise<void> {
+export async function bindClerkSession(profile?: ClerkBindProfile): Promise<void> {
   const { auth, currentUser } = await import("@clerk/nextjs/server");
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) redirect("/sign-in");
   const clerkUser = await currentUser();
   const email = clerkUser?.emailAddresses.find((item) => item.id === clerkUser.primaryEmailAddressId)?.emailAddress;
   if (!email) redirect("/sign-in");
-  const userId = getStore().update((db) =>
+  const linked = getStore().update((db) =>
     linkOrCreateClerk(db, {
       clerkUserId,
       email,
-      firstName: clerkUser?.firstName ?? "",
-      lastName: clerkUser?.lastName ?? "",
+      firstName: profile?.firstName?.trim() || clerkUser?.firstName || "",
+      lastName: profile?.lastName?.trim() || clerkUser?.lastName || "",
+      profile: profile
+        ? {
+            phone: profile.phone,
+            country: profile.country,
+            gender: profile.gender,
+            dateOfBirth: profile.dateOfBirth,
+            language: profile.language,
+          }
+        : undefined,
     }),
   );
-  await setSession(userId);
-  redirect(destinationFor(userId));
+  await setSession(linked.userId);
+  redirect(destinationFor(linked.userId, linked.created));
 }
 
 export async function signInAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -157,6 +177,18 @@ export async function mfaAction(_prev: ActionState, formData: FormData): Promise
 
 export async function signOutAction() {
   await clearSession();
+  if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY) {
+    try {
+      const { auth, clerkClient } = await import("@clerk/nextjs/server");
+      const session = await auth();
+      if (session.sessionId) {
+        const client = await clerkClient();
+        await client.sessions.revokeSession(session.sessionId);
+      }
+    } catch {
+      // Jeunese cookie is already cleared; Clerk revoke is best-effort.
+    }
+  }
   redirect("/");
 }
 
@@ -665,12 +697,14 @@ async function requireStaff() {
   return session;
 }
 
-function destinationFor(userId: string): string {
-  const roles = getStore().db.userRoles.filter((item) => item.userId === userId).map((item) => item.role);
+function destinationFor(userId: string, newlyCreated = false): string {
+  const db = getStore().db;
+  const roles = db.userRoles.filter((item) => item.userId === userId).map((item) => item.role);
   if (roles.includes("platform_admin") || roles.includes("kyc_officer") || roles.includes("finance_officer") || roles.includes("project_analyst") || roles.includes("offering_approver") || roles.includes("support_agent") || roles.includes("auditor")) {
     return "/admin";
   }
   if (roles.includes("issuer_manager")) return "/issuer";
+  if (newlyCreated || !isInvestorOnboardingComplete(db, userId)) return "/investor/onboarding";
   return "/investor";
 }
 

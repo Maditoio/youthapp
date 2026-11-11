@@ -13,6 +13,8 @@ import {
   applySandboxPayment,
   approveAllotment,
   createSubscription,
+  isInvestorOnboardingComplete,
+  linkOrCreateClerk,
   linkOrCreateGoogle,
   prepareAllotment,
   registerUser,
@@ -331,5 +333,51 @@ describe("money and ownership rules", () => {
         }),
       ),
     ).toThrow(AppError);
+  });
+
+  it("creates a Clerk-linked investor as new and sends them through onboarding", () => {
+    const memory = store();
+    const created = memory.update((draft) =>
+      linkOrCreateClerk(draft, {
+        clerkUserId: "clerk_user_new",
+        email: "clerk.new@demo.jeunese.test",
+        firstName: "Clerk",
+        lastName: "Nouveau",
+        profile: {
+          phone: "+243812345679",
+          country: "CD",
+          gender: "female",
+          dateOfBirth: "1998-06-01",
+          language: "fr",
+        },
+      }),
+    );
+    expect(created.created).toBe(true);
+    expect(isInvestorOnboardingComplete(memory.db, created.userId)).toBe(false);
+    const again = memory.update((draft) =>
+      linkOrCreateClerk(draft, {
+        clerkUserId: "clerk_user_new",
+        email: "clerk.new@demo.jeunese.test",
+        firstName: "Clerk",
+        lastName: "Nouveau",
+      }),
+    );
+    expect(again.created).toBe(false);
+    expect(again.userId).toBe(created.userId);
+  });
+
+  it("links an existing email to Clerk without treating them as newly created", () => {
+    const memory = store();
+    const linked = memory.update((draft) =>
+      linkOrCreateClerk(draft, {
+        clerkUserId: "clerk_amina",
+        email: "amina@demo.jeunese.test",
+        firstName: "Amina",
+        lastName: "Lukusa",
+      }),
+    );
+    expect(linked.created).toBe(false);
+    expect(linked.userId).toBe(ids.amina);
+    expect(isInvestorOnboardingComplete(memory.db, linked.userId)).toBe(true);
   });
 });

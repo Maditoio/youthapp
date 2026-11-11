@@ -1,11 +1,17 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 
-const withClerk = clerkMiddleware();
+function withPathname(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+const withClerk = clerkMiddleware((_auth, request) => withPathname(request));
 
 export default function middleware(request: NextRequest, event: NextFetchEvent) {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || !process.env.CLERK_SECRET_KEY) {
-    return NextResponse.next();
+    return withPathname(request);
   }
   return withClerk(request, event);
 }
