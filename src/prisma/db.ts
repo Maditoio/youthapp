@@ -11,7 +11,24 @@ export const contract = contractFromJson<Contract>(contractJson);
  * Prefer the direct (unpooled) connection when both are set.
  */
 export function databaseUrl(): string | undefined {
-  return process.env.DATABASE_URL_UNPOOLED?.trim() || process.env.DATABASE_URL?.trim() || undefined;
+  const raw = process.env.DATABASE_URL_UNPOOLED?.trim() || process.env.DATABASE_URL?.trim();
+  return raw ? withLibpqSslCompat(raw) : undefined;
+}
+
+/** Keeps today’s sslmode=require behavior and silences the pg v9 deprecation warning. */
+function withLibpqSslCompat(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const mode = (parsed.searchParams.get("sslmode") || "").toLowerCase();
+    if (mode === "require" || mode === "prefer" || mode === "verify-ca") {
+      if (!parsed.searchParams.has("uselibpqcompat")) {
+        parsed.searchParams.set("uselibpqcompat", "true");
+      }
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 /** Opens PostgreSQL only when a connection string is set. The demo file store stays in use until then. */
