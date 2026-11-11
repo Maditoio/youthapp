@@ -1,6 +1,7 @@
 import { digest, hashCode, hashPassword } from "../domain/crypto";
 import type { Gender } from "@/lib/choices";
 import type { Database } from "../domain/types";
+import { ensureShareCertificates } from "../domain/certificates";
 import { DEMO_NOW, STORE_VERSION } from "../domain/types";
 
 export const DEMO_PASSWORD = "Demo-Jeunese-2026";
@@ -95,6 +96,7 @@ export function createEmptyDatabase(clock = new Date().toISOString()): Database 
     allotmentBatches: [],
     shareIssuances: [],
     shareholdingEvents: [],
+    shareCertificates: [],
     dividendDeclarations: [],
     dividendEntitlements: [],
     dividendPayments: [],
@@ -659,6 +661,7 @@ export function createDemoDatabase(): Database {
       event("evt-sh-1", ids.profileAmina, 16, "iss-1", "2026-04-20T00:00:00.000Z"),
       event("evt-sh-2", ids.profileAmina, 24, "iss-2", "2026-09-20T00:00:00.000Z"),
     ],
+    shareCertificates: [],
     dividendDeclarations: [
       {
         id: ids.dividendPaid,
@@ -898,6 +901,7 @@ export function createDemoDatabase(): Database {
       linkedAt: user.createdAt,
     });
   }
+  ensureShareCertificates(db);
   return db;
 }
 

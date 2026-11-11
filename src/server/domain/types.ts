@@ -1,7 +1,7 @@
 import type { Gender } from "@/lib/choices";
 
 export const DEMO_NOW = "2026-11-10T12:00:00.000Z";
-export const STORE_VERSION = 3;
+export const STORE_VERSION = 4;
 
 export type { Gender };
 
@@ -495,6 +495,28 @@ export interface ShareholdingEvent {
   evidenceDocumentId: string | null;
 }
 
+/** Digital shareholder certificate tied to an issued holding (share issuance), not a payment. */
+export interface ShareCertificate {
+  id: string;
+  certificateNumber: string;
+  shareIssuanceId: string;
+  investorProfileId: string;
+  issuerId: string;
+  shareClassId: string;
+  offeringId: string;
+  projectId: string;
+  shareQuantity: number;
+  issuePriceMinor: number;
+  currencyCode: string;
+  allotmentDate: string;
+  registerReference: string;
+  offeringReference: string;
+  /** HMAC over canonical certificate fields — never print the signing secret. */
+  signature: string;
+  status: "ACTIVE" | "REVOKED";
+  createdAt: string;
+}
+
 export interface DividendDeclaration {
   id: string;
   issuerId: string;
@@ -726,6 +748,7 @@ export interface Database {
   allotmentBatches: AllotmentBatch[];
   shareIssuances: ShareIssuance[];
   shareholdingEvents: ShareholdingEvent[];
+  shareCertificates: ShareCertificate[];
   dividendDeclarations: DividendDeclaration[];
   dividendEntitlements: DividendEntitlement[];
   dividendPayments: DividendPayment[];

@@ -144,6 +144,10 @@
       "model": "ResolutionEligibility",
       "namespace": "public"
     },
+    "ShareCertificate": {
+      "model": "ShareCertificate",
+      "namespace": "public"
+    },
     "ShareClass": {
       "model": "ShareClass",
       "namespace": "public"
@@ -1976,6 +1980,21 @@
                   "namespace": "public"
                 }
               },
+              "shareCertificates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "investorProfileId"
+                  ]
+                },
+                "to": {
+                  "model": "ShareCertificate",
+                  "namespace": "public"
+                }
+              },
               "shareIssuances": {
                 "cardinality": "1:N",
                 "on": {
@@ -2310,6 +2329,21 @@
                 },
                 "to": {
                   "model": "Resolution",
+                  "namespace": "public"
+                }
+              },
+              "shareCertificates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "issuerId"
+                  ]
+                },
+                "to": {
+                  "model": "ShareCertificate",
                   "namespace": "public"
                 }
               },
@@ -3927,6 +3961,21 @@
                   "namespace": "public"
                 }
               },
+              "shareCertificates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "offeringId"
+                  ]
+                },
+                "to": {
+                  "model": "ShareCertificate",
+                  "namespace": "public"
+                }
+              },
               "shareIssuances": {
                 "cardinality": "1:N",
                 "on": {
@@ -5502,6 +5551,268 @@
               "table": "ResolutionEligibility"
             }
           },
+          "ShareCertificate": {
+            "fields": {
+              "allotmentDate": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "certificateNumber": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "currencyCode": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "investorProfileId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "issuePriceMinor": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "issuerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "offeringId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "offeringReference": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "projectId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "registerReference": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "shareClassId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "shareIssuanceId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "shareQuantity": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "signature": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "investorProfile": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "investorProfileId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "InvestorProfile",
+                  "namespace": "public"
+                }
+              },
+              "issuer": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "issuerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Issuer",
+                  "namespace": "public"
+                }
+              },
+              "offering": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "offeringId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Offering",
+                  "namespace": "public"
+                }
+              },
+              "shareClass": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "shareClassId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "ShareClass",
+                  "namespace": "public"
+                }
+              },
+              "shareIssuance": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "shareIssuanceId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "ShareIssuance",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "allotmentDate": {
+                  "column": "allotmentDate"
+                },
+                "certificateNumber": {
+                  "column": "certificateNumber"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "currencyCode": {
+                  "column": "currencyCode"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "investorProfileId": {
+                  "column": "investorProfileId"
+                },
+                "issuePriceMinor": {
+                  "column": "issuePriceMinor"
+                },
+                "issuerId": {
+                  "column": "issuerId"
+                },
+                "offeringId": {
+                  "column": "offeringId"
+                },
+                "offeringReference": {
+                  "column": "offeringReference"
+                },
+                "projectId": {
+                  "column": "projectId"
+                },
+                "registerReference": {
+                  "column": "registerReference"
+                },
+                "shareClassId": {
+                  "column": "shareClassId"
+                },
+                "shareIssuanceId": {
+                  "column": "shareIssuanceId"
+                },
+                "shareQuantity": {
+                  "column": "shareQuantity"
+                },
+                "signature": {
+                  "column": "signature"
+                },
+                "status": {
+                  "column": "status"
+                }
+              },
+              "namespaceId": "public",
+              "table": "ShareCertificate"
+            }
+          },
           "ShareClass": {
             "fields": {
               "classCode": {
@@ -5590,6 +5901,21 @@
               }
             },
             "relations": {
+              "certificates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "shareClassId"
+                  ]
+                },
+                "to": {
+                  "model": "ShareCertificate",
+                  "namespace": "public"
+                }
+              },
               "dividends": {
                 "cardinality": "1:N",
                 "on": {
@@ -5855,6 +6181,22 @@
                 },
                 "to": {
                   "model": "AllotmentBatch",
+                  "namespace": "public"
+                }
+              },
+              "certificate": {
+                "cardinality": "1:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "shareIssuanceId"
+                  ]
+                },
+                "to": {
+                  "model": "ShareCertificate",
                   "namespace": "public"
                 }
               },
@@ -10918,6 +11260,250 @@
                 }
               ]
             },
+            "ShareCertificate": {
+              "columns": {
+                "allotmentDate": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "certificateNumber": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "currencyCode": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "investorProfileId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "issuePriceMinor": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": false
+                },
+                "issuerId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "offeringId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "offeringReference": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "projectId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "registerReference": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "shareClassId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "shareIssuanceId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "shareQuantity": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": false
+                },
+                "signature": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "unique": [
+                      "shareIssuanceId"
+                    ]
+                  },
+                  "onDelete": "restrict",
+                  "source": {
+                    "columns": [
+                      "shareIssuanceId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ShareCertificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ShareIssuance"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "ShareCertificate_investorProfileId_idx_059731a2"
+                  },
+                  "onDelete": "restrict",
+                  "source": {
+                    "columns": [
+                      "investorProfileId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ShareCertificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "InvestorProfile"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "ShareCertificate_issuerId_idx_9dbbb3bd"
+                  },
+                  "onDelete": "restrict",
+                  "source": {
+                    "columns": [
+                      "issuerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ShareCertificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Issuer"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "ShareCertificate_shareClassId_idx_6f8a09bc"
+                  },
+                  "onDelete": "restrict",
+                  "source": {
+                    "columns": [
+                      "shareClassId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ShareCertificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ShareClass"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "ShareCertificate_offeringId_idx_55a2db3c"
+                  },
+                  "onDelete": "restrict",
+                  "source": {
+                    "columns": [
+                      "offeringId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ShareCertificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Offering"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "investorProfileId"
+                  ],
+                  "name": "ShareCertificate_investorProfileId_idx_059731a2",
+                  "prefix": "ShareCertificate_investorProfileId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "issuerId"
+                  ],
+                  "name": "ShareCertificate_issuerId_idx_9dbbb3bd",
+                  "prefix": "ShareCertificate_issuerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "offeringId"
+                  ],
+                  "name": "ShareCertificate_offeringId_idx_55a2db3c",
+                  "prefix": "ShareCertificate_offeringId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "shareClassId"
+                  ],
+                  "name": "ShareCertificate_shareClassId_idx_6f8a09bc",
+                  "prefix": "ShareCertificate_shareClassId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "certificateNumber"
+                  ]
+                },
+                {
+                  "columns": [
+                    "shareIssuanceId"
+                  ]
+                }
+              ]
+            },
             "ShareClass": {
               "columns": {
                 "classCode": {
@@ -12277,7 +12863,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "9ffae6bdfbf480fd056f36551941d1443e2d5f7b7030dda42916a9e4a20b2b12"
+    "storageHash": "71d74ae12c8483b85d59fc2a9881c084d215c8cee01f21cd593bac36e042460e"
   },
   "capabilities": {
     "postgres": {

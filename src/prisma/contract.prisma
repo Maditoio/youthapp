@@ -86,6 +86,7 @@ model InvestorProfile {
   subscriptions       Subscription[]
   shareIssuances      ShareIssuance[]
   shareholdingEvents  ShareholdingEvent[]
+  shareCertificates   ShareCertificate[]
   dividendEntitlements DividendEntitlement[]
   resolutionEligibilities ResolutionEligibility[]
   votes               ShareholderVote[]
@@ -183,6 +184,7 @@ model Issuer {
   allotmentBatches     AllotmentBatch[]
   shareIssuances       ShareIssuance[]
   shareholdingEvents   ShareholdingEvent[]
+  shareCertificates    ShareCertificate[]
   dividendDeclarations DividendDeclaration[]
   resolutions          Resolution[]
 
@@ -299,6 +301,7 @@ model Offering {
   financings               CompanyFinancing[]
   allotmentBatches         AllotmentBatch[]
   shareIssuances           ShareIssuance[]
+  shareCertificates        ShareCertificate[]
 
   @@index([projectId])
   @@index([issuerId])
@@ -323,6 +326,7 @@ model ShareClass {
   subscriptions          Subscription[]
   issuances              ShareIssuance[]
   events                 ShareholdingEvent[]
+  certificates           ShareCertificate[]
   dividends              DividendDeclaration[]
   eligibilities          ResolutionEligibility[]
 
@@ -547,6 +551,35 @@ model ShareIssuance {
   registerReference  String
   status             String
   createdAt          String
+  certificate        ShareCertificate?
+}
+
+model ShareCertificate {
+  id                  String          @id
+  certificateNumber   String          @unique
+  shareIssuanceId     String          @unique
+  shareIssuance       ShareIssuance   @relation(fields: [shareIssuanceId], references: [id], onDelete: Restrict)
+  investorProfileId   String
+  investorProfile     InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Restrict)
+  issuerId            String
+  issuer              Issuer          @relation(fields: [issuerId], references: [id], onDelete: Restrict)
+  shareClassId        String
+  shareClass          ShareClass      @relation(fields: [shareClassId], references: [id], onDelete: Restrict)
+  offeringId          String
+  offering            Offering        @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  projectId           String
+  shareQuantity       Int
+  issuePriceMinor     Int
+  currencyCode        String
+  allotmentDate       String
+  registerReference   String
+  offeringReference   String
+  signature           String
+  status              String
+  createdAt           String
+
+  @@index([investorProfileId])
+  @@index([issuerId])
 }
 
 model ShareholdingEvent {

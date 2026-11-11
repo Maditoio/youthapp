@@ -117,6 +117,23 @@ describe("money and ownership rules", async () => {
     expect(holdingQuantity(memory.db, ids.profileJean, ids.issuer, ids.shareClass)).toBe(20);
     expect(memory.db.subscriptions.find((item) => item.id === ids.subJean)?.status).toBe("ALLOTTED");
     expect(memory.db.companyFinancings.some((item) => item.subscriptionId === ids.subJean && item.amountMinor === 50_000)).toBe(true);
+    const jeanIssuance = memory.db.shareIssuances.find(
+      (item) => item.subscriptionId === ids.subJean && item.status === "ISSUED",
+    );
+    expect(jeanIssuance).toBeDefined();
+    const cert = memory.db.shareCertificates.find((item) => item.shareIssuanceId === jeanIssuance?.id);
+    expect(cert?.status).toBe("ACTIVE");
+    expect(cert?.shareQuantity).toBe(20);
+    expect(cert?.signature.length).toBeGreaterThan(10);
+  });
+
+  it("seeds certificates for existing demo issuances and verifies HMAC signatures", async () => {
+    const { verifyCertificateSignature } = await import("@/server/domain/certificates");
+    const db = createDemoDatabase();
+    expect(db.shareCertificates.length).toBe(db.shareIssuances.filter((item) => item.status === "ISSUED").length);
+    const cert = db.shareCertificates[0];
+    expect(verifyCertificateSignature(cert, cert.signature, { requireProvided: true })).toBe(true);
+    expect(verifyCertificateSignature(cert, "forged", { requireProvided: true })).toBe(false);
   });
 
   it("lets citizens from 18 through 35 buy, and refuses anyone outside that range", async () => {

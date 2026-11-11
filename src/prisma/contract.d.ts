@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'9ffae6bdfbf480fd056f36551941d1443e2d5f7b7030dda42916a9e4a20b2b12'>;
+  StorageHashBase<'71d74ae12c8483b85d59fc2a9881c084d215c8cee01f21cd593bac36e042460e'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -502,6 +502,7 @@ export namespace Models {
     nextOfKin: public_NextOfKin[];
     nominationSets: public_NominationSet[];
     resolutionEligibilities: public_ResolutionEligibility[];
+    shareCertificates: public_ShareCertificate[];
     shareIssuances: public_ShareIssuance[];
     shareholdingEvents: public_ShareholdingEvent[];
     subscriptions: public_Subscription[];
@@ -514,6 +515,7 @@ export namespace Models {
       | 'nextOfKin'
       | 'nominationSets'
       | 'resolutionEligibilities'
+      | 'shareCertificates'
       | 'shareIssuances'
       | 'shareholdingEvents'
       | 'subscriptions'
@@ -540,6 +542,7 @@ export namespace Models {
     projects: public_Project[];
     representatives: public_IssuerRepresentative[];
     resolutions: public_Resolution[];
+    shareCertificates: public_ShareCertificate[];
     shareClasses: public_ShareClass[];
     shareIssuances: public_ShareIssuance[];
     shareholdingEvents: public_ShareholdingEvent[];
@@ -551,6 +554,7 @@ export namespace Models {
       | 'projects'
       | 'representatives'
       | 'resolutions'
+      | 'shareCertificates'
       | 'shareClasses'
       | 'shareIssuances'
       | 'shareholdingEvents';
@@ -725,6 +729,7 @@ export namespace Models {
     financings: public_CompanyFinancing[];
     issuer: public_Issuer;
     project: public_Project;
+    shareCertificates: public_ShareCertificate[];
     shareIssuances: public_ShareIssuance[];
     shareTerms: public_OfferingShareTerms[];
     subscriptions: public_Subscription[];
@@ -734,6 +739,7 @@ export namespace Models {
       | 'financings'
       | 'issuer'
       | 'project'
+      | 'shareCertificates'
       | 'shareIssuances'
       | 'shareTerms'
       | 'subscriptions';
@@ -887,6 +893,32 @@ export namespace Models {
     shareClass: public_ShareClass;
     readonly [RelationKeys]?: 'investorProfile' | 'resolution' | 'shareClass';
   };
+  export type public_ShareCertificate = {
+    allotmentDate: FieldOutputTypes['public']['ShareCertificate']['allotmentDate'];
+    certificateNumber: FieldOutputTypes['public']['ShareCertificate']['certificateNumber'];
+    createdAt: FieldOutputTypes['public']['ShareCertificate']['createdAt'];
+    currencyCode: FieldOutputTypes['public']['ShareCertificate']['currencyCode'];
+    id: FieldOutputTypes['public']['ShareCertificate']['id'];
+    investorProfileId: FieldOutputTypes['public']['ShareCertificate']['investorProfileId'];
+    issuePriceMinor: FieldOutputTypes['public']['ShareCertificate']['issuePriceMinor'];
+    issuerId: FieldOutputTypes['public']['ShareCertificate']['issuerId'];
+    offeringId: FieldOutputTypes['public']['ShareCertificate']['offeringId'];
+    offeringReference: FieldOutputTypes['public']['ShareCertificate']['offeringReference'];
+    projectId: FieldOutputTypes['public']['ShareCertificate']['projectId'];
+    registerReference: FieldOutputTypes['public']['ShareCertificate']['registerReference'];
+    shareClassId: FieldOutputTypes['public']['ShareCertificate']['shareClassId'];
+    shareIssuanceId: FieldOutputTypes['public']['ShareCertificate']['shareIssuanceId'];
+    shareQuantity: FieldOutputTypes['public']['ShareCertificate']['shareQuantity'];
+    signature: FieldOutputTypes['public']['ShareCertificate']['signature'];
+    status: FieldOutputTypes['public']['ShareCertificate']['status'];
+    investorProfile: public_InvestorProfile;
+    issuer: public_Issuer;
+    offering: public_Offering;
+    shareClass: public_ShareClass;
+    shareIssuance: public_ShareIssuance;
+    readonly [RelationKeys]?:
+      'investorProfile' | 'issuer' | 'offering' | 'shareClass' | 'shareIssuance';
+  };
   export type public_ShareClass = {
     classCode: FieldOutputTypes['public']['ShareClass']['classCode'];
     className: FieldOutputTypes['public']['ShareClass']['className'];
@@ -900,6 +932,7 @@ export namespace Models {
     transferRestrictionsFr: FieldOutputTypes['public']['ShareClass']['transferRestrictionsFr'];
     votingRightsEn: FieldOutputTypes['public']['ShareClass']['votingRightsEn'];
     votingRightsFr: FieldOutputTypes['public']['ShareClass']['votingRightsFr'];
+    certificates: public_ShareCertificate[];
     dividends: public_DividendDeclaration[];
     eligibilities: public_ResolutionEligibility[];
     events: public_ShareholdingEvent[];
@@ -908,7 +941,14 @@ export namespace Models {
     subscriptions: public_Subscription[];
     terms: public_OfferingShareTerms[];
     readonly [RelationKeys]?:
-      'dividends' | 'eligibilities' | 'events' | 'issuances' | 'issuer' | 'subscriptions' | 'terms';
+      | 'certificates'
+      | 'dividends'
+      | 'eligibilities'
+      | 'events'
+      | 'issuances'
+      | 'issuer'
+      | 'subscriptions'
+      | 'terms';
   };
   export type public_ShareIssuance = {
     allotmentBatchId: FieldOutputTypes['public']['ShareIssuance']['allotmentBatchId'];
@@ -926,13 +966,20 @@ export namespace Models {
     status: FieldOutputTypes['public']['ShareIssuance']['status'];
     subscriptionId: FieldOutputTypes['public']['ShareIssuance']['subscriptionId'];
     allotmentBatch: public_AllotmentBatch;
+    certificate: public_ShareCertificate | null;
     investorProfile: public_InvestorProfile;
     issuer: public_Issuer;
     offering: public_Offering;
     shareClass: public_ShareClass;
     subscription: public_Subscription;
     readonly [RelationKeys]?:
-      'allotmentBatch' | 'investorProfile' | 'issuer' | 'offering' | 'shareClass' | 'subscription';
+      | 'allotmentBatch'
+      | 'certificate'
+      | 'investorProfile'
+      | 'issuer'
+      | 'offering'
+      | 'shareClass'
+      | 'subscription';
   };
   export type public_ShareholderVote = {
     id: FieldOutputTypes['public']['ShareholderVote']['id'];
@@ -1124,6 +1171,7 @@ export declare const models: {
     Refund: Models.public_Refund;
     Resolution: Models.public_Resolution;
     ResolutionEligibility: Models.public_ResolutionEligibility;
+    ShareCertificate: Models.public_ShareCertificate;
     ShareClass: Models.public_ShareClass;
     ShareIssuance: Models.public_ShareIssuance;
     ShareholderVote: Models.public_ShareholderVote;
@@ -4437,6 +4485,205 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly ShareCertificate: {
+              columns: {
+                readonly allotmentDate: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly certificateNumber: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly createdAt: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly currencyCode: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly id: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly investorProfileId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly issuePriceMinor: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly issuerId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly offeringId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly offeringReference: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly projectId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly registerReference: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly shareClassId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly shareIssuanceId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly shareQuantity: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly signature: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly status: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [
+                { readonly columns: readonly ['certificateNumber'] },
+                { readonly columns: readonly ['shareIssuanceId'] },
+              ];
+              indexes: readonly [
+                {
+                  readonly name: 'ShareCertificate_investorProfileId_idx_059731a2';
+                  readonly prefix: 'ShareCertificate_investorProfileId_idx';
+                  readonly columns: readonly ['investorProfileId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ShareCertificate_issuerId_idx_9dbbb3bd';
+                  readonly prefix: 'ShareCertificate_issuerId_idx';
+                  readonly columns: readonly ['issuerId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ShareCertificate_offeringId_idx_55a2db3c';
+                  readonly prefix: 'ShareCertificate_offeringId_idx';
+                  readonly columns: readonly ['offeringId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ShareCertificate_shareClassId_idx_6f8a09bc';
+                  readonly prefix: 'ShareCertificate_shareClassId_idx';
+                  readonly columns: readonly ['shareClassId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ShareCertificate';
+                    readonly columns: readonly ['shareIssuanceId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ShareIssuance';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ShareCertificate';
+                    readonly columns: readonly ['investorProfileId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'InvestorProfile';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ShareCertificate';
+                    readonly columns: readonly ['issuerId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Issuer';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ShareCertificate';
+                    readonly columns: readonly ['shareClassId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ShareClass';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ShareCertificate';
+                    readonly columns: readonly ['offeringId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Offering';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly ShareClass: {
               columns: {
                 readonly classCode: {
@@ -5718,6 +5965,10 @@ type ContractBase = Omit<
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'ResolutionEligibility';
     };
+    readonly ShareCertificate: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'ShareCertificate';
+    };
     readonly ShareClass: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'ShareClass';
@@ -6833,6 +7084,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['investorProfileId'];
                 };
               };
+              readonly shareCertificates: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ShareCertificate';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['investorProfileId'];
+                };
+              };
               readonly shareIssuances: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -7036,6 +7298,17 @@ type ContractBase = Omit<
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
                   readonly model: 'Resolution';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['issuerId'];
+                };
+              };
+              readonly shareCertificates: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ShareCertificate';
                 };
                 readonly cardinality: '1:N';
                 readonly on: {
@@ -7998,6 +8271,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['id'];
                 };
               };
+              readonly shareCertificates: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ShareCertificate';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['offeringId'];
+                };
+              };
               readonly shareIssuances: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -8902,6 +9186,163 @@ type ContractBase = Omit<
               };
             };
           };
+          readonly ShareCertificate: {
+            readonly fields: {
+              readonly allotmentDate: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly certificateNumber: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly currencyCode: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly investorProfileId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly issuePriceMinor: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly issuerId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly offeringId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly offeringReference: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly projectId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly registerReference: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly shareClassId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly shareIssuanceId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly shareQuantity: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly signature: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly investorProfile: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'InvestorProfile';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['investorProfileId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly issuer: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Issuer';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['issuerId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly offering: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Offering';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['offeringId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly shareClass: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ShareClass';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['shareClassId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly shareIssuance: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ShareIssuance';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['shareIssuanceId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'ShareCertificate';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly allotmentDate: { readonly column: 'allotmentDate' };
+                readonly certificateNumber: { readonly column: 'certificateNumber' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly currencyCode: { readonly column: 'currencyCode' };
+                readonly id: { readonly column: 'id' };
+                readonly investorProfileId: { readonly column: 'investorProfileId' };
+                readonly issuePriceMinor: { readonly column: 'issuePriceMinor' };
+                readonly issuerId: { readonly column: 'issuerId' };
+                readonly offeringId: { readonly column: 'offeringId' };
+                readonly offeringReference: { readonly column: 'offeringReference' };
+                readonly projectId: { readonly column: 'projectId' };
+                readonly registerReference: { readonly column: 'registerReference' };
+                readonly shareClassId: { readonly column: 'shareClassId' };
+                readonly shareIssuanceId: { readonly column: 'shareIssuanceId' };
+                readonly shareQuantity: { readonly column: 'shareQuantity' };
+                readonly signature: { readonly column: 'signature' };
+                readonly status: { readonly column: 'status' };
+              };
+            };
+          };
           readonly ShareClass: {
             readonly fields: {
               readonly classCode: {
@@ -8954,6 +9395,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly certificates: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ShareCertificate';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['shareClassId'];
+                };
+              };
               readonly dividends: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -9296,6 +9748,18 @@ type ContractBase = Omit<
                 readonly on: {
                   readonly localFields: readonly ['allotmentBatchId'];
                   readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly certificate: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ShareCertificate';
+                };
+                readonly cardinality: '1:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['shareIssuanceId'];
                 };
               };
               readonly investorProfile: {

@@ -9,6 +9,7 @@ import {
   quoteSubscription,
   rolesFor,
 } from "./finance";
+import { createShareCertificate } from "./certificates";
 import { digest, hashCode, hashPassword, randomDigits, uid, verifyCode, verifyPassword } from "./crypto";
 import type { Database, InheritanceStatus, KycStatus, Locale, OfferingStatus, Role } from "./types";
 import { DEMO_NOW } from "./types";
@@ -1697,6 +1698,8 @@ export function approveAllotment(
       recordedBy: actorId,
       evidenceDocumentId: null,
     });
+    const issuance = db.shareIssuances.find((item) => item.id === issuanceId);
+    if (issuance) createShareCertificate(db, issuance, at);
     const held = holdingQuantity(db, sub.investorProfileId, batch.issuerId, sub.shareClassId);
     assert(held >= 0, "SHARE_LIMIT");
     assert(issuedQuantity(db, batch.issuerId, terms.shareClassId) <= terms.sharesOffered, "SHARE_LIMIT");

@@ -5,11 +5,13 @@ import { ProfileForm } from "@/components/profile-forms";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
 import { StatusPill } from "@/components/visuals";
 import { PERMITTED_COUNTRIES, genderLabel, readGender } from "@/lib/choices";
-import { maskValue } from "@/lib/format";
+import { formatDate, maskValue } from "@/lib/format";
 import { kycStatusLabel, kycStatusTone } from "@/lib/kyc-decisions";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
+import { getStore } from "@/server/db/store";
+import { ensureShareCertificates } from "@/server/domain/certificates";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,11 @@ export default async function ProfilePage() {
   const locale = await getLocale();
   const profile = session.db.investorProfiles.find((item) => item.userId === session.user.id);
   if (!profile) return null;
+  const store = await getStore();
+  await store.update((db) => ensureShareCertificates(db, profile.id));
+  const certificates = store.db.shareCertificates
+    .filter((item) => item.investorProfileId === profile.id && item.status === "ACTIVE")
+    .sort((a, b) => b.allotmentDate.localeCompare(a.allotmentDate));
   const status = profile.onboardingStatus;
   const approved = status === "APPROVED";
   const gender = readGender(profile.gender);
@@ -129,6 +136,50 @@ export default async function ProfilePage() {
           <ProfileRow label={tx(locale, "Genre", "Gender")} value={gender ? genderLabel(locale, gender) : "—"} />
           <ProfileRow label={tx(locale, "Fiscal", "Tax id")} value={maskValue(profile.taxId) || "—"} />
         </dl>
+      </section>
+
+      <section className="overflow-hidden rounded-[28px] bg-surface px-4 shadow-sm">
+        <div className="border-b border-border/70 py-3">
+          <h2 className="text-sm font-bold">{tx(locale, "Titres / certificats", "Certificates")}</h2>
+          <p className="mt-1 text-xs text-muted">
+            {tx(
+              locale,
+              "Titres numériques liés aux actions émises (après attribution).",
+              "Digital certificates tied to issued shares (after allotment).",
+            )}
+          </p>
+        </div>
+        {certificates.length === 0 ? (
+          <p className="py-4 text-sm text-muted">
+            {tx(locale, "Aucun certificat pour l'instant.", "No certificates yet.")}
+          </p>
+        ) : (
+          <ul className="divide-y divide-border/70">
+            {certificates.map((cert) => {
+              const issuer = store.db.issuers.find((item) => item.id === cert.issuerId);
+              const shareClass = store.db.shareClasses.find((item) => item.id === cert.shareClassId);
+              return (
+                <li key={cert.id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">
+                      {cert.certificateNumber} · {issuer?.legalName ?? cert.issuerId}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-muted">
+                      {shareClass?.className ?? cert.shareClassId} · {cert.shareQuantity}{" "}
+                      {tx(locale, "actions", "shares")} · {formatDate(cert.allotmentDate, locale)}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/investor/certificates/${cert.id}`}
+                    className="shrink-0 text-sm font-semibold text-violet underline-offset-2 hover:underline"
+                  >
+                    {tx(locale, "Ouvrir", "Open")}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       <SearchParamModal

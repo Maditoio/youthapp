@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { formatDate, formatMoney } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getSession } from "@/server/auth/session";
+import { getStore } from "@/server/db/store";
+import { ensureShareCertificates } from "@/server/domain/certificates";
 import { investorSnapshot } from "@/server/view";
 
 export const dynamic = "force-dynamic";
@@ -12,26 +15,60 @@ export default async function HoldingDetail({ params }: { params: Promise<{ hold
   if (!session) redirect("/sign-in");
   const locale = await getLocale();
   const { holdingId } = await params;
-  const snap = investorSnapshot(session.db, session.user.id);
+  const profile = session.db.investorProfiles.find((item) => item.userId === session.user.id);
+  const store = await getStore();
+  if (profile) await store.update((db) => ensureShareCertificates(db, profile.id));
+  const snap = investorSnapshot(store.db, session.user.id);
   const holding = snap?.holdings.find((item) => item.shareClass.id === holdingId);
-  if (!holding || !snap) notFound();
+  if (!holding || !snap || !profile) notFound();
   const percent = holding.issued > 0 ? ((holding.quantity / holding.issued) * 100).toFixed(2) : "0";
+  const certificates = store.db.shareCertificates.filter(
+    (item) =>
+      item.investorProfileId === profile.id &&
+      item.shareClassId === holding.shareClass.id &&
+      item.status === "ACTIVE",
+  );
   return (
     <div className="space-y-4 px-4 md:px-0">
       <h1 className="text-3xl font-bold">{holding.issuer.legalName}</h1>
       <div className="max-w-3xl space-y-4 text-sm leading-6">
         <p>{holding.shareClass.className} · {holding.quantity} {tx(locale, "actions", "shares")}</p>
         <p>
-          {tx(locale, "Pourcentage sur le registre de la plateforme", "Percentage on the platform register")}: {percent}% ({holding.quantity}/{holding.issued}) {tx(locale, "au", "as of")} {formatDate(session.db.clock, locale)}. {tx(locale, "Les fondateurs hors registre ne sont pas dans ce dénominateur.", "Founders outside the register are not in this denominator.")}
+          {tx(locale, "Pourcentage sur le registre de la plateforme", "Percentage on the platform register")}: {percent}% ({holding.quantity}/{holding.issued}) {tx(locale, "au", "as of")} {formatDate(store.db.clock, locale)}. {tx(locale, "Les fondateurs hors registre ne sont pas dans ce dénominateur.", "Founders outside the register are not in this denominator.")}
         </p>
         <p>{tx(locale, holding.shareClass.votingRightsFr, holding.shareClass.votingRightsEn)}</p>
         <p>{tx(locale, holding.shareClass.transferRestrictionsFr, holding.shareClass.transferRestrictionsEn)}</p>
         <h2 className="text-xl font-bold">{tx(locale, "Émissions", "Issuances")}</h2>
-        {holding.issuances.map((item) => (
-          <p key={item.id}>
-            {item.allotmentDate} · {item.shareQuantity} · {formatMoney(item.issuePriceMinor, item.currencyCode, locale)} · {item.registerReference}
-          </p>
-        ))}
+        {holding.issuances.map((item) => {
+          const cert = certificates.find((entry) => entry.shareIssuanceId === item.id);
+          return (
+            <p key={item.id}>
+              {item.allotmentDate} · {item.shareQuantity} · {formatMoney(item.issuePriceMinor, item.currencyCode, locale)} · {item.registerReference}
+              {cert ? (
+                <>
+                  {" · "}
+                  <Link href={`/investor/certificates/${cert.id}`} className="font-semibold text-violet underline-offset-2 hover:underline">
+                    {tx(locale, "Certificat", "Certificate")}
+                  </Link>
+                </>
+              ) : null}
+            </p>
+          );
+        })}
+        <h2 className="text-xl font-bold">{tx(locale, "Titres", "Certificates")}</h2>
+        {certificates.length === 0 ? (
+          <p className="text-muted">{tx(locale, "Aucun certificat pour cette détention.", "No certificate for this holding.")}</p>
+        ) : (
+          certificates.map((cert) => (
+            <p key={cert.id}>
+              <Link href={`/investor/certificates/${cert.id}`} className="font-semibold text-violet underline-offset-2 hover:underline">
+                {cert.certificateNumber}
+              </Link>
+              {" · "}
+              {cert.shareQuantity} {tx(locale, "actions", "shares")} · {formatDate(cert.allotmentDate, locale)}
+            </p>
+          ))
+        )}
         <h2 className="text-xl font-bold">{tx(locale, "Dividendes de cette société", "Dividends from this company")}</h2>
         {snap.dividends
           .filter((item) => item.issuer.id === holding.issuer.id)
