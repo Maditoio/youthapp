@@ -118,32 +118,67 @@ export async function resendCodeAction(formData: FormData) {
   redirect(`/verify?email=${encodeURIComponent(email)}`);
 }
 
+function clerkMetadataProfile(clerkUser: {
+  unsafeMetadata?: Record<string, unknown> | null;
+} | null): ClerkBindProfile | undefined {
+  const meta = clerkUser?.unsafeMetadata;
+  if (!meta || typeof meta !== "object") return undefined;
+  const phone = typeof meta.phone === "string" ? meta.phone : undefined;
+  const country = typeof meta.country === "string" ? meta.country : undefined;
+  const gender = typeof meta.gender === "string" ? meta.gender : undefined;
+  const dateOfBirth = typeof meta.dateOfBirth === "string" ? meta.dateOfBirth : undefined;
+  const language = meta.language === "en" || meta.language === "fr" ? meta.language : undefined;
+  if (!phone && !country && !gender && !dateOfBirth && !language) return undefined;
+  return { phone, country, gender, dateOfBirth, language };
+}
+
+/** Bridges an active Clerk session into the Jeunese `jeunese_session` cookie, then redirects. */
 export async function bindClerkSession(profile?: ClerkBindProfile): Promise<void> {
   const { auth, currentUser } = await import("@clerk/nextjs/server");
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) redirect("/sign-in");
   const clerkUser = await currentUser();
-  const email = clerkUser?.emailAddresses.find((item) => item.id === clerkUser.primaryEmailAddressId)?.emailAddress;
+  const email =
+    clerkUser?.emailAddresses.find((item) => item.id === clerkUser.primaryEmailAddressId)?.emailAddress ??
+    clerkUser?.emailAddresses[0]?.emailAddress;
   if (!email) redirect("/sign-in");
-  const linked = await (await getStore()).update((db) =>
-    linkOrCreateClerk(db, {
-      clerkUserId,
-      email,
-      firstName: profile?.firstName?.trim() || clerkUser?.firstName || "",
-      lastName: profile?.lastName?.trim() || clerkUser?.lastName || "",
-      profile: profile
-        ? {
-            phone: profile.phone,
-            country: profile.country,
-            gender: profile.gender,
-            dateOfBirth: profile.dateOfBirth,
-            language: profile.language,
-          }
-        : undefined,
-    }),
-  );
-  await setSession(linked.userId);
-  redirect(await destinationFor(linked.userId, linked.created));
+
+  const seed = profile ?? clerkMetadataProfile(clerkUser);
+  try {
+    const linked = await (await getStore()).update((db) =>
+      linkOrCreateClerk(db, {
+        clerkUserId,
+        email,
+        firstName: seed?.firstName?.trim() || clerkUser?.firstName || "",
+        lastName: seed?.lastName?.trim() || clerkUser?.lastName || "",
+        profile: seed
+          ? {
+              phone: seed.phone,
+              country: seed.country,
+              gender: seed.gender,
+              dateOfBirth: seed.dateOfBirth,
+              language: seed.language,
+            }
+          : undefined,
+      }),
+    );
+    await setSession(linked.userId);
+    redirect(await destinationFor(linked.userId, linked.created));
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    console.error("bind_clerk_session_failed");
+    throw error;
+  }
+}
+
+/** Server-side entry: if Clerk is already signed in, finish the Jeunese bind. */
+export async function continueIfClerkSignedIn(): Promise<void> {
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || !process.env.CLERK_SECRET_KEY) return;
+  const existing = await getSession();
+  if (existing) redirect(await destinationFor(existing.user.id));
+  const { auth } = await import("@clerk/nextjs/server");
+  const { userId } = await auth();
+  if (userId) redirect("/sign-in/clerk");
 }
 
 export async function signInAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

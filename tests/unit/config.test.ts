@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { appConfig } from "@/lib/config";
 import { isAppLocale, defaultLocale, locales } from "@/lib/i18n/config";
 import { isClerkConfigured, authAdapter } from "@/lib/auth/adapter";
+import { clerkContinueHref } from "@/lib/auth/clerk-continue";
+import { defaultPath, isReadonlyServerlessFs } from "@/server/db/store";
 import fr from "@/messages/fr.json";
 import en from "@/messages/en.json";
 
@@ -48,5 +50,17 @@ describe("auth adapter stub", () => {
   it("points sign-in and sign-up at local routes", () => {
     expect(authAdapter.getSignInUrl()).toContain("/sign-in");
     expect(authAdapter.getSignUpUrl()).toContain("/sign-up");
+  });
+
+  it("continues Clerk sessions through the Jeunese bind route", () => {
+    expect(clerkContinueHref()).toBe("/sign-in/clerk");
+  });
+});
+
+describe("demo file store path", () => {
+  it("keeps local demo data under ./data off serverless hosts", () => {
+    expect(isReadonlyServerlessFs()).toBe(false);
+    expect(defaultPath()).toContain("data");
+    expect(defaultPath()).toContain("demo-db.json");
   });
 });

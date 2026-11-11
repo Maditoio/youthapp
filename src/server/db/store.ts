@@ -98,8 +98,19 @@ async function openStore(): Promise<Store> {
   return FileStore.load();
 }
 
+export function isReadonlyServerlessFs(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+      process.env.VERCEL_ENV ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.LAMBDA_TASK_ROOT,
+  );
+}
+
 export function defaultPath(): string {
-  const root = process.env.VERCEL ? path.join(os.tmpdir(), "jeunese") : path.join(process.cwd(), "data");
+  const root = isReadonlyServerlessFs()
+    ? path.join(os.tmpdir(), "jeunese")
+    : path.join(process.cwd(), "data");
   return path.join(root, "demo-db.json");
 }
 

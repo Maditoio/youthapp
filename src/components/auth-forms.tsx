@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 import {
-  bindClerkSession,
   googleDemoAction,
   mfaAction,
   signInAction,
@@ -14,11 +14,17 @@ import {
 import { CountrySelect, GenderSelect } from "@/components/choice-fields";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
+import { clerkContinueHref } from "@/lib/auth/clerk-continue";
 import type { AppLocale } from "@/lib/config";
 import { errorCopy } from "@/server/domain/errors";
 import { tx } from "@/lib/i18n/tx";
 
 const field = "h-12 w-full rounded-2xl border border-border bg-white px-4 text-sm";
+
+/** Full navigation so Clerk session cookies are present when the server binds Jeunese. */
+function continueToJeunese() {
+  window.location.assign(clerkContinueHref());
+}
 
 export function SignInForm({ locale, useClerk = false }: { locale: AppLocale; useClerk?: boolean }) {
   if (useClerk) return <ClerkSignInForm locale={locale} />;
@@ -74,8 +80,13 @@ function DemoSignInForm({ locale }: { locale: AppLocale }) {
 
 function ClerkSignInForm({ locale }: { locale: AppLocale }) {
   const { isLoaded, signIn, setActive } = useSignIn();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (authLoaded && isSignedIn) continueToJeunese();
+  }, [authLoaded, isSignedIn]);
 
   async function onSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     event.preventDefault();
@@ -94,11 +105,19 @@ function ClerkSignInForm({ locale }: { locale: AppLocale }) {
         return;
       }
       await setActive({ session: result.createdSessionId });
-      await bindClerkSession();
+      continueToJeunese();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "INVALID_CREDENTIALS");
       setPending(false);
     }
+  }
+
+  if (authLoaded && isSignedIn) {
+    return (
+      <p className="text-sm text-muted">
+        {tx(locale, "Session Clerk détectée — ouverture de Jeunese…", "Clerk session found — opening Jeunese…")}
+      </p>
+    );
   }
 
   return (
@@ -116,7 +135,7 @@ function ClerkSignInForm({ locale }: { locale: AppLocale }) {
           signIn?.authenticateWithRedirect({
             strategy: "oauth_google",
             redirectUrl: "/sign-in/sso-callback",
-            redirectUrlComplete: "/sign-in/clerk",
+            redirectUrlComplete: clerkContinueHref(),
           })
         }
       >
@@ -146,15 +165,21 @@ function DemoSignUpForm({ locale }: { locale: AppLocale }) {
 
 function ClerkSignUpForm({ locale }: { locale: AppLocale }) {
   const { isLoaded, signUp, setActive } = useSignUp();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [needsCode, setNeedsCode] = useState(false);
   const [profile, setProfile] = useState<ClerkBindProfile | null>(null);
 
-  async function finish(sessionId: string, seed: ClerkBindProfile) {
+  useEffect(() => {
+    if (authLoaded && isSignedIn) continueToJeunese();
+  }, [authLoaded, isSignedIn]);
+
+  async function finish(sessionId: string) {
     if (!setActive) throw new Error("Clerk setActive unavailable");
     await setActive({ session: sessionId });
-    await bindClerkSession(seed);
+    // Profile seed lives in Clerk unsafeMetadata; /sign-in/clerk reads it server-side.
+    continueToJeunese();
   }
 
   async function onSubmit(event: { preventDefault(): void; currentTarget: HTMLFormElement }) {
@@ -187,7 +212,7 @@ function ClerkSignUpForm({ locale }: { locale: AppLocale }) {
         },
       });
       if (result.status === "complete" && result.createdSessionId) {
-        await finish(result.createdSessionId, seed);
+        await finish(result.createdSessionId);
         return;
       }
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -215,11 +240,19 @@ function ClerkSignUpForm({ locale }: { locale: AppLocale }) {
         setPending(false);
         return;
       }
-      await finish(result.createdSessionId, profile);
+      await finish(result.createdSessionId);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "INVALID_CODE");
       setPending(false);
     }
+  }
+
+  if (authLoaded && isSignedIn) {
+    return (
+      <p className="text-sm text-muted">
+        {tx(locale, "Session Clerk détectée — ouverture de Jeunese…", "Clerk session found — opening Jeunese…")}
+      </p>
+    );
   }
 
   if (needsCode) {
@@ -251,7 +284,7 @@ function ClerkSignUpForm({ locale }: { locale: AppLocale }) {
           signUp?.authenticateWithRedirect({
             strategy: "oauth_google",
             redirectUrl: "/sign-in/sso-callback",
-            redirectUrlComplete: "/sign-in/clerk",
+            redirectUrlComplete: clerkContinueHref(),
           })
         }
       >
