@@ -1976,6 +1976,224 @@ export function createDraftProject(
   return { projectId, offeringId };
 }
 
+export type ProjectContentInput = {
+  projectId: string;
+  titleFr: string;
+  titleEn: string;
+  shortFr: string;
+  shortEn: string;
+  fullFr: string;
+  fullEn: string;
+  marketFr: string;
+  marketEn: string;
+  industry: string;
+  locationName: string;
+  financingPurpose: "START" | "FINANCE";
+  status: "DRAFT" | "PUBLISHED";
+  useOfProceeds: { labelFr: string; labelEn: string; amountMinor: number }[];
+  team: { name: string; roleFr: string; roleEn: string; experienceFr: string; experienceEn: string }[];
+  risksFr: string[];
+  risksEn: string[];
+  assumptionsFr: string;
+  assumptionsEn: string;
+  projectionsFr: string;
+  projectionsEn: string;
+};
+
+export function updateProjectContent(db: Database, actorId: string, input: ProjectContentInput): void {
+  requirePermission(db, actorId, "projects.write");
+  const project = db.projects.find((item) => item.id === input.projectId);
+  assert(project, "NOT_FOUND");
+  assert(input.titleFr.trim() && input.titleEn.trim(), "INVALID_STATE");
+  assert(isIndustry(input.industry), "INDUSTRY_INVALID");
+  assert(input.financingPurpose === "START" || input.financingPurpose === "FINANCE", "INVALID_STATE");
+  assert(input.status === "DRAFT" || input.status === "PUBLISHED", "INVALID_STATE");
+  for (const line of input.useOfProceeds) {
+    assert(line.amountMinor >= 0 && Number.isSafeInteger(line.amountMinor), "AMOUNT_INVALID");
+  }
+  project.titleFr = input.titleFr.trim();
+  project.titleEn = input.titleEn.trim();
+  project.shortFr = input.shortFr.trim();
+  project.shortEn = input.shortEn.trim();
+  project.fullFr = input.fullFr.trim();
+  project.fullEn = input.fullEn.trim();
+  project.marketFr = input.marketFr.trim();
+  project.marketEn = input.marketEn.trim();
+  project.industry = input.industry;
+  project.locationName = input.locationName.trim();
+  project.financingPurpose = input.financingPurpose;
+  project.status = input.status;
+  project.useOfProceeds = input.useOfProceeds;
+  project.team = input.team;
+  project.risksFr = input.risksFr;
+  project.risksEn = input.risksEn;
+  project.assumptionsFr = input.assumptionsFr.trim();
+  project.assumptionsEn = input.assumptionsEn.trim();
+  project.projectionsFr = input.projectionsFr.trim();
+  project.projectionsEn = input.projectionsEn.trim();
+  project.updatedAt = now(db);
+  audit(db, actorId, "project.update", "project", project.id);
+}
+
+export type OfferingTermsInput = {
+  offeringId: string;
+  nameFr: string;
+  nameEn: string;
+  minimumRaiseMinor: number;
+  maximumRaiseMinor: number;
+  minimumSubscriptionMinor: number;
+  maximumSubscriptionMinor: number;
+  opensAt: string;
+  closesAt: string;
+  feeMinor: number;
+  preMoneyValuationMinor: number | null;
+  permittedCountries: string[];
+  dividendPolicyFr: string;
+  dividendPolicyEn: string;
+  transferRestrictionsFr: string;
+  transferRestrictionsEn: string;
+  conditionsFr: string;
+  conditionsEn: string;
+  refundFr: string;
+  refundEn: string;
+  issuePriceMinor: number;
+  sharesOffered: number;
+  minimumSharesPerInvestor: number;
+  maximumSharesPerInvestor: number;
+};
+
+export function updateOfferingTerms(db: Database, actorId: string, input: OfferingTermsInput): void {
+  assert(
+    can(rolesFor(db, actorId), "offerings.draft") ||
+      can(rolesFor(db, actorId), "projects.write") ||
+      can(rolesFor(db, actorId), "*"),
+    "FORBIDDEN",
+  );
+  requireUser(db, actorId);
+  const offering = db.offerings.find((item) => item.id === input.offeringId);
+  assert(offering, "NOT_FOUND");
+  assert(input.nameFr.trim() && input.nameEn.trim(), "INVALID_STATE");
+  assert(input.minimumRaiseMinor > 0 && input.maximumRaiseMinor > 0, "AMOUNT_INVALID");
+  assert(input.minimumRaiseMinor <= input.maximumRaiseMinor, "AMOUNT_INVALID");
+  assert(input.minimumSubscriptionMinor > 0 && input.maximumSubscriptionMinor > 0, "AMOUNT_INVALID");
+  assert(input.minimumSubscriptionMinor <= input.maximumSubscriptionMinor, "AMOUNT_INVALID");
+  assert(input.issuePriceMinor > 0, "AMOUNT_INVALID");
+  assert(input.feeMinor >= 0, "AMOUNT_INVALID");
+  assert(
+    input.preMoneyValuationMinor === null || input.preMoneyValuationMinor >= 0,
+    "AMOUNT_INVALID",
+  );
+  assert(Number.isSafeInteger(input.sharesOffered) && input.sharesOffered > 0, "INVALID_STATE");
+  assert(
+    Number.isSafeInteger(input.minimumSharesPerInvestor) &&
+      Number.isSafeInteger(input.maximumSharesPerInvestor) &&
+      input.minimumSharesPerInvestor > 0 &&
+      input.minimumSharesPerInvestor <= input.maximumSharesPerInvestor,
+    "INVALID_STATE",
+  );
+  assert(Number.isFinite(Date.parse(input.opensAt)) && Number.isFinite(Date.parse(input.closesAt)), "INVALID_STATE");
+  assert(input.opensAt < input.closesAt, "INVALID_STATE");
+  assert(input.permittedCountries.length > 0, "INVALID_STATE");
+  assert(input.permittedCountries.every((code) => isPermittedCountry(code)), "INVALID_STATE");
+
+  offering.nameFr = input.nameFr.trim();
+  offering.nameEn = input.nameEn.trim();
+  offering.minimumRaiseMinor = input.minimumRaiseMinor;
+  offering.maximumRaiseMinor = input.maximumRaiseMinor;
+  offering.minimumSubscriptionMinor = input.minimumSubscriptionMinor;
+  offering.maximumSubscriptionMinor = input.maximumSubscriptionMinor;
+  offering.opensAt = input.opensAt;
+  offering.closesAt = input.closesAt;
+  offering.feeMinor = input.feeMinor;
+  offering.preMoneyValuationMinor = input.preMoneyValuationMinor;
+  offering.permittedCountries = input.permittedCountries;
+  offering.dividendPolicyFr = input.dividendPolicyFr.trim();
+  offering.dividendPolicyEn = input.dividendPolicyEn.trim();
+  offering.transferRestrictionsFr = input.transferRestrictionsFr.trim();
+  offering.transferRestrictionsEn = input.transferRestrictionsEn.trim();
+  offering.conditionsFr = input.conditionsFr.trim();
+  offering.conditionsEn = input.conditionsEn.trim();
+  offering.refundFr = input.refundFr.trim();
+  offering.refundEn = input.refundEn.trim();
+  offering.updatedAt = now(db);
+
+  const terms = db.offeringShareTerms.find((item) => item.offeringId === offering.id);
+  assert(terms, "NOT_FOUND");
+  terms.issuePriceMinor = input.issuePriceMinor;
+  terms.sharesOffered = input.sharesOffered;
+  terms.minimumSharesPerInvestor = input.minimumSharesPerInvestor;
+  terms.maximumSharesPerInvestor = input.maximumSharesPerInvestor;
+
+  audit(db, actorId, "offering.update_terms", "offering", offering.id);
+}
+
+export type OfferingDocumentInput = {
+  documentId?: string;
+  offeringId: string;
+  documentType: string;
+  version: string;
+  titleFr: string;
+  titleEn: string;
+  bodyFr: string;
+  bodyEn: string;
+  visibility: "PUBLIC" | "INVESTOR" | "RESTRICTED";
+};
+
+export function upsertOfferingDocument(db: Database, actorId: string, input: OfferingDocumentInput): string {
+  assert(
+    can(rolesFor(db, actorId), "offerings.draft") ||
+      can(rolesFor(db, actorId), "projects.write") ||
+      can(rolesFor(db, actorId), "*"),
+    "FORBIDDEN",
+  );
+  requireUser(db, actorId);
+  const offering = db.offerings.find((item) => item.id === input.offeringId);
+  assert(offering, "NOT_FOUND");
+  assert(input.documentType.trim(), "INVALID_STATE");
+  assert(input.version.trim(), "INVALID_STATE");
+  assert(input.titleFr.trim() && input.titleEn.trim(), "INVALID_STATE");
+  assert(input.bodyFr.trim() && input.bodyEn.trim(), "INVALID_STATE");
+  assert(
+    input.visibility === "PUBLIC" || input.visibility === "INVESTOR" || input.visibility === "RESTRICTED",
+    "INVALID_STATE",
+  );
+  const at = now(db);
+  const checksum = digest(`${input.documentType}:${input.version}:${input.bodyFr}:${input.bodyEn}`);
+  if (input.documentId) {
+    const existing = db.offeringDocuments.find((item) => item.id === input.documentId);
+    assert(existing && existing.offeringId === offering.id, "NOT_FOUND");
+    existing.documentType = input.documentType.trim();
+    existing.version = input.version.trim();
+    existing.titleFr = input.titleFr.trim();
+    existing.titleEn = input.titleEn.trim();
+    existing.bodyFr = input.bodyFr.trim();
+    existing.bodyEn = input.bodyEn.trim();
+    existing.visibility = input.visibility;
+    existing.checksum = checksum;
+    if (input.visibility === "PUBLIC" && !existing.publishedAt) existing.publishedAt = at;
+    if (input.visibility !== "PUBLIC") existing.publishedAt = null;
+    audit(db, actorId, "offering_document.update", "offering_document", existing.id);
+    return existing.id;
+  }
+  const id = uid();
+  db.offeringDocuments.push({
+    id,
+    offeringId: offering.id,
+    documentType: input.documentType.trim(),
+    version: input.version.trim(),
+    titleFr: input.titleFr.trim(),
+    titleEn: input.titleEn.trim(),
+    bodyFr: input.bodyFr.trim(),
+    bodyEn: input.bodyEn.trim(),
+    checksum,
+    visibility: input.visibility,
+    publishedAt: input.visibility === "PUBLIC" ? at : null,
+    createdAt: at,
+  });
+  audit(db, actorId, "offering_document.create", "offering_document", id);
+  return id;
+}
+
 export function submitIssuerUpdate(
   db: Database,
   actorId: string,

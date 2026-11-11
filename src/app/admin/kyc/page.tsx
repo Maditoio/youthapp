@@ -1,4 +1,5 @@
 import { AdminKycReviewForm } from "@/components/admin-kyc-review-form";
+import { ModalOpenLink, SearchParamValueModal } from "@/components/search-param-modal";
 import { errorCopy } from "@/server/domain/errors";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import {
@@ -13,11 +14,16 @@ import { getSession } from "@/server/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export default async function KycPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function KycPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; review?: string }>;
+}) {
   const session = await getSession();
   if (!session) return null;
   const locale = await getLocale();
-  const error = (await searchParams).error;
+  const params = await searchParams;
+  const error = params.error;
   const hasPassword = Boolean(session.user.passwordHash);
   const ownStaffCode =
     session.db.staffProfiles.find((item) => item.userId === session.user.id && item.status === "ACTIVE")
@@ -26,7 +32,6 @@ export default async function KycPage({ searchParams }: { searchParams: Promise<
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Revue d'identité", "Identity review")}</h1>
-      {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
       <p className="text-sm text-muted">
         {tx(
           locale,
@@ -56,7 +61,16 @@ export default async function KycPage({ searchParams }: { searchParams: Promise<
               {item.reasonCode ? (
                 <p className="break-words text-muted">
                   {tx(locale, "Motif actuel", "Current reason")}:{" "}
-                  {kycReasonLabel(locale, item.status === "ADDITIONAL_INFORMATION_REQUIRED" || item.status === "REJECTED" || item.status === "SUSPENDED" || item.status === "APPROVED" ? item.status : null, item.reasonCode)}
+                  {kycReasonLabel(
+                    locale,
+                    item.status === "ADDITIONAL_INFORMATION_REQUIRED" ||
+                      item.status === "REJECTED" ||
+                      item.status === "SUSPENDED" ||
+                      item.status === "APPROVED"
+                      ? item.status
+                      : null,
+                    item.reasonCode,
+                  )}
                 </p>
               ) : null}
               {parsed.notes ? <p className="break-words text-muted">{parsed.notes}</p> : null}
@@ -76,17 +90,49 @@ export default async function KycPage({ searchParams }: { searchParams: Promise<
                 </p>
               ) : null}
             </div>
-            <AdminKycReviewForm
-              locale={locale}
-              caseId={item.id}
-              ownCase={ownCase}
-              hasPassword={hasPassword}
-              ownStaffCode={ownStaffCode}
-            />
+            <ModalOpenLink
+              href={`/admin/kyc?review=${encodeURIComponent(item.id)}`}
+              className="inline-flex rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white"
+            >
+              {tx(locale, "Décider", "Review")}
+            </ModalOpenLink>
           </article>
         );
       })}
-      {cases.length === 0 ? <p className="text-sm text-muted">{tx(locale, "Aucune revue en attente.", "No review waiting.")}</p> : null}
+      {cases.length === 0 ? (
+        <p className="text-sm text-muted">{tx(locale, "Aucune revue en attente.", "No review waiting.")}</p>
+      ) : null}
+
+      <SearchParamValueModal
+        param="review"
+        clearKeys={["error"]}
+        size="lg"
+        titleFor={() => tx(locale, "Décision d'identité", "Identity decision")}
+      >
+        {(caseId) => {
+          const item = cases.find((row) => row.id === caseId);
+          if (!item) {
+            return <p className="text-sm text-muted">{tx(locale, "Dossier introuvable.", "Case not found.")}</p>;
+          }
+          const profile = session.db.investorProfiles.find((row) => row.id === item.investorProfileId);
+          const ownCase = profile?.userId === session.user.id;
+          return (
+            <div className="space-y-3">
+              {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
+              <p className="text-sm text-muted">
+                {profile?.legalFirstName} {profile?.legalLastName} · {kycStatusLabel(locale, item.status)}
+              </p>
+              <AdminKycReviewForm
+                locale={locale}
+                caseId={item.id}
+                ownCase={ownCase}
+                hasPassword={hasPassword}
+                ownStaffCode={ownStaffCode}
+              />
+            </div>
+          );
+        }}
+      </SearchParamValueModal>
     </div>
   );
 }

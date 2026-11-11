@@ -42,6 +42,26 @@ export function parseMajorToMinor(input: string): number | null {
   return minor;
 }
 
+/** Format minor units for money inputs (e.g. 10050 → "100.50"). */
+export function formatMinorInput(minor: number): string {
+  if (!Number.isFinite(minor)) return "";
+  return (minor / 100).toFixed(2);
+}
+
+/** Slice an ISO timestamp to `datetime-local` value (`YYYY-MM-DDTHH:mm`). */
+export function toDatetimeLocalValue(iso: string): string {
+  if (!iso) return "";
+  const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/.exec(iso);
+  return match?.[1] ?? "";
+}
+
+/** Normalize a `datetime-local` value into an ISO UTC-ish string with seconds. */
+export function fromDatetimeLocalValue(value: string): string | null {
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) return null;
+  return `${trimmed}:00.000Z`;
+}
+
 export function maskValue(value: string | null | undefined): string {
   if (!value) return "—";
   if (value.length <= 4) return "••••";

@@ -48,13 +48,16 @@ import {
   submitIssuerUpdate,
   transitionOffering,
   updateInvestorDetails,
+  updateOfferingTerms,
+  updateProjectContent,
+  upsertOfferingDocument,
   verifyEmail,
   verifyStaffMfa,
 } from "./domain/mutate";
 import { quoteSubscription } from "./domain/finance";
 import { uid } from "./domain/crypto";
 import type { InheritanceStatus, KycStatus, Locale, OfferingStatus, Role } from "./domain/types";
-import { parseMajorToMinor } from "@/lib/format";
+import { fromDatetimeLocalValue, parseMajorToMinor } from "@/lib/format";
 import { appConfig } from "@/lib/config";
 import { isGender } from "@/lib/choices";
 
@@ -333,9 +336,13 @@ export async function kycAction(_prev: ActionState, formData: FormData): Promise
 export async function kinAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  await attempt("/investor/profile/contacts", async () => (await getStore()).update((db) =>
+  const id = String(formData.get("id") ?? "").trim();
+  const back = id
+    ? `/investor/profile/contacts?edit=${encodeURIComponent(id)}`
+    : "/investor/profile/contacts?modal=new";
+  await attempt(back, async () => (await getStore()).update((db) =>
     saveNextOfKin(db, session.user.id, {
-      id: String(formData.get("id") ?? "") || undefined,
+      id: id || undefined,
       fullName: String(formData.get("fullName") ?? ""),
       relationship: String(formData.get("relationship") ?? ""),
       email: String(formData.get("email") ?? ""),
@@ -483,7 +490,7 @@ export async function voteAction(formData: FormData) {
 
 export async function ticketAction(formData: FormData) {
   const session = await getSession();
-  const id = await attempt(session ? "/investor/support" : "/contact", async () => (await getStore()).update((db) =>
+  const id = await attempt(session ? "/investor/support?modal=new" : "/contact", async () => (await getStore()).update((db) =>
     createTicket(
       db,
       session?.user.id ?? null,
@@ -499,11 +506,15 @@ export async function replyAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const ticketId = String(formData.get("ticketId") ?? "");
-  const back = session.roles.includes("investor") ? `/investor/support/${ticketId}` : `/admin/support`;
+  const isInvestor = session.roles.includes("investor");
+  const back = isInvestor
+    ? `/investor/support/${ticketId}`
+    : `/admin/support?reply=${encodeURIComponent(ticketId || "unknown")}`;
+  const success = isInvestor ? `/investor/support/${ticketId}` : "/admin/support";
   await attempt(back, async () => (await getStore()).update((db) =>
     replyTicket(db, session.user.id, ticketId, String(formData.get("message") ?? ""), formData.get("internal") === "on"),
   ));
-  redirect(withNotice(back, "REPLY_SENT"));
+  redirect(withNotice(success, "REPLY_SENT"));
 }
 
 export async function readNoteAction(formData: FormData) {
@@ -529,7 +540,10 @@ export async function kycDecisionAction(formData: FormData) {
     "APPROVED" | "REJECTED" | "ADDITIONAL_INFORMATION_REQUIRED" | "SUSPENDED"
   >;
   const allowed = new Set(["APPROVED", "REJECTED", "ADDITIONAL_INFORMATION_REQUIRED", "SUSPENDED"]);
-  if (!allowed.has(decision)) redirect("/admin/kyc?error=STATUS_REQUIRED");
+  const caseId = String(formData.get("caseId") ?? "").trim();
+  if (!allowed.has(decision)) {
+    redirect(caseId ? `/admin/kyc?review=${encodeURIComponent(caseId)}&error=STATUS_REQUIRED` : "/admin/kyc?error=STATUS_REQUIRED");
+  }
   const requestedDocs = formData
     .getAll("requestedDocs")
     .map((item) => String(item).trim())
@@ -539,7 +553,7 @@ export async function kycDecisionAction(formData: FormData) {
       reviewKyc(
         db,
         session.user.id,
-        String(formData.get("caseId") ?? ""),
+        caseId,
         decision,
         String(formData.get("reason") ?? ""),
         String(formData.get("notes") ?? ""),
@@ -550,7 +564,11 @@ export async function kycDecisionAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/kyc?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(
+      caseId
+        ? `/admin/kyc?review=${encodeURIComponent(caseId)}&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`
+        : `/admin/kyc?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`,
+    );
   }
   redirect(withNotice("/admin/kyc", KYC_DECISION_NOTICE[decision]));
 }
@@ -560,8 +578,9 @@ export async function offeringTransitionAction(formData: FormData) {
   const offeringId = String(formData.get("offeringId") ?? "").trim();
   const to = String(formData.get("to") ?? "").trim();
   const back = `/admin/offerings/${encodeURIComponent(offeringId || "unknown")}`;
+  const modalBack = `${back}?modal=transition`;
   if (!offeringId) redirect("/admin/offerings?error=NOT_FOUND");
-  if (!to) redirect(`${back}?error=STATUS_REQUIRED`);
+  if (!to) redirect(`${modalBack}&error=STATUS_REQUIRED`);
   try {
     await (await getStore()).update((db) =>
       transitionOffering(db, session.user.id, offeringId, to as OfferingStatus, String(formData.get("reason") ?? "")),
@@ -569,7 +588,7 @@ export async function offeringTransitionAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`${back}?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(`${modalBack}&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
   redirect(withNotice(back, "OFFERING_TRANSITIONED"));
 }
@@ -592,7 +611,7 @@ export async function createIssuerAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/issuers?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(`/admin/issuers?modal=new&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
   const next = String(formData.get("next") ?? "").trim();
   redirect(withNotice(next.startsWith("/admin/") ? next : "/admin/issuers", "ISSUER_CREATED"));
@@ -603,11 +622,11 @@ export async function createProjectAction(formData: FormData) {
   const price = parseMajorToMinor(String(formData.get("price") ?? ""));
   const min = parseMajorToMinor(String(formData.get("min") ?? ""));
   const max = parseMajorToMinor(String(formData.get("max") ?? ""));
-  if (price === null || min === null || max === null) redirect("/admin/projects/new?error=AMOUNT_INVALID");
+  if (price === null || min === null || max === null) redirect("/admin/projects?modal=new&error=AMOUNT_INVALID");
   const issuerId = String(formData.get("issuerId") ?? "").trim();
-  if (!issuerId) redirect("/admin/projects/new?error=ISSUER_REQUIRED");
+  if (!issuerId) redirect("/admin/projects?modal=new&error=ISSUER_REQUIRED");
   try {
-    const created = await (await getStore()).update((db) =>
+    await (await getStore()).update((db) =>
       createDraftProject(db, session.user.id, {
         issuerId,
         titleFr: String(formData.get("titleFr") ?? ""),
@@ -621,12 +640,206 @@ export async function createProjectAction(formData: FormData) {
         financingPurpose: String(formData.get("purpose") ?? "") === "START" ? "START" : "FINANCE",
       }),
     );
-    redirect(withNotice(`/admin/projects/${created.projectId}`, "PROJECT_CREATED"));
+    redirect(withNotice("/admin/projects", "PROJECT_CREATED"));
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/projects/new?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(`/admin/projects?modal=new&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
+}
+
+function projectEditorPath(projectId: string, hash?: string): string {
+  return `/admin/projects/${projectId}${hash ? `#${hash}` : ""}`;
+}
+
+function linesFromTextarea(value: string): string[] {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function requireMoney(formData: FormData, key: string): number | null {
+  return parseMajorToMinor(String(formData.get(key) ?? ""));
+}
+
+export async function updateProjectContentAction(formData: FormData) {
+  const session = await requireStaff();
+  const projectId = String(formData.get("projectId") ?? "").trim();
+  const hash = String(formData.get("hash") ?? "overview").trim() || "overview";
+  if (!projectId) redirect(withError("/admin/projects", "NOT_FOUND"));
+
+  const proceedCount = Number(formData.get("proceedCount") ?? 0);
+  const teamCount = Number(formData.get("teamCount") ?? 0);
+  const useOfProceeds: { labelFr: string; labelEn: string; amountMinor: number }[] = [];
+  for (let i = 0; i < proceedCount; i += 1) {
+    const labelFr = String(formData.get(`proceedLabelFr_${i}`) ?? "").trim();
+    const labelEn = String(formData.get(`proceedLabelEn_${i}`) ?? "").trim();
+    const amountRaw = String(formData.get(`proceedAmount_${i}`) ?? "").trim();
+    if (!labelFr && !labelEn && !amountRaw) continue;
+    const amountMinor = parseMajorToMinor(amountRaw);
+    if (amountMinor === null) {
+      redirect(withError(projectEditorPath(projectId, hash), "AMOUNT_INVALID"));
+    }
+    if (!labelFr || !labelEn) {
+      redirect(withError(projectEditorPath(projectId, hash), "INVALID_STATE"));
+    }
+    useOfProceeds.push({ labelFr, labelEn, amountMinor });
+  }
+  const team: {
+    name: string;
+    roleFr: string;
+    roleEn: string;
+    experienceFr: string;
+    experienceEn: string;
+  }[] = [];
+  for (let i = 0; i < teamCount; i += 1) {
+    const name = String(formData.get(`teamName_${i}`) ?? "").trim();
+    const roleFr = String(formData.get(`teamRoleFr_${i}`) ?? "").trim();
+    const roleEn = String(formData.get(`teamRoleEn_${i}`) ?? "").trim();
+    const experienceFr = String(formData.get(`teamExperienceFr_${i}`) ?? "").trim();
+    const experienceEn = String(formData.get(`teamExperienceEn_${i}`) ?? "").trim();
+    if (!name && !roleFr && !roleEn && !experienceFr && !experienceEn) continue;
+    if (!name || !roleFr || !roleEn) {
+      redirect(withError(projectEditorPath(projectId, hash), "INVALID_STATE"));
+    }
+    team.push({ name, roleFr, roleEn, experienceFr, experienceEn });
+  }
+
+  const purpose = String(formData.get("financingPurpose") ?? "");
+  const status = String(formData.get("status") ?? "");
+  try {
+    await (await getStore()).update((db) =>
+      updateProjectContent(db, session.user.id, {
+        projectId,
+        titleFr: String(formData.get("titleFr") ?? ""),
+        titleEn: String(formData.get("titleEn") ?? ""),
+        shortFr: String(formData.get("shortFr") ?? ""),
+        shortEn: String(formData.get("shortEn") ?? ""),
+        fullFr: String(formData.get("fullFr") ?? ""),
+        fullEn: String(formData.get("fullEn") ?? ""),
+        marketFr: String(formData.get("marketFr") ?? ""),
+        marketEn: String(formData.get("marketEn") ?? ""),
+        industry: String(formData.get("industry") ?? ""),
+        locationName: String(formData.get("locationName") ?? ""),
+        financingPurpose: purpose === "START" ? "START" : "FINANCE",
+        status: status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+        useOfProceeds,
+        team,
+        risksFr: linesFromTextarea(String(formData.get("risksFr") ?? "")),
+        risksEn: linesFromTextarea(String(formData.get("risksEn") ?? "")),
+        assumptionsFr: String(formData.get("assumptionsFr") ?? ""),
+        assumptionsEn: String(formData.get("assumptionsEn") ?? ""),
+        projectionsFr: String(formData.get("projectionsFr") ?? ""),
+        projectionsEn: String(formData.get("projectionsEn") ?? ""),
+      }),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(withError(projectEditorPath(projectId, hash), known?.code ?? "INVALID_STATE"));
+  }
+  redirect(withNotice(projectEditorPath(projectId, hash), "PROJECT_CONTENT_SAVED"));
+}
+
+export async function updateOfferingTermsAction(formData: FormData) {
+  const session = await requireStaff();
+  const projectId = String(formData.get("projectId") ?? "").trim();
+  const offeringId = String(formData.get("offeringId") ?? "").trim();
+  const path = projectEditorPath(projectId || "unknown", "offering");
+  if (!projectId || !offeringId) redirect(withError("/admin/projects", "NOT_FOUND"));
+
+  const minimumRaiseMinor = requireMoney(formData, "minimumRaise");
+  const maximumRaiseMinor = requireMoney(formData, "maximumRaise");
+  const minimumSubscriptionMinor = requireMoney(formData, "minimumSubscription");
+  const maximumSubscriptionMinor = requireMoney(formData, "maximumSubscription");
+  const issuePriceMinor = requireMoney(formData, "issuePrice");
+  const feeMinor = requireMoney(formData, "fee");
+  const preMoneyRaw = String(formData.get("preMoney") ?? "").trim();
+  const preMoneyValuationMinor = preMoneyRaw === "" ? null : parseMajorToMinor(preMoneyRaw);
+  const opensAt = fromDatetimeLocalValue(String(formData.get("opensAt") ?? ""));
+  const closesAt = fromDatetimeLocalValue(String(formData.get("closesAt") ?? ""));
+  if (
+    minimumRaiseMinor === null ||
+    maximumRaiseMinor === null ||
+    minimumSubscriptionMinor === null ||
+    maximumSubscriptionMinor === null ||
+    issuePriceMinor === null ||
+    feeMinor === null ||
+    (preMoneyRaw !== "" && preMoneyValuationMinor === null) ||
+    !opensAt ||
+    !closesAt
+  ) {
+    redirect(withError(path, "AMOUNT_INVALID"));
+  }
+
+  try {
+    await (await getStore()).update((db) =>
+      updateOfferingTerms(db, session.user.id, {
+        offeringId,
+        nameFr: String(formData.get("nameFr") ?? ""),
+        nameEn: String(formData.get("nameEn") ?? ""),
+        minimumRaiseMinor,
+        maximumRaiseMinor,
+        minimumSubscriptionMinor,
+        maximumSubscriptionMinor,
+        opensAt,
+        closesAt,
+        feeMinor,
+        preMoneyValuationMinor,
+        permittedCountries: formData.getAll("permittedCountries").map(String).filter(Boolean),
+        dividendPolicyFr: String(formData.get("dividendPolicyFr") ?? ""),
+        dividendPolicyEn: String(formData.get("dividendPolicyEn") ?? ""),
+        transferRestrictionsFr: String(formData.get("transferRestrictionsFr") ?? ""),
+        transferRestrictionsEn: String(formData.get("transferRestrictionsEn") ?? ""),
+        conditionsFr: String(formData.get("conditionsFr") ?? ""),
+        conditionsEn: String(formData.get("conditionsEn") ?? ""),
+        refundFr: String(formData.get("refundFr") ?? ""),
+        refundEn: String(formData.get("refundEn") ?? ""),
+        issuePriceMinor,
+        sharesOffered: Number(formData.get("sharesOffered") ?? 0),
+        minimumSharesPerInvestor: Number(formData.get("minimumShares") ?? 0),
+        maximumSharesPerInvestor: Number(formData.get("maximumShares") ?? 0),
+      }),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(withError(path, known?.code ?? "INVALID_STATE"));
+  }
+  redirect(withNotice(path, "OFFERING_TERMS_SAVED"));
+}
+
+export async function upsertOfferingDocumentAction(formData: FormData) {
+  const session = await requireStaff();
+  const projectId = String(formData.get("projectId") ?? "").trim();
+  const offeringId = String(formData.get("offeringId") ?? "").trim();
+  const documentId = String(formData.get("documentId") ?? "").trim();
+  const path = projectEditorPath(projectId || "unknown", "documents");
+  if (!projectId || !offeringId) redirect(withError("/admin/projects", "NOT_FOUND"));
+  const visibilityRaw = String(formData.get("visibility") ?? "PUBLIC");
+  const visibility =
+    visibilityRaw === "INVESTOR" || visibilityRaw === "RESTRICTED" ? visibilityRaw : "PUBLIC";
+  try {
+    await (await getStore()).update((db) =>
+      upsertOfferingDocument(db, session.user.id, {
+        documentId: documentId || undefined,
+        offeringId,
+        documentType: String(formData.get("documentType") ?? ""),
+        version: String(formData.get("version") ?? ""),
+        titleFr: String(formData.get("titleFr") ?? ""),
+        titleEn: String(formData.get("titleEn") ?? ""),
+        bodyFr: String(formData.get("bodyFr") ?? ""),
+        bodyEn: String(formData.get("bodyEn") ?? ""),
+        visibility,
+      }),
+    );
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    const known = asAppError(error);
+    redirect(withError(path, known?.code ?? "INVALID_STATE"));
+  }
+  redirect(withNotice(path, "DOCUMENT_SAVED"));
 }
 
 export async function prepareAllotmentAction(formData: FormData) {
@@ -682,28 +895,38 @@ export async function settleAction(formData: FormData) {
 
 export async function refundRequestAction(formData: FormData) {
   const session = await requireStaff();
+  const paymentId = String(formData.get("paymentId") ?? "").trim();
   try {
     await (await getStore()).update((db) =>
-      requestRefund(db, session.user.id, String(formData.get("paymentId") ?? ""), String(formData.get("reason") ?? "")),
+      requestRefund(db, session.user.id, paymentId, String(formData.get("reason") ?? "")),
     );
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(
+      paymentId
+        ? `/admin/payments?refund=${encodeURIComponent(paymentId)}&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`
+        : `/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`,
+    );
   }
   redirect(withNotice("/admin/payments", "REFUND_REQUESTED"));
 }
 
 export async function refundApproveAction(formData: FormData) {
   const session = await requireStaff();
+  const refundId = String(formData.get("refundId") ?? "").trim();
   try {
     await (await getStore()).update((db) =>
-      approveRefund(db, session.user.id, String(formData.get("refundId") ?? ""), String(formData.get("password") ?? "")),
+      approveRefund(db, session.user.id, refundId, String(formData.get("password") ?? "")),
     );
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(
+      refundId
+        ? `/admin/payments?approve=${encodeURIComponent(refundId)}&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`
+        : `/admin/payments?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`,
+    );
   }
   redirect(withNotice("/admin/payments", "REFUND_APPROVED"));
 }
@@ -719,7 +942,7 @@ export async function publishUpdateAction(formData: FormData) {
 export async function issuerUpdateAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
-  await attempt("/issuer/updates", async () => (await getStore()).update((db) =>
+  await attempt("/issuer/updates?modal=new", async () => (await getStore()).update((db) =>
     submitIssuerUpdate(db, session.user.id, {
       projectId: String(formData.get("projectId") ?? ""),
       titleFr: String(formData.get("titleFr") ?? ""),
@@ -735,7 +958,7 @@ export async function issuerProfitAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const perShare = parseMajorToMinor(String(formData.get("perShare") ?? ""));
-  if (perShare === null) redirect("/issuer/profits?error=AMOUNT_INVALID");
+  if (perShare === null) redirect("/issuer/profits?modal=propose&error=AMOUNT_INVALID");
   const recordDate = String(formData.get("recordDate") ?? "");
   const paymentDate = String(formData.get("paymentDate") ?? "");
   try {
@@ -752,7 +975,7 @@ export async function issuerProfitAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const code = asAppError(error)?.code ?? "INVALID_STATE";
-    redirect(`/issuer/profits?error=${code}`);
+    redirect(`/issuer/profits?modal=propose&error=${code}`);
   }
   redirect(withNotice("/issuer/profits", "PROFIT_PROPOSED"));
 }
@@ -760,7 +983,7 @@ export async function issuerProfitAction(formData: FormData) {
 export async function dividendProposeAction(formData: FormData) {
   const session = await requireStaff();
   const perShare = parseMajorToMinor(String(formData.get("perShare") ?? ""));
-  if (perShare === null) redirect("/admin/dividends?error=AMOUNT_INVALID");
+  if (perShare === null) redirect("/admin/dividends?modal=propose&error=AMOUNT_INVALID");
   try {
     await (await getStore()).update((db) =>
       proposeDividend(db, session.user.id, {
@@ -775,7 +998,7 @@ export async function dividendProposeAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/dividends?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(`/admin/dividends?modal=propose&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
   redirect(withNotice("/admin/dividends", "DIVIDEND_PROPOSED"));
 }
@@ -808,12 +1031,13 @@ export async function dividendPayAction(formData: FormData) {
 
 export async function inheritanceAdvanceAction(formData: FormData) {
   const session = await requireStaff();
+  const caseId = String(formData.get("caseId") ?? "").trim();
   try {
     await (await getStore()).update((db) =>
       advanceInheritance(
         db,
         session.user.id,
-        String(formData.get("caseId") ?? ""),
+        caseId,
         String(formData.get("to") ?? "") as InheritanceStatus,
         String(formData.get("notes") ?? ""),
         String(formData.get("password") ?? ""),
@@ -822,19 +1046,22 @@ export async function inheritanceAdvanceAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(
+      `/admin/inheritance?modal=advance&case=${encodeURIComponent(caseId)}&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`,
+    );
   }
   redirect(withNotice("/admin/inheritance", "INHERITANCE_UPDATED"));
 }
 
 export async function inheritanceApproveAction(formData: FormData) {
   const session = await requireStaff();
+  const caseId = String(formData.get("caseId") ?? "").trim();
   try {
     await (await getStore()).update((db) =>
       addInheritanceApproval(
         db,
         session.user.id,
-        String(formData.get("caseId") ?? ""),
+        caseId,
         String(formData.get("evidence") ?? ""),
         String(formData.get("password") ?? ""),
       ),
@@ -842,19 +1069,22 @@ export async function inheritanceApproveAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(
+      `/admin/inheritance?modal=approve&case=${encodeURIComponent(caseId)}&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`,
+    );
   }
   redirect(withNotice("/admin/inheritance", "INHERITANCE_APPROVED"));
 }
 
 export async function inheritanceTransferAction(formData: FormData) {
   const session = await requireStaff();
+  const caseId = String(formData.get("caseId") ?? "").trim();
   try {
     await (await getStore()).update((db) =>
       recordInheritanceRegisterUpdate(
         db,
         session.user.id,
-        String(formData.get("caseId") ?? ""),
+        caseId,
         String(formData.get("fromId") ?? ""),
         String(formData.get("toId") ?? ""),
         String(formData.get("shareClassId") ?? ""),
@@ -865,7 +1095,9 @@ export async function inheritanceTransferAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/inheritance?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(
+      `/admin/inheritance?modal=transfer&case=${encodeURIComponent(caseId)}&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`,
+    );
   }
   redirect(withNotice("/admin/inheritance", "INHERITANCE_TRANSFERRED"));
 }
@@ -883,7 +1115,7 @@ export async function createStaffAction(formData: FormData) {
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
-    redirect(`/admin/staff?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
+    redirect(`/admin/staff?modal=new&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
   redirect(withNotice("/admin/staff?ok=created", "STAFF_CREATED"));
 }

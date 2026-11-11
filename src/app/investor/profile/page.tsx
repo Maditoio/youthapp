@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BadgeCheck, ChevronRight, ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/profile-forms";
+import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
 import { StatusPill } from "@/components/visuals";
 import { PERMITTED_COUNTRIES, genderLabel, readGender } from "@/lib/choices";
 import { maskValue } from "@/lib/format";
@@ -75,7 +76,10 @@ export default async function ProfilePage() {
             </span>
           </div>
           {!approved ? (
-            <Link href="/investor/onboarding" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-white/90 underline-offset-2 hover:underline">
+            <Link
+              href="/investor/onboarding"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-white/90 underline-offset-2 hover:underline"
+            >
               {tx(locale, "Continuer la vérification", "Continue verification")}
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             </Link>
@@ -103,62 +107,58 @@ export default async function ProfilePage() {
         ))}
       </nav>
 
-      <div className="grid items-start gap-4 xl:grid-cols-2">
-        <section className="overflow-hidden rounded-[28px] bg-surface px-4 shadow-sm">
-          <div className="border-b border-border/70 py-3">
-            <h2 className="text-sm font-bold">{tx(locale, "Compte", "Account")}</h2>
-          </div>
-          <dl>
-            <ProfileRow label={tx(locale, "Investisseur", "Investor")} value={profile.investorNumber} />
-            <ProfileRow label={tx(locale, "E-mail", "Email")} value={session.user.email} />
-            <ProfileRow label={tx(locale, "Téléphone", "Phone")} value={session.user.phone ?? "—"} />
-            <ProfileRow
-              label={tx(locale, "Identité", "Identity")}
-              value={approved ? tx(locale, "Approuvée / vérifiée", "Approved / verified") : kycStatusLabel(locale, status)}
-            />
-            <ProfileRow
-              label={tx(locale, "Pays", "Country")}
-              value={countryName(locale, profile.countryOfResidence)}
-            />
-            <ProfileRow
-              label={tx(locale, "Genre", "Gender")}
-              value={gender ? genderLabel(locale, gender) : "—"}
-            />
-            <ProfileRow
-              label={tx(locale, "Fiscal", "Tax id")}
-              value={maskValue(profile.taxId) || "—"}
-            />
-          </dl>
-        </section>
-
-        <section className="overflow-hidden rounded-[28px] bg-surface p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold">{tx(locale, "Modifier le profil", "Edit profile")}</h2>
-            <p className="text-xs text-muted">{tx(locale, "Champs éditables", "Editable fields")}</p>
-          </div>
-          <ProfileForm
-            locale={locale}
-            defaults={{
-              firstName: profile.legalFirstName,
-              middleName: profile.legalMiddleName,
-              lastName: profile.legalLastName,
-              phone: session.user.phone ?? "",
-              country: profile.countryOfResidence ?? "",
-              gender: gender ?? "",
-              language: session.user.preferredLanguage,
-              dateOfBirth: profile.dateOfBirth ?? "",
-              nationality: profile.nationality ?? "",
-              addressLine: profile.addressLine ?? "",
-              city: profile.city ?? "",
-              taxResidency: profile.taxResidency ?? "",
-              taxId: "",
-              sourceOfFunds: profile.sourceOfFunds ?? "",
-              payoutLabel: profile.payoutLabel ?? "",
-              pep: profile.pepStatus === "YES" ? "YES" : "NO",
-            }}
+      <section className="overflow-hidden rounded-[28px] bg-surface px-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-border/70 py-3">
+          <h2 className="text-sm font-bold">{tx(locale, "Compte", "Account")}</h2>
+          <ModalOpenLink
+            href="/investor/profile?modal=edit"
+            className="text-sm font-semibold text-violet underline-offset-2 hover:underline"
+          >
+            {tx(locale, "Modifier", "Edit")}
+          </ModalOpenLink>
+        </div>
+        <dl>
+          <ProfileRow label={tx(locale, "Investisseur", "Investor")} value={profile.investorNumber} />
+          <ProfileRow label={tx(locale, "E-mail", "Email")} value={session.user.email} />
+          <ProfileRow label={tx(locale, "Téléphone", "Phone")} value={session.user.phone ?? "—"} />
+          <ProfileRow
+            label={tx(locale, "Identité", "Identity")}
+            value={approved ? tx(locale, "Approuvée / vérifiée", "Approved / verified") : kycStatusLabel(locale, status)}
           />
-        </section>
-      </div>
+          <ProfileRow label={tx(locale, "Pays", "Country")} value={countryName(locale, profile.countryOfResidence)} />
+          <ProfileRow label={tx(locale, "Genre", "Gender")} value={gender ? genderLabel(locale, gender) : "—"} />
+          <ProfileRow label={tx(locale, "Fiscal", "Tax id")} value={maskValue(profile.taxId) || "—"} />
+        </dl>
+      </section>
+
+      <SearchParamModal
+        param="modal"
+        value="edit"
+        title={tx(locale, "Modifier le profil", "Edit profile")}
+        size="xl"
+      >
+        <ProfileForm
+          locale={locale}
+          defaults={{
+            firstName: profile.legalFirstName,
+            middleName: profile.legalMiddleName,
+            lastName: profile.legalLastName,
+            phone: session.user.phone ?? "",
+            country: profile.countryOfResidence ?? "",
+            gender: gender ?? "",
+            language: session.user.preferredLanguage,
+            dateOfBirth: profile.dateOfBirth ?? "",
+            nationality: profile.nationality ?? "",
+            addressLine: profile.addressLine ?? "",
+            city: profile.city ?? "",
+            taxResidency: profile.taxResidency ?? "",
+            taxId: "",
+            sourceOfFunds: profile.sourceOfFunds ?? "",
+            payoutLabel: profile.payoutLabel ?? "",
+            pep: profile.pepStatus === "YES" ? "YES" : "NO",
+          }}
+        />
+      </SearchParamModal>
     </div>
   );
 }

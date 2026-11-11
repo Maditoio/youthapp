@@ -1,6 +1,7 @@
 import { createStaffAction, rotateStaffCodeAction } from "@/server/actions";
 import { ASSIGNABLE_STAFF_ROLES } from "@/server/domain/mutate";
 import { errorCopy } from "@/server/domain/errors";
+import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
 import { getSession } from "@/server/auth/session";
 import { genderLabel, readGender } from "@/lib/choices";
 import { getLocale } from "@/lib/i18n/get-dictionary";
@@ -19,7 +20,11 @@ const ROLE_LABELS: Record<string, { fr: string; en: string }> = {
   auditor: { fr: "Auditeur", en: "Auditor" },
 };
 
-export default async function StaffPage({ searchParams }: { searchParams: Promise<{ error?: string; ok?: string }> }) {
+export default async function StaffPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; ok?: string; modal?: string }>;
+}) {
   const session = await getSession();
   if (!session) return null;
   const locale = await getLocale();
@@ -31,18 +36,27 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">{tx(locale, "Personnel", "Staff")}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {tx(
-            locale,
-            "Chaque membre du personnel a un numéro et un code de confirmation unique (affiché ici pour les administrateurs).",
-            "Each staff member has a staff number and a unique confirmation code (shown here for administrators).",
-          )}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">{tx(locale, "Personnel", "Staff")}</h1>
+          <p className="mt-1 text-sm text-muted">
+            {tx(
+              locale,
+              "Chaque membre du personnel a un numéro et un code de confirmation unique (affiché ici pour les administrateurs).",
+              "Each staff member has a staff number and a unique confirmation code (shown here for administrators).",
+            )}
+          </p>
+        </div>
+        {canManage ? (
+          <ModalOpenLink
+            href="/admin/staff?modal=new"
+            className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white"
+          >
+            {tx(locale, "Ajouter", "Add")}
+          </ModalOpenLink>
+        ) : null}
       </div>
 
-      {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
       {ok === "created" ? (
         <p className="text-sm text-violet">
           {tx(locale, "Membre du personnel ajouté. Le code est visible ci-dessous.", "Staff member added. The code is visible below.")}
@@ -52,36 +66,6 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
         <p className="text-sm text-violet">
           {tx(locale, "Code régénéré. L'ancien code ne fonctionne plus.", "Code rotated. The previous code no longer works.")}
         </p>
-      ) : null}
-
-      {canManage ? (
-        <form action={createStaffAction} className="max-w-xl space-y-2 rounded-[24px] bg-white p-5">
-          <h2 className="text-lg font-bold">{tx(locale, "Ajouter un membre", "Add staff")}</h2>
-          <p className="text-xs text-muted">
-            {tx(
-              locale,
-              "L'utilisateur doit déjà exister (e-mail enregistré). Un code personnel unique est généré automatiquement.",
-              "The user must already exist (registered email). A unique confirmation code is generated automatically.",
-            )}
-          </p>
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder={tx(locale, "E-mail du compte", "Account email")}
-            className={field}
-          />
-          <select name="role" required className={field} defaultValue="kyc_officer">
-            {ASSIGNABLE_STAFF_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {tx(locale, ROLE_LABELS[role]?.fr ?? role, ROLE_LABELS[role]?.en ?? role)}
-              </option>
-            ))}
-          </select>
-          <SubmitButton size="sm">
-            {tx(locale, "Ajouter et générer le code", "Add and generate code")}
-          </SubmitButton>
-        </form>
       ) : null}
 
       <div className="space-y-3">
@@ -126,6 +110,36 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
           })
         )}
       </div>
+
+      {canManage ? (
+        <SearchParamModal
+          title={tx(locale, "Ajouter un membre", "Add staff")}
+          description={tx(
+            locale,
+            "L'utilisateur doit déjà exister (e-mail enregistré). Un code personnel unique est généré automatiquement.",
+            "The user must already exist (registered email). A unique confirmation code is generated automatically.",
+          )}
+        >
+          <form action={createStaffAction} className="space-y-2">
+            {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder={tx(locale, "E-mail du compte", "Account email")}
+              className={field}
+            />
+            <select name="role" required className={field} defaultValue="kyc_officer">
+              {ASSIGNABLE_STAFF_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {tx(locale, ROLE_LABELS[role]?.fr ?? role, ROLE_LABELS[role]?.en ?? role)}
+                </option>
+              ))}
+            </select>
+            <SubmitButton size="sm">{tx(locale, "Ajouter et générer le code", "Add and generate code")}</SubmitButton>
+          </form>
+        </SearchParamModal>
+      ) : null}
     </div>
   );
 }
