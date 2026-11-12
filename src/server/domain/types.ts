@@ -163,8 +163,9 @@ export interface StaffProfile {
   /** SHA-256 hash used for MFA / step-up verification. */
   mfaCodeHash: string;
   /**
-   * Plaintext confirmation code for admin visibility (Personnel page).
-   * Demo/bootstrap only — verification always uses mfaCodeHash.
+   * Plaintext confirmation code for the staff member's own Settings view
+   * and one-time reveal after create/rotate. Never list others' codes in the staff directory.
+   * Verification always uses mfaCodeHash.
    */
   mfaCodeDisplay: string;
   createdAt: string;

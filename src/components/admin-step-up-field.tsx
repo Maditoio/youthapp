@@ -51,13 +51,13 @@ export function AdminStepUpField({
         {ownStaffCode
           ? tx(
               locale,
-              `Ce compte n'a pas de mot de passe local. Votre code personnel : ${ownStaffCode} (aussi sur Admin → Personnel).`,
-              `This account has no local password. Your staff confirmation code: ${ownStaffCode} (also on Admin → Staff).`,
+              `Ce compte n'a pas de mot de passe local. Votre code personnel : ${ownStaffCode} (aussi dans Réglages → Ma sécurité).`,
+              `This account has no local password. Your staff confirmation code: ${ownStaffCode} (also under Settings → My security).`,
             )
           : tx(
               locale,
-              "Ce compte n'a pas de mot de passe local. Saisissez le code personnel affiché sur Admin → Personnel pour votre compte.",
-              "This account has no local password. Enter the staff confirmation code shown on Admin → Staff for your account.",
+              "Ce compte n'a pas de mot de passe local. Saisissez votre code personnel (Réglages → Ma sécurité).",
+              "This account has no local password. Enter your staff confirmation code (Settings → My security).",
             )}
       </p>
     </div>

@@ -6,7 +6,7 @@ import { DEMO_NOW, STORE_VERSION } from "../domain/types";
 
 export const DEMO_PASSWORD = "Demo-Jeunese-2026";
 
-/** Stable unique confirmation codes for seeded staff (visible on Admin → Personnel). */
+/** Stable unique confirmation codes for seeded staff (each owner sees theirs under Settings). */
 export const DEMO_STAFF_CODES = {
   admin: "481001",
   kyc: "481002",

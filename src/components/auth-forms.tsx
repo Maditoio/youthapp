@@ -81,7 +81,7 @@ function DemoSignInForm({ locale }: { locale: AppLocale }) {
         ))}
       </div>
       <p className="text-xs text-muted">
-        {tx(locale, "Mot de passe démo pour tous les comptes : Demo-Jeunese-2026. Le personnel saisit ensuite son code personnel (Admin → Personnel).", "Demo password for every account: Demo-Jeunese-2026. Staff then enter their personal code (Admin → Staff).")}
+        {tx(locale, "Mot de passe démo pour tous les comptes : Demo-Jeunese-2026. Le personnel saisit ensuite son code personnel (visible dans Réglages → Ma sécurité).", "Demo password for every account: Demo-Jeunese-2026. Staff then enter their personal code (visible under Settings → My security).")}
       </p>
       <SubmitButton formAction={googleDemoAction} variant="secondary" size="lg" className="w-full text-sm">
         {tx(locale, "Continuer avec Google (bac à sable)", "Continue with Google (sandbox)")}
@@ -395,8 +395,8 @@ export function MfaForm({ locale }: { locale: AppLocale }) {
       <p className="text-sm text-muted">
         {tx(
           locale,
-          "Saisissez le code personnel affiché sur Admin → Personnel pour votre compte. En production, ce serait une application d'authentification.",
-          "Enter the confirmation code shown on Admin → Staff for your account. In production this would be an authenticator app.",
+          "Saisissez votre code personnel (Réglages → Ma sécurité). En production, ce serait une application d'authentification.",
+          "Enter your personal confirmation code (Settings → My security). In production this would be an authenticator app.",
         )}
       </p>
       <input name="code" required className={field} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" />

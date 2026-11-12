@@ -1106,34 +1106,48 @@ export async function inheritanceTransferAction(formData: FormData) {
 export async function createStaffAction(formData: FormData) {
   const session = await requireStaff();
   if (!session.roles.includes("platform_admin")) redirect("/admin/staff?error=FORBIDDEN");
+  let issuedCode = "";
   try {
-    await (await getStore()).update((db) =>
+    const created = await (await getStore()).update((db) =>
       createStaffMember(db, session.user.id, {
         email: String(formData.get("email") ?? ""),
         role: String(formData.get("role") ?? "") as Role,
       }),
     );
+    issuedCode = created.mfaCodeDisplay;
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
     redirect(`/admin/staff?modal=new&error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect(withNotice("/admin/staff?ok=created", "STAFF_CREATED"));
+  redirect(
+    withNotice(
+      `/admin/staff?ok=created&issued=${encodeURIComponent(issuedCode)}`,
+      "STAFF_CREATED",
+    ),
+  );
 }
 
 export async function rotateStaffCodeAction(formData: FormData) {
   const session = await requireStaff();
   if (!session.roles.includes("platform_admin")) redirect("/admin/staff?error=FORBIDDEN");
+  let issuedCode = "";
   try {
-    await (await getStore()).update((db) =>
+    const rotated = await (await getStore()).update((db) =>
       rotateStaffConfirmationCode(db, session.user.id, String(formData.get("staffId") ?? "")),
     );
+    issuedCode = rotated.mfaCodeDisplay;
   } catch (error) {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
     redirect(`/admin/staff?error=${encodeURIComponent(known?.code ?? "INVALID_STATE")}`);
   }
-  redirect(withNotice("/admin/staff?ok=rotated", "STAFF_CODE_ROTATED"));
+  redirect(
+    withNotice(
+      `/admin/staff?ok=rotated&issued=${encodeURIComponent(issuedCode)}`,
+      "STAFF_CODE_ROTATED",
+    ),
+  );
 }
 
 export async function resetDemoAction() {

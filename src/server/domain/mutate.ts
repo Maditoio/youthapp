@@ -122,7 +122,8 @@ function requirePermission(db: Database, userId: string, permission: string) {
 
 /**
  * Issue a unique 6-digit staff confirmation code.
- * Hash is used for verification; plaintext is stored as mfaCodeDisplay for Admin → Personnel.
+ * Hash is used for verification; plaintext mfaCodeDisplay is only for the owner's Settings view
+ * and a one-time reveal to the platform admin who creates or rotates the code.
  */
 export function issueStaffConfirmationCode(db: Database): { code: string; hash: string } {
   for (let attempt = 0; attempt < 64; attempt += 1) {

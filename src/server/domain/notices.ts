@@ -44,8 +44,14 @@ export const noticeCopy: Record<string, { fr: string; en: string }> = {
   INHERITANCE_UPDATED: { fr: "État du dossier mis à jour.", en: "Case state updated." },
   INHERITANCE_APPROVED: { fr: "Approbation enregistrée.", en: "Approval recorded." },
   INHERITANCE_TRANSFERRED: { fr: "Transfert inscrit au registre.", en: "Transfer recorded in the register." },
-  STAFF_CREATED: { fr: "Membre du personnel ajouté.", en: "Staff member added." },
-  STAFF_CODE_ROTATED: { fr: "Code de confirmation renouvelé.", en: "Confirmation code rotated." },
+  STAFF_CREATED: {
+    fr: "Membre du personnel ajouté. Le code est affiché une seule fois ci-dessous.",
+    en: "Staff member added. The code is shown once below.",
+  },
+  STAFF_CODE_ROTATED: {
+    fr: "Code renouvelé. Le nouveau code est affiché une seule fois ci-dessous.",
+    en: "Code rotated. The new code is shown once below.",
+  },
   DEMO_RESET: { fr: "Démonstration réinitialisée.", en: "Demonstration reset." },
 };
 

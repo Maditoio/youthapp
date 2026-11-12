@@ -21,7 +21,7 @@ Password for every account: `Demo-Jeunese-2026`
 | finance@demo.jeunese.test | Finance officer |
 | approver@demo.jeunese.test | Offering approver |
 
-Staff accounts then ask for a **per-person confirmation code** (unique for each staff profile). Admins can view and rotate codes on **Admin → Personnel / Staff**. Seeded demo codes are stable six-digit values such as `481001` (admin) and `481002` (KYC).
+Staff accounts then ask for a **per-person confirmation code** (unique for each staff profile). Each staff member sees **only their own** code under **Admin → Settings → My security**. Platform admins can create/rotate codes on **Admin → Staff** and see the new code **once**; codes are not listed in the shared staff directory. Seeded demo codes are stable six-digit values such as `481001` (admin) and `481002` (KYC).
 
 Open [http://localhost:3000](http://localhost:3000). A visible demo banner stays on every screen. Fictional records live in `data/demo-db.json` and can be rebuilt from Administration → Réglages.
 

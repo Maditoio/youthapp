@@ -22,18 +22,24 @@ const ROLE_LABELS: Record<string, { fr: string; en: string }> = {
   auditor: { fr: "Auditeur", en: "Auditor" },
 };
 
+function readIssuedCode(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const code = raw.trim();
+  return /^\d{6}$/.test(code) ? code : null;
+}
+
 export default async function StaffPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; ok?: string; modal?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; modal?: string; issued?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
   const locale = await getLocale();
   const params = await searchParams;
   const error = params.error;
-  const ok = params.ok;
   const canManage = session.roles.includes("platform_admin");
+  const issuedCode = canManage ? readIssuedCode(params.issued) : null;
   const field = "h-12 w-full rounded-2xl border border-border bg-white px-3 text-sm";
 
   const columns: DataTableColumn[] = [
@@ -50,7 +56,6 @@ export default async function StaffPage({
         allLabel: tx(locale, "Tous les statuts", "All statuses"),
       },
     },
-    { id: "code", header: tx(locale, "Code", "Code") },
   ];
 
   const rows: DataTableRow[] = session.db.staffProfiles.map((staff) => {
@@ -63,7 +68,7 @@ export default async function StaffPage({
     const name = `${user?.legalFirstName ?? ""} ${user?.legalLastName ?? ""}`.trim();
     return {
       id: staff.id,
-      searchValue: `${staff.staffNumber} ${name} ${user?.email ?? ""} ${roles} ${staff.status} ${staff.mfaCodeDisplay}`,
+      searchValue: `${staff.staffNumber} ${name} ${user?.email ?? ""} ${roles} ${staff.status}`,
       filterValues: { status: staff.status },
       sortValues: {
         number: staff.staffNumber,
@@ -71,7 +76,6 @@ export default async function StaffPage({
         email: user?.email ?? "",
         roles,
         status: staff.status,
-        code: staff.mfaCodeDisplay,
       },
       cells: {
         number: <span className="font-semibold">{staff.staffNumber}</span>,
@@ -84,11 +88,6 @@ export default async function StaffPage({
         email: user?.email ?? "—",
         roles: roles || tx(locale, "Aucun rôle", "No roles"),
         status: staff.status,
-        code: (
-          <span className="rounded-2xl bg-lilac px-2.5 py-1 font-mono text-sm tracking-widest">
-            {staff.mfaCodeDisplay}
-          </span>
-        ),
       },
       actions: canManage ? (
         <form action={rotateStaffCodeAction}>
@@ -109,8 +108,8 @@ export default async function StaffPage({
           <p className="mt-1 text-sm text-muted">
             {tx(
               locale,
-              "Chaque membre du personnel a un numéro et un code de confirmation unique (affiché ici pour les administrateurs).",
-              "Each staff member has a staff number and a unique confirmation code (shown here for administrators).",
+              "Annuaire du personnel : numéro, rôles et statut. Les codes de confirmation ne sont pas listés ici — chacun les voit dans Réglages ; un administrateur plateforme les voit une seule fois à la création ou à la régénération.",
+              "Staff directory: number, roles, and status. Confirmation codes are not listed here — each person sees theirs in Settings; a platform admin sees a new code once when creating or rotating.",
             )}
           </p>
         </div>
@@ -124,15 +123,22 @@ export default async function StaffPage({
         ) : null}
       </div>
 
-      {ok === "created" ? (
-        <p className="text-sm text-violet">
-          {tx(locale, "Membre du personnel ajouté. Le code est visible ci-dessous.", "Staff member added. The code is visible below.")}
-        </p>
-      ) : null}
-      {ok === "rotated" ? (
-        <p className="text-sm text-violet">
-          {tx(locale, "Code régénéré. L'ancien code ne fonctionne plus.", "Code rotated. The previous code no longer works.")}
-        </p>
+      {issuedCode ? (
+        <div className="rounded-[24px] border border-violet/30 bg-lilac px-5 py-4">
+          <p className="text-sm font-semibold text-ink">
+            {params.ok === "rotated"
+              ? tx(locale, "Nouveau code (affiché une seule fois)", "New code (shown once)")
+              : tx(locale, "Code généré (affiché une seule fois)", "Generated code (shown once)")}
+          </p>
+          <p className="mt-2 font-mono text-2xl tracking-[0.35em] text-violet">{issuedCode}</p>
+          <p className="mt-2 text-xs text-muted">
+            {tx(
+              locale,
+              "Communiquez ce code de façon sécurisée au membre concerné. Il ne réapparaîtra pas dans cet annuaire. Le membre peut aussi le voir dans Réglages.",
+              "Share this code securely with the staff member. It will not appear again in this directory. They can also view it under Settings.",
+            )}
+          </p>
+        </div>
       ) : null}
 
       <DataTable
@@ -147,8 +153,8 @@ export default async function StaffPage({
           title={tx(locale, "Ajouter un membre", "Add staff")}
           description={tx(
             locale,
-            "L'utilisateur doit déjà exister (e-mail enregistré). Un code personnel unique est généré automatiquement.",
-            "The user must already exist (registered email). A unique confirmation code is generated automatically.",
+            "L'utilisateur doit déjà exister (e-mail enregistré). Un code personnel unique est généré et affiché une seule fois après l'ajout.",
+            "The user must already exist (registered email). A unique confirmation code is generated and shown once after adding.",
           )}
         >
           <form action={createStaffAction} className="space-y-2">

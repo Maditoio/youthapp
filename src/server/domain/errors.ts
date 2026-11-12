@@ -47,8 +47,8 @@ export const errorCopy: Record<string, { fr: string; en: string }> = {
     en: "Two-step verification is required.",
   },
   STEP_UP_FAILED: {
-    fr: "Confirmation refusée. Saisissez le mot de passe du compte s'il existe, sinon le code personnel affiché sur Admin → Personnel pour votre compte.",
-    en: "Confirmation failed. Enter your account password if you have one, otherwise the staff confirmation code shown on Admin → Staff for your account.",
+    fr: "Confirmation refusée. Saisissez le mot de passe du compte s'il existe, sinon votre code personnel (Réglages → Ma sécurité).",
+    en: "Confirmation failed. Enter your account password if you have one, otherwise your staff confirmation code (Settings → My security).",
   },
   EMAIL_UNVERIFIED: {
     fr: "Vérifiez votre e-mail avant de souscrire.",
