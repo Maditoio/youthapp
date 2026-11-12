@@ -260,12 +260,12 @@ export function DataTable({
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 rounded-[24px] border border-border bg-surface px-4 py-16 text-sm text-muted">
+        <div className="flex items-center justify-center gap-2 rounded-[24px] border border-border bg-surface px-5 py-16 text-sm text-muted">
           <Spinner tone="brand" />
           {labels.loading}
         </div>
       ) : filteredRows.length === 0 ? (
-        <div className="rounded-[24px] border border-dashed border-border bg-surface px-4 py-16 text-center text-sm text-muted">
+        <div className="rounded-[24px] border border-dashed border-border bg-surface px-5 py-16 text-center text-sm text-muted">
           {emptyText}
         </div>
       ) : (
@@ -275,7 +275,7 @@ export function DataTable({
             {pageRows.map((row) => (
               <article
                 key={row.id}
-                className="rounded-[20px] border border-border bg-surface p-4 shadow-[var(--shadow-card)]"
+                className="rounded-[20px] border border-border bg-surface p-5 shadow-[var(--shadow-card)]"
               >
                 <dl className="space-y-2.5">
                   {columns
@@ -312,7 +312,7 @@ export function DataTable({
                             sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none"
                           }
                           className={cn(
-                            "px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted",
+                            "px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted",
                             alignClass(column.align),
                             column.className,
                           )}
@@ -337,7 +337,7 @@ export function DataTable({
                     {hasActions ? (
                       <th
                         scope="col"
-                        className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted"
+                        className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-muted"
                       >
                         {labels.actions}
                       </th>
@@ -354,7 +354,7 @@ export function DataTable({
                         <td
                           key={column.id}
                           className={cn(
-                            "px-4 py-3 align-middle text-ink",
+                            "px-5 py-3.5 align-middle text-ink",
                             alignClass(column.align),
                             column.className,
                           )}
@@ -363,7 +363,7 @@ export function DataTable({
                         </td>
                       ))}
                       {hasActions ? (
-                        <td className="px-4 py-3 align-middle">
+                        <td className="px-5 py-3.5 align-middle">
                           {row.actions ? (
                             <div className="flex flex-wrap items-center justify-end gap-2">{row.actions}</div>
                           ) : null}
