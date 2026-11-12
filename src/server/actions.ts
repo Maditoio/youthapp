@@ -870,7 +870,6 @@ export async function approveAllotmentAction(formData: FormData) {
         db,
         session.user.id,
         String(formData.get("batchId") ?? ""),
-        String(formData.get("evidence") ?? ""),
         String(formData.get("password") ?? ""),
       ),
     );

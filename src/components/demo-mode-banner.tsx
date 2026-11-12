@@ -16,7 +16,7 @@ export function DemoModeBanner({ message }: DemoModeBannerProps) {
   return (
     <div
       role="status"
-      className="bg-[var(--demo-banner-bg)] px-4 py-2 text-center text-sm font-medium text-[var(--demo-banner-fg)]"
+      className="bg-[var(--demo-banner-bg)] px-4 py-2 text-center text-sm font-medium text-[var(--demo-banner-fg)] print:hidden"
     >
       {message}
     </div>

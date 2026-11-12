@@ -9,7 +9,7 @@ import {
   quoteSubscription,
   rolesFor,
 } from "./finance";
-import { createShareCertificate } from "./certificates";
+import { createShareCertificate, nextRegisterReference } from "./certificates";
 import { digest, hashCode, hashPassword, randomDigits, uid, verifyCode, verifyPassword } from "./crypto";
 import type { Database, InheritanceStatus, KycStatus, Locale, OfferingStatus, Role } from "./types";
 import { DEMO_NOW } from "./types";
@@ -1724,7 +1724,6 @@ export function approveAllotment(
   db: Database,
   actorId: string,
   batchId: string,
-  evidence: string,
   password: string,
 ): void {
   requirePermission(db, actorId, "allotments.approve");
@@ -1732,13 +1731,15 @@ export function approveAllotment(
   const batch = db.allotmentBatches.find((item) => item.id === batchId);
   assert(batch && batch.status === "PREPARED", "INVALID_STATE");
   assert(batch.preparedBy !== actorId, "MAKER_CHECKER");
-  assert(evidence.trim().length > 3, "INVALID_STATE");
   const terms = db.offeringShareTerms.find((item) => item.offeringId === batch.offeringId)!;
   const at = now(db);
+  let firstRegisterReference: string | null = null;
   for (const subscriptionId of batch.subscriptionIds) {
     const sub = db.subscriptions.find((item) => item.id === subscriptionId);
     assert(sub && sub.status === "PAID_AWAITING_CLOSING", "INVALID_STATE");
     const issuanceId = uid();
+    const registerReference = nextRegisterReference(db);
+    if (!firstRegisterReference) firstRegisterReference = registerReference;
     db.shareIssuances.push({
       id: issuanceId,
       issuerId: batch.issuerId,
@@ -1751,7 +1752,7 @@ export function approveAllotment(
       issuePriceMinor: sub.issuePriceMinor,
       currencyCode: sub.currencyCode,
       allotmentDate: at.slice(0, 10),
-      registerReference: evidence.trim(),
+      registerReference,
       status: "ISSUED",
       createdAt: at,
     });
@@ -1793,8 +1794,8 @@ export function approveAllotment(
   batch.status = "APPROVED";
   batch.approvedBy = actorId;
   batch.approvedAt = at;
-  batch.registerEvidenceReference = evidence.trim();
-  audit(db, actorId, "allotment.approve", "allotment_batch", batch.id, evidence);
+  batch.registerEvidenceReference = firstRegisterReference;
+  audit(db, actorId, "allotment.approve", "allotment_batch", batch.id, firstRegisterReference ?? undefined);
 }
 
 function releaseCompanyFinancing(

@@ -266,13 +266,13 @@ export function SidebarShell({
   };
 
   return (
-    <div className="min-h-dvh bg-canvas lg:flex">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-border bg-surface lg:block xl:w-72">
+    <div className="min-h-dvh bg-canvas lg:flex print:bg-white">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-border bg-surface print:hidden lg:block xl:w-72">
         <SidebarBody {...body} />
       </aside>
 
       {mobileTabs ? null : (
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-3 backdrop-blur print:hidden lg:hidden">
           <Link href={homeHref} className="flex items-center gap-2">
             <Logo />
             <span className="rounded-full bg-lilac px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet">
@@ -294,7 +294,7 @@ export function SidebarShell({
 
       <div
         className={cn(
-          "fixed inset-0 z-40 lg:hidden",
+          "fixed inset-0 z-40 print:hidden lg:hidden",
           open ? "pointer-events-auto" : "pointer-events-none",
         )}
         aria-hidden={!open}
@@ -331,12 +331,12 @@ export function SidebarShell({
         </div>
       </div>
 
-      <main className={cn("min-w-0 flex-1", mainClassName)}>{children}</main>
+      <main className={cn("min-w-0 flex-1 print:bg-white print:p-0", mainClassName)}>{children}</main>
 
       {mobileTabs ? (
         <nav
           aria-label={labels.nav}
-          className="fixed inset-x-3 bottom-3 z-30 rounded-[28px] border border-border bg-surface/95 px-2 py-2 shadow-[var(--shadow-card)] backdrop-blur lg:hidden"
+          className="fixed inset-x-3 bottom-3 z-30 rounded-[28px] border border-border bg-surface/95 px-2 py-2 shadow-[var(--shadow-card)] backdrop-blur print:hidden lg:hidden"
         >
           <ul className="mx-auto flex max-w-lg items-end justify-between">
             {mobileTabs.map((item) => {

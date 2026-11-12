@@ -161,8 +161,8 @@ describe("money and ownership rules", async () => {
   it("blocks the preparer from approving their own allotment, then lets a different officer issue shares", async () => {
     const memory = store();
     const batchId = await memory.update((draft) => prepareAllotment(draft, ids.finance, ids.offering, [ids.subJean]));
-    await expect(memory.update((draft) => approveAllotment(draft, ids.finance, batchId, "DEMO-REG-2", DEMO_PASSWORD))).rejects.toBeInstanceOf(AppError);
-    await memory.update((draft) => approveAllotment(draft, ids.approver, batchId, "DEMO-REG-2", DEMO_PASSWORD));
+    await expect(memory.update((draft) => approveAllotment(draft, ids.finance, batchId, DEMO_PASSWORD))).rejects.toBeInstanceOf(AppError);
+    await memory.update((draft) => approveAllotment(draft, ids.approver, batchId, DEMO_PASSWORD));
     expect(holdingQuantity(memory.db, ids.profileJean, ids.issuer, ids.shareClass)).toBe(20);
     expect(memory.db.subscriptions.find((item) => item.id === ids.subJean)?.status).toBe("ALLOTTED");
     expect(memory.db.companyFinancings.some((item) => item.subscriptionId === ids.subJean && item.amountMinor === 50_000)).toBe(true);
@@ -170,9 +170,11 @@ describe("money and ownership rules", async () => {
       (item) => item.subscriptionId === ids.subJean && item.status === "ISSUED",
     );
     expect(jeanIssuance).toBeDefined();
+    expect(jeanIssuance?.registerReference).toMatch(/^REG-\d{6}$/);
     const cert = memory.db.shareCertificates.find((item) => item.shareIssuanceId === jeanIssuance?.id);
     expect(cert?.status).toBe("ACTIVE");
     expect(cert?.shareQuantity).toBe(20);
+    expect(cert?.registerReference).toBe(jeanIssuance?.registerReference);
     expect(cert?.signature.length).toBeGreaterThan(10);
   });
 

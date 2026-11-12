@@ -42,7 +42,7 @@ export default async function InvestorCertificatePage({ params }: { params: Prom
   });
 
   return (
-    <div className="space-y-4 px-4 pb-10 md:px-0">
+    <div className="space-y-4 px-4 pb-10 md:px-0 print:space-y-0 print:p-0">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
           <Link href="/investor/profile" className="text-sm font-semibold text-violet">

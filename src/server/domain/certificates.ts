@@ -100,6 +100,21 @@ function nextCertificateNumber(db: Database): string {
   return `CERT-${String(seq).padStart(6, "0")}`;
 }
 
+/** Next REG-n from the highest existing issuance/certificate register code. */
+export function nextRegisterReference(db: Database): string {
+  let max = 0;
+  const consider = (value: string | null | undefined) => {
+    if (!value) return;
+    const match = /^REG-(\d+)$/i.exec(value.trim());
+    if (!match) return;
+    const n = Number(match[1]);
+    if (Number.isFinite(n)) max = Math.max(max, n);
+  };
+  for (const issuance of db.shareIssuances) consider(issuance.registerReference);
+  for (const certificate of db.shareCertificates) consider(certificate.registerReference);
+  return `REG-${String(max + 1).padStart(6, "0")}`;
+}
+
 /** Create a certificate for an ISSUED share issuance. No-op if one already exists. */
 export function createShareCertificate(db: Database, issuance: ShareIssuance, createdAt = issuance.createdAt): ShareCertificate | null {
   if (issuance.status !== "ISSUED") return null;
@@ -122,11 +137,15 @@ export function createShareCertificate(db: Database, issuance: ShareIssuance, cr
     allotmentDate: issuance.allotmentDate,
   };
   const signature = signCertificatePayload(certificateCanonicalPayload(draft));
+  const registerReference = issuance.registerReference.trim() || nextRegisterReference(db);
+  if (!issuance.registerReference.trim()) {
+    issuance.registerReference = registerReference;
+  }
   const certificate: ShareCertificate = {
     ...draft,
     certificateNumber: nextCertificateNumber(db),
     projectId: project?.id ?? offering?.projectId ?? "",
-    registerReference: issuance.registerReference,
+    registerReference,
     offeringReference: offering ? `${offering.nameEn} (${offering.id})` : issuance.offeringId,
     signature,
     status: "ACTIVE",

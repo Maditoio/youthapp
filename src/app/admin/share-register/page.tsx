@@ -100,12 +100,13 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
               {tx(locale, "préparé par", "prepared by")}{" "}
               {preparer ? `${preparer.legalFirstName} ${preparer.legalLastName}` : batch.preparedBy}
             </p>
-            <input
-              name="evidence"
-              required
-              placeholder={tx(locale, "Référence de preuve", "Evidence reference")}
-              className="h-11 w-full rounded-2xl border px-3"
-            />
+            <p className="text-xs text-muted">
+              {tx(
+                locale,
+                "La référence registre (REG-…) est générée automatiquement à l'approbation.",
+                "The register reference (REG-…) is generated automatically on approval.",
+              )}
+            </p>
             <AdminStepUpField
               locale={locale}
               hasPassword={hasPassword}

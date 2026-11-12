@@ -44,9 +44,9 @@ export default async function VerifyCertificatePage({
   });
 
   return (
-    <div className="min-h-dvh bg-canvas px-4 py-8">
-      <div className="mx-auto max-w-3xl space-y-4">
-        <div className="flex items-center justify-between gap-3">
+    <div className="min-h-dvh bg-canvas px-4 py-8 print:bg-white print:p-0">
+      <div className="mx-auto max-w-3xl space-y-4 print:max-w-none print:space-y-0">
+        <div className="flex items-center justify-between gap-3 print:hidden">
           <Logo />
           <Link href="/" className="text-sm font-semibold text-violet">
             {appConfig.productName}
@@ -54,7 +54,7 @@ export default async function VerifyCertificatePage({
         </div>
         <div
           className={[
-            "rounded-[24px] px-4 py-3 text-sm font-semibold",
+            "rounded-[24px] px-4 py-3 text-sm font-semibold print:hidden",
             valid ? "bg-success/15 text-success" : "bg-danger/15 text-danger",
           ].join(" ")}
         >
@@ -67,7 +67,7 @@ export default async function VerifyCertificatePage({
               )}
         </div>
         <ShareCertificateCard locale={locale} model={model} />
-        <p className="text-center text-xs text-muted">
+        <p className="text-center text-xs text-muted print:hidden">
           {tx(
             locale,
             "Page publique de vérification des titres numériques Jeunese.",

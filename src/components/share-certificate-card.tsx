@@ -35,15 +35,15 @@ export async function ShareCertificateCard({
   return (
     <article
       className={[
-        "relative overflow-hidden border border-violet/20 bg-gradient-to-br from-[#f7f4ff] via-white to-[#efe8ff] text-ink shadow-[var(--shadow-card)]",
+        "certificate-paper certificate-print relative overflow-hidden border border-violet/20 bg-gradient-to-br from-[#f7f4ff] via-white to-[#efe8ff] text-ink shadow-[var(--shadow-card)]",
         compact ? "rounded-[24px] p-4" : "rounded-[28px] p-5 md:p-7",
       ].join(" ")}
     >
-      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#6d4dff]/15" aria-hidden />
-      <div className="pointer-events-none absolute -bottom-16 -left-8 h-48 w-48 rounded-full bg-[#7a5cff]/10" aria-hidden />
+      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#6d4dff]/15 print:hidden" aria-hidden />
+      <div className="pointer-events-none absolute -bottom-16 -left-8 h-48 w-48 rounded-full bg-[#7a5cff]/10 print:hidden" aria-hidden />
 
       <header className="relative flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet">{appConfig.productName}</p>
           <h2 className={compact ? "mt-1 text-lg font-bold" : "mt-1 text-2xl font-bold tracking-tight"}>
             {tx(locale, "Certificat d'actionnaire", "Shareholder certificate")}
@@ -81,20 +81,6 @@ export async function ShareCertificateCard({
         </div>
       ) : null}
 
-      <p className="relative mt-5 text-xs leading-5 text-muted">
-        {appConfig.demoMode
-          ? tx(
-              locale,
-              "Enregistrement de plateforme Jeunese (démonstration). Ce document n'est pas un conseil juridique, ni le registre statutaire légal, ni une preuve de titre négociable.",
-              "Jeunese platform ownership record (demo). This is not legal advice, not the statutory legal register, and not negotiable title.",
-            )
-          : tx(
-              locale,
-              "Enregistrement de propriété sur la plateforme Jeunese. Ce document n'est pas un conseil juridique.",
-              "Jeunese platform ownership record. This document is not legal advice.",
-            )}
-      </p>
-
       {printHref ? (
         <div className="relative mt-4 flex flex-wrap gap-3 print:hidden">
           <Link href={printHref} className="text-sm font-semibold text-violet underline-offset-2 hover:underline">
@@ -108,7 +94,7 @@ export async function ShareCertificateCard({
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-white/70 px-3 py-2.5">
+    <div className="min-w-0 rounded-2xl bg-white/70 px-3 py-2.5 print:bg-white print:ring-1 print:ring-[#e7e2f2]">
       <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">{label}</dt>
       <dd className="mt-0.5 break-words text-sm font-semibold text-ink">{value || "—"}</dd>
     </div>

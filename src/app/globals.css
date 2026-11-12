@@ -60,6 +60,61 @@ html.dark .bg-white {
   background-color: var(--card-fallback);
 }
 
+/*
+ * Share certificates stay print-like light paper in every theme so ink/muted
+ * tokens and white QR frames remain readable (and dark-mode bg-white remap
+ * resolves to white via --card-fallback).
+ */
+.certificate-paper {
+  color-scheme: light;
+  --text-primary: #1d1633;
+  --text-secondary: #7d7694;
+  --card-fallback: #ffffff;
+  --brand-lilac: #efeaff;
+  color: #1d1633;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #1d1633 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Hide dashboard chrome; only the certificate print root stays visible. */
+  body * {
+    visibility: hidden !important;
+  }
+
+  .certificate-print,
+  .certificate-print * {
+    visibility: visible !important;
+  }
+
+  .certificate-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  .certificate-paper {
+    border-color: #e7e2f2 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}
+
 /* Softer than a circular arc: cards and controls use a squircle where the browser supports it. */
 :root {
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
