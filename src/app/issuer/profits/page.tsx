@@ -1,6 +1,8 @@
 import { DatePicker } from "@/components/ui/date-picker";
 import { EntitySelect } from "@/components/choice-fields";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { issuerProfitAction } from "@/server/actions";
 import { issuerScope } from "@/server/issuer-scope";
 import { formatMoney } from "@/lib/format";
@@ -30,6 +32,34 @@ export default async function IssuerProfits({
   const financedMinor = financed.reduce((sum, item) => sum + item.amountMinor, 0);
   const declarations = db.dividendDeclarations.filter((item) => scope.issuerIds.has(item.issuerId));
   const canPropose = issuerOptions.length > 0 && classes.length > 0;
+
+  const columns: DataTableColumn[] = [
+    { id: "perShare", header: tx(locale, "Par action", "Per share"), align: "right", sortable: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(declarations.map((item) => item.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+  ];
+
+  const rows: DataTableRow[] = declarations.map((item) => {
+    const perShare = formatMoney(item.perShareMinor, item.currencyCode, locale);
+    return {
+      id: item.id,
+      searchValue: `${perShare} ${item.status}`,
+      filterValues: { status: item.status },
+      sortValues: { perShare: item.perShareMinor, status: item.status },
+      cells: {
+        perShare: `${perShare} / ${tx(locale, "action", "share")}`,
+        status: item.status,
+      },
+    };
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -54,11 +84,13 @@ export default async function IssuerProfits({
           )}
         </p>
       </article>
-      {declarations.map((item) => (
-        <p key={item.id} className="rounded-2xl bg-white p-3 text-sm">
-          {formatMoney(item.perShareMinor, item.currencyCode, locale)} / {tx(locale, "action", "share")} · {item.status}
-        </p>
-      ))}
+
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucune déclaration.", "No declarations.")}
+      />
 
       <SearchParamModal
         param="modal"

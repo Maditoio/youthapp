@@ -1,4 +1,6 @@
 import { ModalOpenLink, SearchParamValueModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { replyAction } from "@/server/actions";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
@@ -21,30 +23,60 @@ export default async function SupportAdmin({
     ? session.db.supportTickets.find((item) => item.id === replyTicketId)
     : undefined;
 
+  const columns: DataTableColumn[] = [
+    { id: "subject", header: tx(locale, "Sujet", "Subject"), sortable: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.supportTickets.map((ticket) => ticket.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    { id: "preview", header: tx(locale, "Dernier message", "Latest message"), hideOnMobile: true },
+  ];
+
+  const rows: DataTableRow[] = session.db.supportTickets.map((ticket) => {
+    const messages = session.db.supportMessages.filter((item) => item.ticketId === ticket.id);
+    const latest = messages[messages.length - 1];
+    const preview = latest
+      ? `${latest.internal ? tx(locale, "Note interne : ", "Internal note: ") : ""}${latest.message}`
+      : "—";
+    return {
+      id: ticket.id,
+      searchValue: `${ticket.subject} ${ticket.status} ${preview}`,
+      filterValues: { status: ticket.status },
+      sortValues: {
+        subject: ticket.subject,
+        status: ticket.status,
+        preview,
+      },
+      cells: {
+        subject: <span className="font-semibold">{ticket.subject}</span>,
+        status: ticket.status,
+        preview: <span className="line-clamp-2 text-muted">{preview}</span>,
+      },
+      actions: (
+        <ModalOpenLink
+          href={`/admin/support?reply=${encodeURIComponent(ticket.id)}`}
+          className="inline-flex rounded-full bg-violet px-3 py-1.5 text-xs font-semibold text-white"
+        >
+          {tx(locale, "Répondre", "Reply")}
+        </ModalOpenLink>
+      ),
+    };
+  });
+
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">Support</h1>
-      {session.db.supportTickets.map((ticket) => (
-        <article key={ticket.id} className="rounded-[24px] bg-white p-4 text-sm">
-          <p className="font-bold">
-            {ticket.subject} · {ticket.status}
-          </p>
-          {session.db.supportMessages
-            .filter((item) => item.ticketId === ticket.id)
-            .map((message) => (
-              <p key={message.id} className={message.internal ? "text-muted" : ""}>
-                {message.internal ? tx(locale, "Note interne : ", "Internal note: ") : ""}
-                {message.message}
-              </p>
-            ))}
-          <ModalOpenLink
-            href={`/admin/support?reply=${encodeURIComponent(ticket.id)}`}
-            className="mt-2 inline-flex rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white"
-          >
-            {tx(locale, "Répondre", "Reply")}
-          </ModalOpenLink>
-        </article>
-      ))}
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucun ticket.", "No tickets.")}
+      />
 
       {replyTicketId ? (
         <SearchParamValueModal param="reply" title={tx(locale, "Répondre au ticket", "Reply to ticket")}>

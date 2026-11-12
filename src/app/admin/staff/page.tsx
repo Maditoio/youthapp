@@ -2,6 +2,8 @@ import { createStaffAction, rotateStaffCodeAction } from "@/server/actions";
 import { ASSIGNABLE_STAFF_ROLES } from "@/server/domain/mutate";
 import { errorCopy } from "@/server/domain/errors";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { getSession } from "@/server/auth/session";
 import { genderLabel, readGender } from "@/lib/choices";
 import { getLocale } from "@/lib/i18n/get-dictionary";
@@ -33,6 +35,71 @@ export default async function StaffPage({
   const ok = params.ok;
   const canManage = session.roles.includes("platform_admin");
   const field = "h-12 w-full rounded-2xl border border-border bg-white px-3 text-sm";
+
+  const columns: DataTableColumn[] = [
+    { id: "number", header: tx(locale, "Numéro", "Number"), sortable: true },
+    { id: "name", header: tx(locale, "Nom", "Name"), sortable: true },
+    { id: "email", header: tx(locale, "E-mail", "Email"), hideOnMobile: true },
+    { id: "roles", header: tx(locale, "Rôles", "Roles"), hideOnMobile: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.staffProfiles.map((staff) => staff.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    { id: "code", header: tx(locale, "Code", "Code") },
+  ];
+
+  const rows: DataTableRow[] = session.db.staffProfiles.map((staff) => {
+    const user = session.db.users.find((item) => item.id === staff.userId);
+    const roles = session.db.userRoles
+      .filter((item) => item.userId === staff.userId)
+      .map((item) => item.role)
+      .join(", ");
+    const gender = readGender(user?.gender);
+    const name = `${user?.legalFirstName ?? ""} ${user?.legalLastName ?? ""}`.trim();
+    return {
+      id: staff.id,
+      searchValue: `${staff.staffNumber} ${name} ${user?.email ?? ""} ${roles} ${staff.status} ${staff.mfaCodeDisplay}`,
+      filterValues: { status: staff.status },
+      sortValues: {
+        number: staff.staffNumber,
+        name,
+        email: user?.email ?? "",
+        roles,
+        status: staff.status,
+        code: staff.mfaCodeDisplay,
+      },
+      cells: {
+        number: <span className="font-semibold">{staff.staffNumber}</span>,
+        name: (
+          <span>
+            {name || "—"}
+            {gender ? <span className="block text-xs text-muted">{genderLabel(locale, gender)}</span> : null}
+          </span>
+        ),
+        email: user?.email ?? "—",
+        roles: roles || tx(locale, "Aucun rôle", "No roles"),
+        status: staff.status,
+        code: (
+          <span className="rounded-2xl bg-lilac px-2.5 py-1 font-mono text-sm tracking-widest">
+            {staff.mfaCodeDisplay}
+          </span>
+        ),
+      },
+      actions: canManage ? (
+        <form action={rotateStaffCodeAction}>
+          <input type="hidden" name="staffId" value={staff.id} />
+          <SubmitButton variant="secondary" size="sm" className="h-8 text-xs">
+            {tx(locale, "Régénérer le code", "Rotate code")}
+          </SubmitButton>
+        </form>
+      ) : null,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -68,48 +135,12 @@ export default async function StaffPage({
         </p>
       ) : null}
 
-      <div className="space-y-3">
-        {session.db.staffProfiles.length === 0 ? (
-          <p className="rounded-[24px] bg-white p-4 text-sm text-muted">
-            {tx(locale, "Aucun profil personnel pour l'instant.", "No staff profiles yet.")}
-          </p>
-        ) : (
-          session.db.staffProfiles.map((staff) => {
-            const user = session.db.users.find((item) => item.id === staff.userId);
-            const roles = session.db.userRoles
-              .filter((item) => item.userId === staff.userId)
-              .map((item) => item.role)
-              .join(", ");
-            const gender = readGender(user?.gender);
-            return (
-              <article key={staff.id} className="space-y-2 rounded-[24px] bg-white p-4 text-sm">
-                <p className="font-bold">
-                  {staff.staffNumber} · {user?.legalFirstName} {user?.legalLastName}
-                </p>
-                <p>
-                  {user?.email}
-                  {gender ? ` · ${genderLabel(locale, gender)}` : ""}
-                </p>
-                <p className="text-muted">{roles || tx(locale, "Aucun rôle", "No roles")}</p>
-                <p>
-                  {tx(locale, "Statut", "Status")}: {staff.status}
-                </p>
-                <p className="rounded-2xl bg-lilac px-3 py-2 font-mono text-base tracking-widest">
-                  {tx(locale, "Code", "Code")}: <strong>{staff.mfaCodeDisplay}</strong>
-                </p>
-                {canManage ? (
-                  <form action={rotateStaffCodeAction}>
-                    <input type="hidden" name="staffId" value={staff.id} />
-                    <SubmitButton variant="secondary" size="sm" className="h-8 text-xs">
-                      {tx(locale, "Régénérer le code", "Rotate code")}
-                    </SubmitButton>
-                  </form>
-                ) : null}
-              </article>
-            );
-          })
-        )}
-      </div>
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucun profil personnel pour l'instant.", "No staff profiles yet.")}
+      />
 
       {canManage ? (
         <SearchParamModal

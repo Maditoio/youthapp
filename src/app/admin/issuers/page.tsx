@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createIssuerAction } from "@/server/actions";
 import { IndustrySelect } from "@/components/choice-fields";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
@@ -21,6 +23,43 @@ export default async function IssuersPage({
   const params = await searchParams;
   const error = params.error;
   const field = "h-12 w-full rounded-2xl border border-border bg-white px-3 text-sm";
+
+  const columns: DataTableColumn[] = [
+    { id: "name", header: tx(locale, "Raison sociale", "Legal name"), sortable: true },
+    { id: "registration", header: tx(locale, "Enregistrement", "Registration"), sortable: true },
+    { id: "jurisdiction", header: tx(locale, "Juridiction", "Jurisdiction"), hideOnMobile: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.issuers.map((issuer) => issuer.companyStatus)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    { id: "industry", header: tx(locale, "Secteur", "Industry"), hideOnMobile: true },
+  ];
+
+  const rows: DataTableRow[] = session.db.issuers.map((issuer) => ({
+    id: issuer.id,
+    searchValue: `${issuer.legalName} ${issuer.registrationNumber} ${issuer.jurisdiction} ${issuer.companyStatus} ${issuer.registeredAddress} ${issuer.industry} ${issuer.website ?? ""}`,
+    filterValues: { status: issuer.companyStatus },
+    sortValues: {
+      name: issuer.legalName,
+      registration: issuer.registrationNumber,
+      jurisdiction: issuer.jurisdiction,
+      status: issuer.companyStatus,
+      industry: issuer.industry,
+    },
+    cells: {
+      name: <span className="font-semibold">{issuer.legalName}</span>,
+      registration: issuer.registrationNumber,
+      jurisdiction: issuer.jurisdiction,
+      status: issuer.companyStatus,
+      industry: issuer.industry,
+    },
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -42,27 +81,12 @@ export default async function IssuersPage({
         </ModalOpenLink>
       </div>
 
-      <div className="space-y-3">
-        {session.db.issuers.length === 0 ? (
-          <p className="rounded-[24px] bg-white p-4 text-sm text-muted">
-            {tx(locale, "Aucun émetteur pour l'instant.", "No issuers yet.")}
-          </p>
-        ) : (
-          session.db.issuers.map((issuer) => (
-            <article key={issuer.id} className="rounded-[24px] bg-white p-4 text-sm">
-              <p className="font-bold">{issuer.legalName}</p>
-              <p>
-                {issuer.registrationNumber} · {issuer.jurisdiction} · {issuer.companyStatus}
-              </p>
-              <p>{issuer.registeredAddress}</p>
-              <p className="mt-1 text-muted">
-                {issuer.industry}
-                {issuer.website ? ` · ${issuer.website}` : ""}
-              </p>
-            </article>
-          ))
-        )}
-      </div>
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucun émetteur pour l'instant.", "No issuers yet.")}
+      />
 
       <p className="text-sm">
         <Link href="/admin/projects?modal=new" className="font-semibold text-violet">

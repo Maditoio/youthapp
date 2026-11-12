@@ -1,5 +1,7 @@
 import { AdminKycReviewForm } from "@/components/admin-kyc-review-form";
 import { ModalOpenLink, SearchParamValueModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { errorCopy } from "@/server/domain/errors";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import {
@@ -36,6 +38,99 @@ export default async function KycPage({
     : undefined;
   const reviewOwnCase = reviewProfile?.userId === session.user.id;
 
+  const columns: DataTableColumn[] = [
+    { id: "investor", header: tx(locale, "Investisseur", "Investor"), sortable: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(
+          cases.map((item) => item.status),
+          (value) => kycStatusLabel(locale, value as never),
+        ),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    { id: "document", header: tx(locale, "Document", "Document"), hideOnMobile: true },
+    { id: "notes", header: tx(locale, "Notes", "Notes"), hideOnMobile: true },
+  ];
+
+  const rows: DataTableRow[] = cases.map((item) => {
+    const profile = session.db.investorProfiles.find((row) => row.id === item.investorProfileId);
+    const doc = [...session.db.kycDocuments].reverse().find((row) => row.kycCaseId === item.id);
+    const ownCase = profile?.userId === session.user.id;
+    const parsed = parseKycReviewNotes(item.reviewNotes);
+    const investorName = `${profile?.legalFirstName ?? ""} ${profile?.legalLastName ?? ""}`.trim();
+    const statusLabel = kycStatusLabel(locale, item.status);
+    const documentLabel = doc
+      ? `${doc.documentType} · ${doc.issuingCountryCode} · ${maskValue(doc.documentNumber)} · ${
+          doc.manualReviewRequired ? tx(locale, "revue manuelle", "manual review") : "ok"
+        }`
+      : tx(locale, "Aucun document déposé.", "No document uploaded.");
+    const reason = item.reasonCode
+      ? kycReasonLabel(
+          locale,
+          item.status === "ADDITIONAL_INFORMATION_REQUIRED" ||
+            item.status === "REJECTED" ||
+            item.status === "SUSPENDED" ||
+            item.status === "APPROVED"
+            ? item.status
+            : null,
+          item.reasonCode,
+        )
+      : "";
+    const requested =
+      parsed.requestedDocumentTypes.length > 0
+        ? parsed.requestedDocumentTypes.map((code) => requestableDocumentLabel(locale, code)).join(", ")
+        : "";
+    const notesParts = [
+      reason ? `${tx(locale, "Motif actuel", "Current reason")}: ${reason}` : "",
+      parsed.notes ?? "",
+      requested ? `${tx(locale, "Documents demandés", "Requested documents")}: ${requested}` : "",
+      ownCase
+        ? tx(
+            locale,
+            "Ce dossier vous appartient : un autre membre du personnel doit le décider.",
+            "This case is yours: another staff member must decide it.",
+          )
+        : "",
+    ].filter(Boolean);
+
+    return {
+      id: item.id,
+      searchValue: `${investorName} ${statusLabel} ${documentLabel} ${notesParts.join(" ")}`,
+      filterValues: { status: item.status },
+      sortValues: {
+        investor: investorName,
+        status: item.status,
+        document: documentLabel,
+        notes: notesParts.join(" "),
+      },
+      cells: {
+        investor: <span className="font-semibold">{investorName || "—"}</span>,
+        status: statusLabel,
+        document: <span className="break-words text-muted">{documentLabel}</span>,
+        notes:
+          notesParts.length > 0 ? (
+            <span className={ownCase ? "break-words text-danger" : "break-words text-muted"}>
+              {notesParts.join(" · ")}
+            </span>
+          ) : (
+            "—"
+          ),
+      },
+      actions: (
+        <ModalOpenLink
+          href={`/admin/kyc?review=${encodeURIComponent(item.id)}`}
+          className="inline-flex rounded-full bg-violet px-3 py-1.5 text-xs font-semibold text-white"
+        >
+          {tx(locale, "Décider", "Review")}
+        </ModalOpenLink>
+      ),
+    };
+  });
+
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Revue d'identité", "Identity review")}</h1>
@@ -46,69 +141,13 @@ export default async function KycPage({
           "Maker-checker: you cannot approve your own case. Every decision requires step-up confirmation.",
         )}
       </p>
-      {cases.map((item) => {
-        const profile = session.db.investorProfiles.find((row) => row.id === item.investorProfileId);
-        const doc = [...session.db.kycDocuments].reverse().find((row) => row.kycCaseId === item.id);
-        const ownCase = profile?.userId === session.user.id;
-        const parsed = parseKycReviewNotes(item.reviewNotes);
-        return (
-          <article key={item.id} className="space-y-3 rounded-[24px] bg-white p-4 text-sm">
-            <div className="min-w-0 space-y-1">
-              <p className="font-bold">
-                {profile?.legalFirstName} {profile?.legalLastName} · {kycStatusLabel(locale, item.status)}
-              </p>
-              {doc ? (
-                <p className="break-words text-muted">
-                  {doc.documentType} · {doc.issuingCountryCode} · {maskValue(doc.documentNumber)} ·{" "}
-                  {doc.manualReviewRequired ? tx(locale, "revue manuelle", "manual review") : "ok"}
-                </p>
-              ) : (
-                <p className="text-muted">{tx(locale, "Aucun document déposé.", "No document uploaded.")}</p>
-              )}
-              {item.reasonCode ? (
-                <p className="break-words text-muted">
-                  {tx(locale, "Motif actuel", "Current reason")}:{" "}
-                  {kycReasonLabel(
-                    locale,
-                    item.status === "ADDITIONAL_INFORMATION_REQUIRED" ||
-                      item.status === "REJECTED" ||
-                      item.status === "SUSPENDED" ||
-                      item.status === "APPROVED"
-                      ? item.status
-                      : null,
-                    item.reasonCode,
-                  )}
-                </p>
-              ) : null}
-              {parsed.notes ? <p className="break-words text-muted">{parsed.notes}</p> : null}
-              {parsed.requestedDocumentTypes.length > 0 ? (
-                <p className="break-words text-muted">
-                  {tx(locale, "Documents demandés", "Requested documents")}:{" "}
-                  {parsed.requestedDocumentTypes.map((code) => requestableDocumentLabel(locale, code)).join(", ")}
-                </p>
-              ) : null}
-              {ownCase ? (
-                <p className="text-sm text-danger">
-                  {tx(
-                    locale,
-                    "Ce dossier vous appartient : un autre membre du personnel doit le décider.",
-                    "This case is yours: another staff member must decide it.",
-                  )}
-                </p>
-              ) : null}
-            </div>
-            <ModalOpenLink
-              href={`/admin/kyc?review=${encodeURIComponent(item.id)}`}
-              className="inline-flex rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white"
-            >
-              {tx(locale, "Décider", "Review")}
-            </ModalOpenLink>
-          </article>
-        );
-      })}
-      {cases.length === 0 ? (
-        <p className="text-sm text-muted">{tx(locale, "Aucune revue en attente.", "No review waiting.")}</p>
-      ) : null}
+
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucune revue en attente.", "No review waiting.")}
+      />
 
       {reviewId ? (
         <SearchParamValueModal

@@ -1,5 +1,7 @@
 import { EntitySelect } from "@/components/choice-fields";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { issuerUpdateAction } from "@/server/actions";
 import { issuerScope } from "@/server/issuer-scope";
 import { getLocale } from "@/lib/i18n/get-dictionary";
@@ -16,6 +18,34 @@ export default async function IssuerUpdates() {
   const updates = scope.session.db.projectUpdates.filter((item) =>
     projects.some((project) => project.id === item.projectId),
   );
+
+  const columns: DataTableColumn[] = [
+    { id: "title", header: tx(locale, "Titre", "Title"), sortable: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(updates.map((item) => item.approvalStatus)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+  ];
+
+  const rows: DataTableRow[] = updates.map((item) => {
+    const title = tx(locale, item.titleFr, item.titleEn);
+    return {
+      id: item.id,
+      searchValue: `${title} ${item.approvalStatus}`,
+      filterValues: { status: item.approvalStatus },
+      sortValues: { title, status: item.approvalStatus },
+      cells: {
+        title: <span className="font-semibold">{title}</span>,
+        status: item.approvalStatus,
+      },
+    };
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -27,14 +57,13 @@ export default async function IssuerUpdates() {
           {tx(locale, "Soumettre", "Submit")}
         </ModalOpenLink>
       </div>
-      {updates.map((item) => (
-        <p key={item.id} className="rounded-2xl bg-white p-3 text-sm">
-          {tx(locale, item.titleFr, item.titleEn)} · {item.approvalStatus}
-        </p>
-      ))}
-      {updates.length === 0 ? (
-        <p className="text-sm text-muted">{tx(locale, "Aucune actualité.", "No updates yet.")}</p>
-      ) : null}
+
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucune actualité.", "No updates yet.")}
+      />
 
       <SearchParamModal
         title={tx(locale, "Soumettre une actualité", "Submit an update")}

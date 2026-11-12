@@ -1,4 +1,6 @@
 import { ModalOpenLink, SearchParamValueModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { refundApproveAction, refundRequestAction, settleAction } from "@/server/actions";
 import { errorCopy } from "@/server/domain/errors";
 import { getSession } from "@/server/auth/session";
@@ -25,53 +27,121 @@ export default async function PaymentsAdmin({
     ? session.db.refunds.find((item) => item.id === approveRefundId)
     : undefined;
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">{tx(locale, "Paiements", "Payments")}</h1>
-      {session.db.payments.map((payment) => (
-        <article key={payment.id} className="rounded-[24px] bg-white p-4 text-sm">
-          <p className="font-bold">
-            {payment.providerEventId} · {payment.status}
-          </p>
-          <p>
-            {formatMoney(payment.amountMinor, payment.currencyCode, locale)} · {payment.subscriptionId}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-3">
-            {payment.status === "CONFIRMED" ? (
-              <form action={settleAction}>
-                <input type="hidden" name="paymentId" value={payment.id} />
-                <SubmitButton variant="link" size="inline">
-                  {tx(locale, "Marquer réglé", "Mark settled")}
-                </SubmitButton>
-              </form>
-            ) : null}
-            {payment.status !== "REFUNDED" ? (
-              <ModalOpenLink
-                href={`/admin/payments?refund=${encodeURIComponent(payment.id)}`}
-                className="text-sm font-semibold text-violet underline-offset-2 hover:underline"
-              >
-                {tx(locale, "Demander un remboursement", "Request refund")}
-              </ModalOpenLink>
-            ) : null}
-          </div>
-        </article>
-      ))}
-      <h2 className="text-xl font-bold">{tx(locale, "Remboursements", "Refunds")}</h2>
-      {session.db.refunds.map((refund) => (
-        <article key={refund.id} className="rounded-[24px] bg-white p-4 text-sm">
-          <p>
-            {refund.status} · {formatMoney(refund.amountMinor, refund.currencyCode, locale)} · {refund.reasonCode}
-          </p>
-          {refund.status === "REQUESTED" ? (
+  const paymentColumns: DataTableColumn[] = [
+    { id: "event", header: tx(locale, "Événement", "Event"), sortable: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.payments.map((payment) => payment.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    { id: "amount", header: tx(locale, "Montant", "Amount"), align: "right", sortable: true },
+    { id: "subscription", header: tx(locale, "Souscription", "Subscription"), hideOnMobile: true },
+  ];
+
+  const paymentRows: DataTableRow[] = session.db.payments.map((payment) => {
+    const amount = formatMoney(payment.amountMinor, payment.currencyCode, locale);
+    return {
+      id: payment.id,
+      searchValue: `${payment.providerEventId} ${payment.status} ${amount} ${payment.subscriptionId}`,
+      filterValues: { status: payment.status },
+      sortValues: {
+        event: payment.providerEventId,
+        status: payment.status,
+        amount: payment.amountMinor,
+        subscription: payment.subscriptionId,
+      },
+      cells: {
+        event: <span className="font-semibold">{payment.providerEventId}</span>,
+        status: payment.status,
+        amount,
+        subscription: payment.subscriptionId,
+      },
+      actions: (
+        <>
+          {payment.status === "CONFIRMED" ? (
+            <form action={settleAction}>
+              <input type="hidden" name="paymentId" value={payment.id} />
+              <SubmitButton variant="link" size="inline">
+                {tx(locale, "Marquer réglé", "Mark settled")}
+              </SubmitButton>
+            </form>
+          ) : null}
+          {payment.status !== "REFUNDED" ? (
             <ModalOpenLink
-              href={`/admin/payments?approve=${encodeURIComponent(refund.id)}`}
-              className="mt-2 inline-flex rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white"
+              href={`/admin/payments?refund=${encodeURIComponent(payment.id)}`}
+              className="text-sm font-semibold text-violet underline-offset-2 hover:underline"
             >
-              {tx(locale, "Approuver", "Approve")}
+              {tx(locale, "Demander un remboursement", "Request refund")}
             </ModalOpenLink>
           ) : null}
-        </article>
-      ))}
+        </>
+      ),
+    };
+  });
+
+  const refundColumns: DataTableColumn[] = [
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.refunds.map((refund) => refund.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    { id: "amount", header: tx(locale, "Montant", "Amount"), align: "right", sortable: true },
+    { id: "reason", header: tx(locale, "Motif", "Reason"), sortable: true },
+  ];
+
+  const refundRows: DataTableRow[] = session.db.refunds.map((refund) => {
+    const amount = formatMoney(refund.amountMinor, refund.currencyCode, locale);
+    return {
+      id: refund.id,
+      searchValue: `${refund.status} ${amount} ${refund.reasonCode}`,
+      filterValues: { status: refund.status },
+      sortValues: {
+        status: refund.status,
+        amount: refund.amountMinor,
+        reason: refund.reasonCode,
+      },
+      cells: {
+        status: refund.status,
+        amount,
+        reason: refund.reasonCode,
+      },
+      actions:
+        refund.status === "REQUESTED" ? (
+          <ModalOpenLink
+            href={`/admin/payments?approve=${encodeURIComponent(refund.id)}`}
+            className="inline-flex rounded-full bg-violet px-3 py-1.5 text-xs font-semibold text-white"
+          >
+            {tx(locale, "Approuver", "Approve")}
+          </ModalOpenLink>
+        ) : null,
+    };
+  });
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">{tx(locale, "Paiements", "Payments")}</h1>
+      <DataTable
+        locale={locale}
+        columns={paymentColumns}
+        rows={paymentRows}
+        emptyMessage={tx(locale, "Aucun paiement.", "No payments.")}
+      />
+
+      <h2 className="text-xl font-bold">{tx(locale, "Remboursements", "Refunds")}</h2>
+      <DataTable
+        locale={locale}
+        columns={refundColumns}
+        rows={refundRows}
+        emptyMessage={tx(locale, "Aucun remboursement.", "No refunds.")}
+      />
 
       {refundPaymentId ? (
         <SearchParamValueModal

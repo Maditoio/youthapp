@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { maskValue } from "@/lib/format";
@@ -7,46 +8,67 @@ import { getSession } from "@/server/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export default async function InvestorsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function InvestorsPage() {
   const session = await getSession();
   if (!session) return null;
   const locale = await getLocale();
-  const q = ((await searchParams).q ?? "").toLowerCase();
-  const rows = session.db.investorProfiles.filter((profile) => {
+
+  const columns: DataTableColumn[] = [
+    { id: "number", header: tx(locale, "Numéro", "Number"), sortable: true },
+    { id: "name", header: tx(locale, "Nom", "Name"), sortable: true },
+    { id: "country", header: tx(locale, "Pays", "Country"), sortable: true },
+    {
+      id: "kyc",
+      header: "KYC",
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.investorProfiles.map((profile) => profile.onboardingStatus)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+  ];
+
+  const rows: DataTableRow[] = session.db.investorProfiles.map((profile) => {
     const user = session.db.users.find((item) => item.id === profile.userId);
-    const hay = `${profile.legalFirstName} ${profile.legalLastName} ${profile.investorNumber} ${user?.email} ${user?.phone}`.toLowerCase();
-    return !q || hay.includes(q);
+    const name = `${profile.legalFirstName} ${profile.legalLastName}`;
+    return {
+      id: profile.id,
+      searchValue: `${profile.investorNumber} ${name} ${profile.countryOfResidence} ${profile.onboardingStatus} ${user?.email ?? ""} ${user?.phone ?? ""}`,
+      filterValues: { kyc: profile.onboardingStatus },
+      sortValues: {
+        number: profile.investorNumber,
+        name,
+        country: profile.countryOfResidence,
+        kyc: profile.onboardingStatus,
+      },
+      cells: {
+        number: (
+          <Link className="font-semibold text-violet" href={`/admin/investors/${profile.id}`}>
+            {profile.investorNumber}
+          </Link>
+        ),
+        name,
+        country: profile.countryOfResidence,
+        kyc: profile.onboardingStatus,
+      },
+    };
   });
+
   return (
-    <div>
+    <div className="space-y-3">
       <h1 className="text-3xl font-bold">{tx(locale, "Investisseurs", "Investors")}</h1>
-      <form className="my-3 flex flex-wrap items-center gap-2">
-        <input name="q" defaultValue={q} placeholder={tx(locale, "Nom, numéro, e-mail, téléphone", "Name, number, email, phone")} className="h-12 w-full max-w-md rounded-full border bg-white px-4" />
-        <SubmitButton size="sm">{tx(locale, "Filtrer", "Filter")}</SubmitButton>
-      </form>
-      <div className="overflow-x-auto rounded-[24px] bg-white">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="text-muted">
-              <th className="p-3">{tx(locale, "Numéro", "Number")}</th>
-              <th className="p-3">{tx(locale, "Nom", "Name")}</th>
-              <th className="p-3">{tx(locale, "Pays", "Country")}</th>
-              <th className="p-3">KYC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((profile) => (
-              <tr key={profile.id} className="border-t border-border">
-                <td className="p-3"><Link className="font-semibold text-violet" href={`/admin/investors/${profile.id}`}>{profile.investorNumber}</Link></td>
-                <td className="p-3">{profile.legalFirstName} {profile.legalLastName}</td>
-                <td className="p-3">{profile.countryOfResidence}</td>
-                <td className="p-3">{profile.onboardingStatus}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-2 text-xs text-muted">{tx(locale, "Téléphone masqué dans le détail.", "Phone is masked on the detail page.")} {maskValue("0000")}</p>
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucun investisseur.", "No investors.")}
+        labels={{
+          searchPlaceholder: tx(locale, "Nom, numéro, e-mail, téléphone", "Name, number, email, phone"),
+        }}
+      />
+      <p className="text-xs text-muted">
+        {tx(locale, "Téléphone masqué dans le détail.", "Phone is masked on the detail page.")} {maskValue("0000")}
+      </p>
     </div>
   );
 }

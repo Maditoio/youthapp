@@ -1,4 +1,6 @@
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { inheritanceAdvanceAction, inheritanceApproveAction, inheritanceTransferAction } from "@/server/actions";
 import { errorCopy } from "@/server/domain/errors";
 import { INHERITANCE_NEXT } from "@/server/domain/mutate";
@@ -22,6 +24,74 @@ export default async function InheritanceAdmin({
   const caseId = params.case ?? "";
   const activeCase = session.db.inheritanceCases.find((item) => item.id === caseId);
 
+  const columns: DataTableColumn[] = [
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.inheritanceCases.map((item) => item.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    { id: "deceased", header: tx(locale, "Défunt", "Deceased"), sortable: true },
+    {
+      id: "register",
+      header: tx(locale, "Registre modifié", "Register changed"),
+      filter: {
+        options: [
+          { value: "yes", label: tx(locale, "oui", "yes") },
+          { value: "no", label: tx(locale, "non", "no") },
+        ],
+        allLabel: tx(locale, "Tous", "All"),
+      },
+    },
+  ];
+
+  const rows: DataTableRow[] = session.db.inheritanceCases.map((item) => {
+    const registerLabel = item.registerUpdated ? tx(locale, "oui", "yes") : tx(locale, "non", "no");
+    return {
+      id: item.id,
+      searchValue: `${item.status} ${item.deceasedInvestorProfileId} ${registerLabel}`,
+      filterValues: {
+        status: item.status,
+        register: item.registerUpdated ? "yes" : "no",
+      },
+      sortValues: {
+        status: item.status,
+        deceased: item.deceasedInvestorProfileId,
+        register: registerLabel,
+      },
+      cells: {
+        status: <span className="font-semibold">{item.status}</span>,
+        deceased: item.deceasedInvestorProfileId,
+        register: registerLabel,
+      },
+      actions: (
+        <>
+          <ModalOpenLink
+            href={`/admin/inheritance?modal=approve&case=${encodeURIComponent(item.id)}`}
+            className="rounded-full bg-violet px-3 py-1.5 text-xs font-semibold text-white"
+          >
+            {tx(locale, "Approuver", "Approve")}
+          </ModalOpenLink>
+          <ModalOpenLink
+            href={`/admin/inheritance?modal=advance&case=${encodeURIComponent(item.id)}`}
+            className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold"
+          >
+            {tx(locale, "Changer l'état", "Change state")}
+          </ModalOpenLink>
+          <ModalOpenLink
+            href={`/admin/inheritance?modal=transfer&case=${encodeURIComponent(item.id)}`}
+            className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"
+          >
+            {tx(locale, "Écrire le transfert", "Record transfer")}
+          </ModalOpenLink>
+        </>
+      ),
+    };
+  });
+
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">{tx(locale, "Successions", "Estates")}</h1>
@@ -32,40 +102,13 @@ export default async function InheritanceAdmin({
           "Two different approvals, then a third person, are required before any transfer entry.",
         )}
       </p>
-      {session.db.inheritanceCases.length === 0 ? (
-        <p className="text-sm">{tx(locale, "Aucun dossier.", "No cases.")}</p>
-      ) : null}
-      {session.db.inheritanceCases.map((item) => (
-        <article key={item.id} className="space-y-3 rounded-[24px] bg-white p-4 text-sm">
-          <p className="font-bold">
-            {item.status} · {item.deceasedInvestorProfileId}
-          </p>
-          <p>
-            {tx(locale, "Registre modifié", "Register changed")}:{" "}
-            {item.registerUpdated ? tx(locale, "oui", "yes") : tx(locale, "non", "no")}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <ModalOpenLink
-              href={`/admin/inheritance?modal=approve&case=${encodeURIComponent(item.id)}`}
-              className="rounded-full bg-violet px-3 py-1.5 text-xs font-semibold text-white"
-            >
-              {tx(locale, "Approuver", "Approve")}
-            </ModalOpenLink>
-            <ModalOpenLink
-              href={`/admin/inheritance?modal=advance&case=${encodeURIComponent(item.id)}`}
-              className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold"
-            >
-              {tx(locale, "Changer l'état", "Change state")}
-            </ModalOpenLink>
-            <ModalOpenLink
-              href={`/admin/inheritance?modal=transfer&case=${encodeURIComponent(item.id)}`}
-              className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"
-            >
-              {tx(locale, "Écrire le transfert", "Record transfer")}
-            </ModalOpenLink>
-          </div>
-        </article>
-      ))}
+
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucun dossier.", "No cases.")}
+      />
 
       <SearchParamModal
         param="modal"

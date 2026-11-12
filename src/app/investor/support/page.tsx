@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { ticketAction } from "@/server/actions";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
@@ -14,6 +16,40 @@ export default async function SupportPage() {
   if (!session) redirect("/sign-in");
   const locale = await getLocale();
   const tickets = session.db.supportTickets.filter((item) => item.userId === session.user.id);
+
+  const columns: DataTableColumn[] = [
+    { id: "subject", header: tx(locale, "Sujet", "Subject"), sortable: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(tickets.map((ticket) => ticket.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+  ];
+
+  const rows: DataTableRow[] = tickets.map((ticket) => ({
+    id: ticket.id,
+    searchValue: `${ticket.subject} ${ticket.status}`,
+    filterValues: { status: ticket.status },
+    sortValues: { subject: ticket.subject, status: ticket.status },
+    cells: {
+      subject: (
+        <Link href={`/investor/support/${ticket.id}`} className="font-semibold text-violet">
+          {ticket.subject}
+        </Link>
+      ),
+      status: ticket.status,
+    },
+    actions: (
+      <Link href={`/investor/support/${ticket.id}`} className="text-sm font-semibold text-violet">
+        {tx(locale, "Ouvrir", "Open")}
+      </Link>
+    ),
+  }));
+
   return (
     <div className="space-y-4 px-4 md:px-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -25,19 +61,13 @@ export default async function SupportPage() {
           {tx(locale, "Nouveau message", "New message")}
         </ModalOpenLink>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {tickets.map((ticket) => (
-          <Link key={ticket.id} href={`/investor/support/${ticket.id}`} className="block rounded-[28px] bg-white p-4">
-            <p className="font-bold">{ticket.subject}</p>
-            <p className="text-xs text-muted">{ticket.status}</p>
-          </Link>
-        ))}
-        {tickets.length === 0 ? (
-          <p className="text-sm text-muted md:col-span-2">
-            {tx(locale, "Aucun ticket pour l'instant.", "No tickets yet.")}
-          </p>
-        ) : null}
-      </div>
+
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucun ticket pour l'instant.", "No tickets yet.")}
+      />
 
       <SearchParamModal title={tx(locale, "Nouveau message", "New message")}>
         <form action={ticketAction} className="space-y-2">

@@ -1,5 +1,7 @@
 import { approveAllotmentAction, prepareAllotmentAction } from "@/server/actions";
 import { AdminStepUpField } from "@/components/admin-step-up-field";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { errorCopy } from "@/server/domain/errors";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
@@ -116,19 +118,49 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
       })}
 
       <h2 className="text-xl font-bold">{tx(locale, "Écritures", "Events")}</h2>
-      {db.shareholdingEvents.length === 0 ? (
-        <p className="text-sm text-muted">{tx(locale, "Aucune écriture pour l'instant.", "No events yet.")}</p>
-      ) : (
-        db.shareholdingEvents.map((event) => {
+      <DataTable
+        locale={locale}
+        columns={
+          [
+            {
+              id: "type",
+              header: tx(locale, "Type", "Type"),
+              sortable: true,
+              filter: {
+                options: uniqueFilterOptions(db.shareholdingEvents.map((event) => event.eventType)),
+                allLabel: tx(locale, "Tous les types", "All types"),
+              },
+            },
+            {
+              id: "delta",
+              header: tx(locale, "Quantité", "Quantity"),
+              align: "right",
+              sortable: true,
+            },
+            { id: "investor", header: tx(locale, "Investisseur", "Investor"), sortable: true },
+          ] satisfies DataTableColumn[]
+        }
+        rows={db.shareholdingEvents.map((event) => {
           const profile = db.investorProfiles.find((item) => item.id === event.investorProfileId);
-          return (
-            <p key={event.id} className="text-sm">
-              {event.eventType} · {event.shareQuantityDelta} ·{" "}
-              {profile ? profile.investorNumber : event.investorProfileId}
-            </p>
-          );
-        })
-      )}
+          const investor = profile ? profile.investorNumber : event.investorProfileId;
+          return {
+            id: event.id,
+            searchValue: `${event.eventType} ${event.shareQuantityDelta} ${investor}`,
+            filterValues: { type: event.eventType },
+            sortValues: {
+              type: event.eventType,
+              delta: event.shareQuantityDelta,
+              investor,
+            },
+            cells: {
+              type: <span className="font-semibold">{event.eventType}</span>,
+              delta: event.shareQuantityDelta,
+              investor,
+            },
+          } satisfies DataTableRow;
+        })}
+        emptyMessage={tx(locale, "Aucune écriture pour l'instant.", "No events yet.")}
+      />
     </div>
   );
 }

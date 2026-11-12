@@ -2,6 +2,8 @@ import Link from "next/link";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EntitySelect } from "@/components/choice-fields";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { dividendApproveAction, dividendPayAction, dividendProposeAction } from "@/server/actions";
 import { errorCopy } from "@/server/domain/errors";
 import { getSession } from "@/server/auth/session";
@@ -24,6 +26,89 @@ export default async function DividendsAdmin({
   const issuers = session.db.issuers;
   const shareClasses = session.db.shareClasses;
   const canPropose = issuers.length > 0 && shareClasses.length > 0;
+  const pendingPayments = session.db.dividendPayments.filter((item) => item.status === "PENDING");
+
+  const declarationColumns: DataTableColumn[] = [
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.dividendDeclarations.map((item) => item.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    { id: "perShare", header: tx(locale, "Par action", "Per share"), align: "right", sortable: true },
+    { id: "currency", header: tx(locale, "Devise", "Currency") },
+  ];
+
+  const declarationRows: DataTableRow[] = session.db.dividendDeclarations.map((declaration) => {
+    const perShare = formatMoney(declaration.perShareMinor, declaration.currencyCode, locale);
+    return {
+      id: declaration.id,
+      searchValue: `${declaration.status} ${perShare} ${declaration.currencyCode}`,
+      filterValues: { status: declaration.status },
+      sortValues: {
+        status: declaration.status,
+        perShare: declaration.perShareMinor,
+        currency: declaration.currencyCode,
+      },
+      cells: {
+        status: <span className="font-semibold">{declaration.status}</span>,
+        perShare: `${perShare} / ${tx(locale, "action", "share")}`,
+        currency: declaration.currencyCode,
+      },
+      actions:
+        declaration.status === "PROPOSED" ? (
+          <form action={dividendApproveAction} className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="declarationId" value={declaration.id} />
+            <input
+              name="password"
+              type="password"
+              required
+              className="h-9 w-36 rounded-full border px-3 text-sm"
+              placeholder={tx(locale, "Mot de passe", "Password")}
+            />
+            <SubmitButton size="sm" className="h-9">
+              {tx(locale, "Approuver", "Approve")}
+            </SubmitButton>
+          </form>
+        ) : null,
+    };
+  });
+
+  const paymentColumns: DataTableColumn[] = [
+    { id: "reference", header: tx(locale, "Référence", "Reference"), sortable: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(pendingPayments.map((item) => item.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+  ];
+
+  const paymentRows: DataTableRow[] = pendingPayments.map((payment) => ({
+    id: payment.id,
+    searchValue: `${payment.providerReference} ${payment.status}`,
+    filterValues: { status: payment.status },
+    sortValues: { reference: payment.providerReference, status: payment.status },
+    cells: {
+      reference: <span className="font-semibold">{payment.providerReference}</span>,
+      status: payment.status,
+    },
+    actions: (
+      <form action={dividendPayAction}>
+        <input type="hidden" name="paymentId" value={payment.id} />
+        <SubmitButton variant="link" size="inline">
+          {tx(locale, "Marquer payé", "Mark paid")}
+        </SubmitButton>
+      </form>
+    ),
+  }));
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -47,33 +132,21 @@ export default async function DividendsAdmin({
           </Link>
         </p>
       ) : null}
-      {session.db.dividendDeclarations.map((declaration) => (
-        <article key={declaration.id} className="rounded-[24px] bg-white p-4 text-sm">
-          <p className="font-bold">
-            {declaration.status} · {formatMoney(declaration.perShareMinor, declaration.currencyCode, locale)} /{" "}
-            {tx(locale, "action", "share")}
-          </p>
-          {declaration.status === "PROPOSED" ? (
-            <form action={dividendApproveAction} className="mt-2 flex flex-wrap gap-2">
-              <input type="hidden" name="declarationId" value={declaration.id} />
-              <input name="password" type="password" required className="h-10 rounded-full border px-3" />
-              <SubmitButton size="sm" className="h-10">
-                {tx(locale, "Approuver", "Approve")}
-              </SubmitButton>
-            </form>
-          ) : null}
-        </article>
-      ))}
-      {session.db.dividendPayments
-        .filter((item) => item.status === "PENDING")
-        .map((payment) => (
-          <form key={payment.id} action={dividendPayAction}>
-            <input type="hidden" name="paymentId" value={payment.id} />
-            <SubmitButton variant="link" size="inline">
-              {tx(locale, "Marquer payé", "Mark paid")} {payment.providerReference}
-            </SubmitButton>
-          </form>
-        ))}
+
+      <DataTable
+        locale={locale}
+        columns={declarationColumns}
+        rows={declarationRows}
+        emptyMessage={tx(locale, "Aucune déclaration.", "No declarations.")}
+      />
+
+      <h2 className="text-xl font-bold">{tx(locale, "Paiements en attente", "Pending payments")}</h2>
+      <DataTable
+        locale={locale}
+        columns={paymentColumns}
+        rows={paymentRows}
+        emptyMessage={tx(locale, "Aucun paiement en attente.", "No pending payments.")}
+      />
 
       <SearchParamModal
         param="modal"

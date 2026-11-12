@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createProjectAction } from "@/server/actions";
 import { EntitySelect, IndustrySelect } from "@/components/choice-fields";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getSession } from "@/server/auth/session";
 import { getLocale } from "@/lib/i18n/get-dictionary";
@@ -21,6 +23,60 @@ export default async function ProjectsAdmin({
   const error = (await searchParams).error;
   const issuers = session.db.issuers;
   const field = "h-12 w-full rounded-2xl border border-border bg-white px-3 text-sm";
+
+  const columns: DataTableColumn[] = [
+    { id: "title", header: tx(locale, "Titre", "Title"), sortable: true },
+    {
+      id: "status",
+      header: tx(locale, "Statut", "Status"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(session.db.projects.map((project) => project.status)),
+        allLabel: tx(locale, "Tous les statuts", "All statuses"),
+      },
+    },
+    {
+      id: "offering",
+      header: tx(locale, "Offre", "Offering"),
+      sortable: true,
+      filter: {
+        options: uniqueFilterOptions(
+          session.db.projects.map((project) => {
+            const offering = session.db.offerings.find((item) => item.projectId === project.id);
+            return offering?.status;
+          }),
+        ),
+        allLabel: tx(locale, "Toutes les offres", "All offerings"),
+      },
+    },
+  ];
+
+  const rows: DataTableRow[] = session.db.projects.map((project) => {
+    const offering = session.db.offerings.find((item) => item.projectId === project.id);
+    const title = tx(locale, project.titleFr, project.titleEn);
+    const offeringStatus = offering?.status ?? "";
+    return {
+      id: project.id,
+      searchValue: `${title} ${project.status} ${offeringStatus}`,
+      filterValues: { status: project.status, offering: offeringStatus },
+      sortValues: { title, status: project.status, offering: offeringStatus },
+      cells: {
+        title: (
+          <Link href={`/admin/projects/${project.id}`} className="font-semibold text-violet">
+            {title}
+          </Link>
+        ),
+        status: project.status,
+        offering: offeringStatus || "—",
+      },
+      actions: (
+        <Link href={`/admin/projects/${project.id}`} className="text-sm font-semibold text-violet">
+          {tx(locale, "Éditer le contenu", "Edit content")}
+        </Link>
+      ),
+    };
+  });
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -42,24 +98,12 @@ export default async function ProjectsAdmin({
         </ModalOpenLink>
       </div>
 
-      {session.db.projects.map((project) => {
-        const offering = session.db.offerings.find((item) => item.projectId === project.id);
-        return (
-          <Link
-            key={project.id}
-            href={`/admin/projects/${project.id}`}
-            className="block rounded-[24px] bg-white p-4"
-          >
-            <p className="font-bold">{tx(locale, project.titleFr, project.titleEn)}</p>
-            <p className="text-sm text-muted">
-              {project.status}
-              {offering ? ` · ${tx(locale, "Offre", "Offering")} ${offering.status}` : ""}
-              {" · "}
-              {tx(locale, "Éditer le contenu", "Edit content")}
-            </p>
-          </Link>
-        );
-      })}
+      <DataTable
+        locale={locale}
+        columns={columns}
+        rows={rows}
+        emptyMessage={tx(locale, "Aucun projet.", "No projects.")}
+      />
 
       <SearchParamModal
         param="modal"
