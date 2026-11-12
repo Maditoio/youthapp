@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getStore, asAppError } from "./db/store";
-import { describeDbError } from "./db/errors";
+import { describeDbError, unexpectedActionErrorCode } from "./db/errors";
 import { peekDemoCode, stashDemoCode } from "./auth/demo-codes";
 import { clearSession, getSession, readMfaPending, setMfaPending, setSession } from "./auth/session";
 import { AppError } from "./domain/errors";
@@ -80,7 +80,7 @@ function fail(error: unknown): ActionState {
   const known = asAppError(error);
   if (known) return { error: known.code };
   console.error("action_failed", describeDbError(error));
-  return { error: "INVALID_STATE" };
+  return { error: unexpectedActionErrorCode(error) };
 }
 
 export async function signUpAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -1187,7 +1187,7 @@ async function attempt<T>(back: string, run: () => Promise<T>): Promise<T> {
     if (isRedirect(error)) throw error;
     const known = asAppError(error);
     if (!known) console.error("action_failed", describeDbError(error));
-    redirect(withError(back, known?.code ?? "INVALID_STATE"));
+    redirect(withError(back, known?.code ?? unexpectedActionErrorCode(error)));
   }
 }
 

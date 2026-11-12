@@ -15,9 +15,11 @@ import {
   createStaffMember,
   createSubscription,
   completeInvestorOnboarding,
+  ensureLedgerAccounts,
   isInvestorOnboardingComplete,
   linkOrCreateClerk,
   linkOrCreateGoogle,
+  PLATFORM_LEDGER_ACCOUNT_IDS,
   prepareAllotment,
   registerUser,
   reportDeath,
@@ -31,6 +33,7 @@ import {
   verifyStaffMfa,
 } from "@/server/domain/mutate";
 import { AppError } from "@/server/domain/errors";
+import { unexpectedActionErrorCode } from "@/server/db/errors";
 
 function store() {
   return new Store(createDemoDatabase());
@@ -107,6 +110,52 @@ describe("money and ownership rules", async () => {
     expect(first.duplicate).toBe(true);
     expect(holdingQuantity(memory.db, ids.profileJean, ids.issuer, ids.shareClass)).toBe(0);
     expect(memory.db.subscriptions.find((item) => item.id === ids.subJean)?.status).toBe("PAID_AWAITING_CLOSING");
+  });
+
+  it("ensures platform ledger accounts then posts sandbox payment without demo seed accounts", async () => {
+    const memory = store();
+    memory.db.ledgerAccounts = [];
+    ensureLedgerAccounts(memory.db);
+    expect(memory.db.ledgerAccounts.map((item) => item.id).sort()).toEqual(
+      [
+        PLATFORM_LEDGER_ACCOUNT_IDS.escrow,
+        PLATFORM_LEDGER_ACCOUNT_IDS.operating,
+        PLATFORM_LEDGER_ACCOUNT_IDS.payable,
+      ].sort(),
+    );
+    ensureLedgerAccounts(memory.db);
+    expect(memory.db.ledgerAccounts).toHaveLength(3);
+
+    const entriesBefore = memory.db.ledgerEntries.length;
+    const result = await memory.update((draft) => {
+      draft.ledgerAccounts = [];
+      return applySandboxPayment(draft, {
+        providerEventId: "evt-patrick-empty-ledger",
+        providerTransactionId: "txn-patrick-empty-ledger",
+        subscriptionId: ids.subPatrick,
+        amountMinor: 25_000,
+        currencyCode: "USD",
+      });
+    });
+    expect(result.duplicate).toBe(false);
+    expect(memory.db.subscriptions.find((item) => item.id === ids.subPatrick)?.status).toBe("PAID_AWAITING_CLOSING");
+    expect(memory.db.ledgerAccounts.some((item) => item.id === PLATFORM_LEDGER_ACCOUNT_IDS.escrow)).toBe(true);
+    expect(memory.db.ledgerAccounts.some((item) => item.id === PLATFORM_LEDGER_ACCOUNT_IDS.payable)).toBe(true);
+    expect(memory.db.ledgerEntries.length).toBe(entriesBefore + 2);
+    const posted = memory.db.ledgerEntries.slice(-2);
+    expect(posted.map((item) => item.ledgerAccountId).sort()).toEqual(
+      [PLATFORM_LEDGER_ACCOUNT_IDS.escrow, PLATFORM_LEDGER_ACCOUNT_IDS.payable].sort(),
+    );
+    expect(posted.reduce((sum, item) => sum + item.debitMinor, 0)).toBe(25_000);
+    expect(posted.reduce((sum, item) => sum + item.creditMinor, 0)).toBe(25_000);
+  });
+
+  it("maps ledger foreign-key SqlQueryError to LEDGER_POSTING_FAILED", () => {
+    const error = Object.assign(new Error('insert or update on table "LedgerEntry" violates foreign key constraint "LedgerEntry_ledgerAccountId_fkey"'), {
+      name: "SqlQueryError",
+      sqlState: "23503",
+    });
+    expect(unexpectedActionErrorCode(error)).toBe("LEDGER_POSTING_FAILED");
   });
 
   it("blocks the preparer from approving their own allotment, then lets a different officer issue shares", async () => {

@@ -120,6 +120,14 @@ export const errorCopy: Record<string, { fr: string; en: string }> = {
     fr: "Cette action n'est pas permise dans l'état actuel.",
     en: "This action is not allowed in the current state.",
   },
+  LEDGER_POSTING_FAILED: {
+    fr: "Impossible d'enregistrer le mouvement comptable. Réessayez ou contactez le support.",
+    en: "Could not post the ledger entry. Try again or contact support.",
+  },
+  DATABASE_ERROR: {
+    fr: "Une erreur technique a empêché d'enregistrer cette action. Réessayez.",
+    en: "A technical error prevented saving this action. Please try again.",
+  },
   STATUS_REQUIRED: {
     fr: "Choisissez un statut cible avec l'un des boutons, puis confirmez.",
     en: "Choose a target status with one of the buttons, then confirm.",

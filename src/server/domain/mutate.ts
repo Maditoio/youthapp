@@ -256,6 +256,75 @@ export function rotateStaffConfirmationCode(
   return { mfaCodeDisplay: issued.code };
 }
 
+/** Platform escrow / settlement accounts used by sandbox payment + refund + financing posts. */
+export const PLATFORM_LEDGER_ACCOUNT_IDS = {
+  escrow: "acct-escrow-usd",
+  payable: "acct-payable-usd",
+  operating: "acct-operating-usd",
+} as const;
+
+/** Idempotent upsert of required ledger accounts by id (production Neon may have no demo seed). */
+export function ensureLedgerAccounts(db: Database, currencyCode = "USD"): void {
+  const required: Array<{
+    id: string;
+    accountCode: string;
+    accountName: string;
+    accountType: "ASSET" | "LIABILITY";
+    ownerType: "ESCROW" | "PLATFORM_OPERATING" | "ISSUER_SETTLEMENT";
+  }> = [
+    {
+      id: PLATFORM_LEDGER_ACCOUNT_IDS.escrow,
+      accountCode: "1000",
+      accountName: "Escrow subscription cash (not platform operating funds)",
+      accountType: "ASSET",
+      ownerType: "ESCROW",
+    },
+    {
+      id: PLATFORM_LEDGER_ACCOUNT_IDS.payable,
+      accountCode: "2000",
+      accountName: "Subscription funds payable / held for issuers",
+      accountType: "LIABILITY",
+      ownerType: "ISSUER_SETTLEMENT",
+    },
+    {
+      id: PLATFORM_LEDGER_ACCOUNT_IDS.operating,
+      accountCode: "1100",
+      accountName: "Platform operating cash",
+      accountType: "ASSET",
+      ownerType: "PLATFORM_OPERATING",
+    },
+  ];
+  for (const account of required) {
+    if (db.ledgerAccounts.some((item) => item.id === account.id)) continue;
+    db.ledgerAccounts.push({
+      id: account.id,
+      accountCode: account.accountCode,
+      accountName: account.accountName,
+      accountType: account.accountType,
+      currencyCode,
+      ownerType: account.ownerType,
+      ownerId: null,
+      status: "ACTIVE",
+    });
+  }
+}
+
+function ensureLedgerAccount(
+  db: Database,
+  account: {
+    id: string;
+    accountCode: string;
+    accountName: string;
+    accountType: "ASSET" | "LIABILITY";
+    currencyCode: string;
+    ownerType: "ESCROW" | "PLATFORM_OPERATING" | "ISSUER_SETTLEMENT" | "COMPANY_FINANCING";
+    ownerId: string | null;
+  },
+) {
+  if (db.ledgerAccounts.some((item) => item.id === account.id)) return;
+  db.ledgerAccounts.push({ ...account, status: "ACTIVE" });
+}
+
 function postBalanced(
   db: Database,
   input: {
@@ -270,6 +339,7 @@ function postBalanced(
   },
 ) {
   assert(input.amountMinor > 0 && Number.isInteger(input.amountMinor), "AMOUNT_INVALID");
+  ensureLedgerAccounts(db, input.currencyCode);
   const transactionId = uid();
   const at = now(db);
   db.ledgerTransactions.push({
@@ -1528,8 +1598,8 @@ export function applySandboxPayment(
     sourceId: input.providerEventId,
     amountMinor: input.amountMinor,
     currencyCode: input.currencyCode,
-    debitAccountId: "acct-escrow-usd",
-    creditAccountId: "acct-payable-usd",
+    debitAccountId: PLATFORM_LEDGER_ACCOUNT_IDS.escrow,
+    creditAccountId: PLATFORM_LEDGER_ACCOUNT_IDS.payable,
     actorUserId: null,
   });
   assert(db.shareholdingEvents.length === holdingsBefore, "NO_TRANSFER");
@@ -1608,8 +1678,8 @@ export function approveRefund(db: Database, actorId: string, refundId: string, p
     sourceId: refund.id,
     amountMinor: refund.amountMinor,
     currencyCode: refund.currencyCode,
-    debitAccountId: "acct-payable-usd",
-    creditAccountId: "acct-escrow-usd",
+    debitAccountId: PLATFORM_LEDGER_ACCOUNT_IDS.payable,
+    creditAccountId: PLATFORM_LEDGER_ACCOUNT_IDS.escrow,
     actorUserId: actorId,
   });
   audit(db, actorId, "refund.approve", "refund", refund.id, refund.reasonCode);
@@ -1742,26 +1812,23 @@ function releaseCompanyFinancing(
   const offering = db.offerings.find((item) => item.id === offeringId);
   const project = offering && db.projects.find((item) => item.id === offering.projectId);
   const accountId = `acct-financing-${issuerId}`;
-  if (!db.ledgerAccounts.some((item) => item.id === accountId)) {
-    const issuer = db.issuers.find((item) => item.id === issuerId);
-    db.ledgerAccounts.push({
-      id: accountId,
-      accountCode: "2100",
-      accountName: `Company financing — ${issuer?.legalName ?? issuerId}`,
-      accountType: "LIABILITY",
-      currencyCode: payment.currencyCode,
-      ownerType: "COMPANY_FINANCING",
-      ownerId: issuerId,
-      status: "ACTIVE",
-    });
-  }
+  const issuer = db.issuers.find((item) => item.id === issuerId);
+  ensureLedgerAccount(db, {
+    id: accountId,
+    accountCode: "2100",
+    accountName: `Company financing — ${issuer?.legalName ?? issuerId}`,
+    accountType: "LIABILITY",
+    currencyCode: payment.currencyCode,
+    ownerType: "COMPANY_FINANCING",
+    ownerId: issuerId,
+  });
   postBalanced(db, {
     type: "COMPANY_FINANCING",
     sourceType: "subscription",
     sourceId: subscriptionId,
     amountMinor: payment.amountMinor,
     currencyCode: payment.currencyCode,
-    debitAccountId: "acct-payable-usd",
+    debitAccountId: PLATFORM_LEDGER_ACCOUNT_IDS.payable,
     creditAccountId: accountId,
     actorUserId: actorId,
   });

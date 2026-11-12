@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { appConfig } from "@/lib/config";
+import { describeDbError, unexpectedActionErrorCode } from "@/server/db/errors";
 import { signPayload } from "@/server/domain/crypto";
 import { AppError } from "@/server/domain/errors";
 import { applySandboxPayment } from "@/server/domain/mutate";
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, duplicate: result.duplicate });
   } catch (error) {
     const known = asAppError(error) ?? (error instanceof AppError ? error : null);
-    return NextResponse.json({ error: known?.code ?? "INVALID_STATE" }, { status: 400 });
+    if (!known) console.error("sandbox_webhook_failed", describeDbError(error));
+    return NextResponse.json({ error: known?.code ?? unexpectedActionErrorCode(error) }, { status: 400 });
   }
 }
