@@ -45,7 +45,7 @@ export default async function VerifyCertificatePage({
 
   return (
     <div className="min-h-dvh bg-canvas px-4 py-8 print:bg-white print:p-0">
-      <div className="mx-auto max-w-3xl space-y-4 print:max-w-none print:space-y-0">
+      <div className="mx-auto max-w-[1100px] space-y-4 print:max-w-none print:space-y-0">
         <div className="flex items-center justify-between gap-3 print:hidden">
           <Logo />
           <Link href="/" className="text-sm font-semibold text-violet">
