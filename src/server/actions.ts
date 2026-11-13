@@ -225,9 +225,9 @@ export async function mfaAction(_prev: ActionState, formData: FormData): Promise
 }
 
 /**
- * Clears the Jeunese cookies. Navigation is left to the caller so the browser-side Clerk sign-out
- * (which clears Clerk's own cookies) can run afterwards. `revokeClerk` is the fallback for when
- * that browser-side sign-out failed.
+ * Clears the Jeunese cookies. Navigation is left to the caller (hard `location.assign`) so the
+ * browser-side Clerk sign-out can run afterwards without relying on Clerk's soft redirect.
+ * `revokeClerk` is the fallback for when that browser-side sign-out failed.
  */
 export async function signOutAction(options?: { revokeClerk?: boolean }): Promise<{ ok: true }> {
   await clearSession();

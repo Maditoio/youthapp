@@ -1,7 +1,7 @@
 "use client";
 
 import { useClerk } from "@clerk/nextjs";
-import { useTransition, type ButtonHTMLAttributes } from "react";
+import { useState, type ButtonHTMLAttributes } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { signOutAction } from "@/server/actions";
 
@@ -15,8 +15,22 @@ function leave() {
   window.location.assign("/");
 }
 
+/**
+ * Clerk's `signOut({ redirectUrl })` uses an awaitable App Router soft navigation that can hang
+ * (nested transitions + post-sign-out `router.refresh()`), so we never await a Clerk redirect.
+ * Clear the Clerk session, then hard-navigate ourselves.
+ */
+async function clearClerkSession(clerk: ReturnType<typeof useClerk>) {
+  await Promise.race([
+    clerk.signOut({ redirectUrl: undefined }),
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 2500);
+    }),
+  ]);
+}
+
 function JeuneseSignOutButton({ children, className, ...rest }: SignOutButtonProps) {
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   return (
     <button
       type="button"
@@ -25,13 +39,15 @@ function JeuneseSignOutButton({ children, className, ...rest }: SignOutButtonPro
       aria-busy={pending || undefined}
       {...rest}
       onClick={() => {
-        startTransition(async () => {
+        if (pending) return;
+        setPending(true);
+        void (async () => {
           try {
             await signOutAction();
           } finally {
             leave();
           }
-        });
+        })();
       }}
     >
       {pending ? <Spinner /> : null}
@@ -42,7 +58,7 @@ function JeuneseSignOutButton({ children, className, ...rest }: SignOutButtonPro
 
 function ClerkAwareSignOutButton({ children, className, ...rest }: SignOutButtonProps) {
   const clerk = useClerk();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   return (
     <button
       type="button"
@@ -51,25 +67,27 @@ function ClerkAwareSignOutButton({ children, className, ...rest }: SignOutButton
       aria-busy={pending || undefined}
       {...rest}
       onClick={() => {
-        startTransition(async () => {
-          // Jeunese cookie first: Clerk's signOut navigates away and would cut a later request short.
+        if (pending) return;
+        setPending(true);
+        void (async () => {
+          // Jeunese cookie first: a Clerk soft-redirect would cut a later cookie clear short.
           try {
             await signOutAction();
           } catch (error) {
             console.error("jeunese_sign_out_failed", error);
           }
           try {
-            await clerk.signOut({ redirectUrl: "/" });
+            await clearClerkSession(clerk);
           } catch (error) {
             console.error("clerk_sign_out_failed", error);
             try {
               await signOutAction({ revokeClerk: true });
             } catch {
-              // Nothing left to try; the page reload below still drops client state.
+              // Nothing left to try; the hard navigation below still drops client state.
             }
           }
           leave();
-        });
+        })();
       }}
     >
       {pending ? <Spinner /> : null}
