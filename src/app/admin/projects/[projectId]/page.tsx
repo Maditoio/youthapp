@@ -76,16 +76,9 @@ export default async function ProjectAdminDetail({
 
   const header = (
     <div className="space-y-3">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-2">
-          <p className="text-sm text-muted">
-            <Link href="/admin/projects" className="font-semibold text-violet">
-              {t("Projets", "Projects")}
-            </Link>
-            <span className="mx-1.5 text-border">/</span>
-            <span className="font-mono text-xs">{project.slug}</span>
-          </p>
-          <h1 className="truncate text-2xl font-bold md:text-3xl">{t(project.titleFr, project.titleEn)}</h1>
+          <h1 className="truncate text-2xl font-bold tracking-tight">{t(project.titleFr, project.titleEn)}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone(project.status)}`}>
               {t("Projet", "Project")} · {project.status}
@@ -99,11 +92,7 @@ export default async function ProjectAdminDetail({
                 {t("Aucune offre", "No offering")}
               </span>
             )}
-            {issuer ? (
-              <span className="text-sm text-muted">
-                {issuer.legalName}
-              </span>
-            ) : null}
+            {issuer ? <span className="text-sm text-muted">{issuer.legalName}</span> : null}
           </div>
         </div>
 
@@ -126,14 +115,7 @@ export default async function ProjectAdminDetail({
           ) : null}
         </div>
       </div>
-
       {error ? <p className="text-sm text-danger">{errorCopy[error]?.[locale] ?? error}</p> : null}
-      <p className="max-w-3xl text-sm text-muted">
-        {t(
-          "Éditez le contenu par section. La publication publique passe toujours par les transitions d'offre (maker-checker).",
-          "Edit content by section. Public publishing still goes through offering transitions (maker-checker).",
-        )}
-      </p>
     </div>
   );
 
@@ -145,10 +127,6 @@ export default async function ProjectAdminDetail({
         {
           id: "overview",
           label: t("Aperçu", "Overview"),
-          description: t(
-            "Identité du projet : titres, lieu, secteur et statut.",
-            "Project identity: titles, location, industry, and status.",
-          ),
           panel: (
             <form action={updateProjectContentAction} className="space-y-4">
               <input type="hidden" name="projectId" value={project.id} />
@@ -188,10 +166,6 @@ export default async function ProjectAdminDetail({
         {
           id: "story",
           label: t("Récit", "Story"),
-          description: t(
-            "Résumés, marché, risques, hypothèses et projections (FR/EN).",
-            "Summaries, market, risks, assumptions, and projections (FR/EN).",
-          ),
           panel: (
             <form action={updateProjectContentAction} className="space-y-4">
               <input type="hidden" name="projectId" value={project.id} />
@@ -243,10 +217,6 @@ export default async function ProjectAdminDetail({
         {
           id: "team",
           label: t("Équipe & fonds", "Team & proceeds"),
-          description: t(
-            "Emploi des fonds et membres de l'équipe.",
-            "Use of proceeds and team members.",
-          ),
           panel: (
             <form action={updateProjectContentAction} className="space-y-5">
               <input type="hidden" name="projectId" value={project.id} />
@@ -322,10 +292,6 @@ export default async function ProjectAdminDetail({
         {
           id: "offering",
           label: t("Termes de l'offre", "Offering terms"),
-          description: t(
-            "Montants, calendrier, actions et politiques de l'offre liée.",
-            "Amounts, schedule, shares, and policies for the linked offering.",
-          ),
           panel: !offering || !terms ? (
             <p className="text-sm text-muted">{t("Aucune offre liée.", "No linked offering.")}</p>
           ) : (
@@ -497,10 +463,6 @@ export default async function ProjectAdminDetail({
         {
           id: "documents",
           label: t("Documents", "Documents"),
-          description: t(
-            "Notes d'information et documents liés à l'offre.",
-            "Information memoranda and offering-linked documents.",
-          ),
           panel: !offering ? (
             <p className="text-sm text-muted">{t("Aucune offre liée.", "No linked offering.")}</p>
           ) : (
@@ -539,60 +501,6 @@ export default async function ProjectAdminDetail({
                     submitLabel={t("Créer le document", "Create document")}
                   />
                 </div>
-              </div>
-            </div>
-          ),
-        },
-        {
-          id: "status",
-          label: t("Publication", "Publishing"),
-          description: t(
-            "Rappel maker-checker : le statut public suit les transitions d'offre.",
-            "Maker-checker reminder: public status follows offering transitions.",
-          ),
-          panel: (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 rounded-2xl bg-lilac/40 p-4 text-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {t("Statut projet", "Project status")}
-                </p>
-                <p className="text-lg font-bold">{project.status}</p>
-                {project.status === "PUBLISHED" ? (
-                  <Link href={`/projects/${project.slug}`} className="inline-flex font-semibold text-violet">
-                    {t("Voir la page publique", "View public page")}
-                  </Link>
-                ) : (
-                  <p className="text-muted">
-                    {t(
-                      "Passez le projet en PUBLISHED dans Aperçu lorsque le contenu est prêt.",
-                      "Set the project to PUBLISHED in Overview when content is ready.",
-                    )}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2 rounded-2xl bg-lilac/40 p-4 text-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {t("Statut offre", "Offering status")}
-                </p>
-                {offering ? (
-                  <>
-                    <p className="text-lg font-bold">{offering.status}</p>
-                    <p className="text-muted">
-                      {t(
-                        "Pour publier ou ouvrir l'offre, utilisez les transitions maker-checker.",
-                        "To publish or open the offering, use maker-checker transitions.",
-                      )}
-                    </p>
-                    <Link
-                      href={`/admin/offerings/${offering.id}`}
-                      className="inline-flex rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white"
-                    >
-                      {t("Ouvrir les transitions d'offre", "Open offering transitions")}
-                    </Link>
-                  </>
-                ) : (
-                  <p className="text-muted">{t("Aucune offre liée.", "No linked offering.")}</p>
-                )}
               </div>
             </div>
           ),

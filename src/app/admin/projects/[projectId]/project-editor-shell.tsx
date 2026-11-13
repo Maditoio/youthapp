@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 export type ProjectEditorSection = {
   id: string;
   label: string;
-  description?: string;
   panel: ReactNode;
 };
 
@@ -42,24 +41,23 @@ export function ProjectEditorShell({ sections, header, navAriaLabel }: ProjectEd
 
   return (
     <div className="space-y-5">
-      <div className="sticky top-0 z-20 -mx-4 border-b border-border bg-canvas/95 px-4 py-4 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
-        {header}
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[14rem_minmax(0,1fr)]">
-        <nav aria-label={navAriaLabel} className="lg:sticky lg:top-[8.5rem] lg:self-start">
-          <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-1.5 lg:overflow-visible lg:pb-0">
+      <div className="sticky top-0 z-20 -mx-4 border-b border-border bg-canvas/95 px-4 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
+        <div className="py-4">{header}</div>
+        <nav aria-label={navAriaLabel} className="-mb-px">
+          <div className="flex gap-6 overflow-x-auto" role="tablist">
             {sections.map((section) => {
               const current = section.id === active?.id;
               return (
                 <a
                   key={section.id}
                   href={`#${section.id}`}
-                  aria-current={current ? "page" : undefined}
+                  role="tab"
+                  aria-selected={current}
+                  aria-controls={section.id}
                   className={
                     current
-                      ? "shrink-0 rounded-2xl bg-violet px-3 py-2 text-sm font-semibold text-white"
-                      : "shrink-0 rounded-2xl bg-white px-3 py-2 text-sm font-semibold text-ink ring-1 ring-border hover:bg-lilac/50"
+                      ? "shrink-0 border-b-2 border-violet pb-3 text-sm font-semibold text-ink"
+                      : "shrink-0 border-b-2 border-transparent pb-3 text-sm font-medium text-muted hover:text-ink"
                   }
                   onClick={() => setActiveId(section.id)}
                 >
@@ -69,23 +67,18 @@ export function ProjectEditorShell({ sections, header, navAriaLabel }: ProjectEd
             })}
           </div>
         </nav>
+      </div>
 
-        <div className="min-w-0">
-          {active ? (
-            <section
-              id={active.id}
-              className="scroll-mt-36 space-y-4 rounded-[24px] bg-white p-5 md:p-6"
-            >
-              <div className="space-y-1 border-b border-border pb-4">
-                <h2 className="text-xl font-bold">{active.label}</h2>
-                {active.description ? (
-                  <p className="max-w-2xl text-sm text-muted">{active.description}</p>
-                ) : null}
-              </div>
-              {active.panel}
-            </section>
-          ) : null}
-        </div>
+      <div className="min-w-0">
+        {active ? (
+          <section
+            id={active.id}
+            role="tabpanel"
+            className="scroll-mt-36 space-y-4 rounded-[24px] bg-white p-5 md:p-6"
+          >
+            {active.panel}
+          </section>
+        ) : null}
       </div>
     </div>
   );
