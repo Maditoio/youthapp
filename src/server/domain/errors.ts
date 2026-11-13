@@ -82,6 +82,26 @@ export const errorCopy: Record<string, { fr: string; en: string }> = {
     fr: "Cette offre n'accepte pas de souscriptions.",
     en: "This offering is not accepting subscriptions.",
   },
+  OFFERING_NOT_OPEN: {
+    fr: "Cette offre n'est pas encore ouverte à la souscription (statut).",
+    en: "This offering is not open for subscription yet (status).",
+  },
+  OFFERING_NOT_STARTED: {
+    fr: "La fenêtre de souscription n'a pas encore commencé. Vérifiez la date d'ouverture.",
+    en: "The subscription window has not started yet. Check the opens date.",
+  },
+  OFFERING_CLOSED: {
+    fr: "La fenêtre de souscription est terminée.",
+    en: "The subscription window has ended.",
+  },
+  INTEREST_UNAVAILABLE: {
+    fr: "Les manifestations d'intérêt ne sont pas ouvertes pour cette offre.",
+    en: "Expressions of interest are not open for this offering.",
+  },
+  INTEREST_EXISTS: {
+    fr: "Vous avez déjà manifesté votre intérêt pour cette offre.",
+    en: "You already expressed interest in this offering.",
+  },
   JURISDICTION_BLOCKED: {
     fr: "Votre pays de résidence n'est pas éligible à cette offre de démonstration.",
     en: "Your country of residence is not eligible for this demo offering.",

@@ -54,6 +54,7 @@ export class FileStore extends Store {
         void fresh.persist();
         return fresh;
       }
+      if (!Array.isArray(parsed.offeringInterests)) parsed.offeringInterests = [];
       return new FileStore(parsed, filePath);
     } catch {
       const fresh = new FileStore(createDemoDatabase(), filePath);

@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'71d74ae12c8483b85d59fc2a9881c084d215c8cee01f21cd593bac36e042460e'>;
+  StorageHashBase<'62f816c462781c438ec1ebca72198d7f4674453753a600a75faa226a44238c1f'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -501,6 +501,7 @@ export namespace Models {
     kycCases: public_KycCase[];
     nextOfKin: public_NextOfKin[];
     nominationSets: public_NominationSet[];
+    offeringInterests: public_OfferingInterest[];
     resolutionEligibilities: public_ResolutionEligibility[];
     shareCertificates: public_ShareCertificate[];
     shareIssuances: public_ShareIssuance[];
@@ -514,6 +515,7 @@ export namespace Models {
       | 'kycCases'
       | 'nextOfKin'
       | 'nominationSets'
+      | 'offeringInterests'
       | 'resolutionEligibilities'
       | 'shareCertificates'
       | 'shareIssuances'
@@ -727,6 +729,7 @@ export namespace Models {
     allotmentBatches: public_AllotmentBatch[];
     documents: public_OfferingDocument[];
     financings: public_CompanyFinancing[];
+    interests: public_OfferingInterest[];
     issuer: public_Issuer;
     project: public_Project;
     shareCertificates: public_ShareCertificate[];
@@ -737,6 +740,7 @@ export namespace Models {
       | 'allotmentBatches'
       | 'documents'
       | 'financings'
+      | 'interests'
       | 'issuer'
       | 'project'
       | 'shareCertificates'
@@ -760,6 +764,23 @@ export namespace Models {
     acceptances: public_SubscriptionAcceptance[];
     offering: public_Offering;
     readonly [RelationKeys]?: 'acceptances' | 'offering';
+  };
+  export type public_OfferingInterest = {
+    createdAt: FieldOutputTypes['public']['OfferingInterest']['createdAt'];
+    id: FieldOutputTypes['public']['OfferingInterest']['id'];
+    intendedAmountMinor: FieldOutputTypes['public']['OfferingInterest']['intendedAmountMinor'];
+    intendedShareQuantity: FieldOutputTypes['public']['OfferingInterest']['intendedShareQuantity'];
+    investorProfileId: FieldOutputTypes['public']['OfferingInterest']['investorProfileId'];
+    offeringId: FieldOutputTypes['public']['OfferingInterest']['offeringId'];
+    remindAtOpen: FieldOutputTypes['public']['OfferingInterest']['remindAtOpen'];
+    remindedOpenAt: FieldOutputTypes['public']['OfferingInterest']['remindedOpenAt'];
+    remindedSoonAt: FieldOutputTypes['public']['OfferingInterest']['remindedSoonAt'];
+    status: FieldOutputTypes['public']['OfferingInterest']['status'];
+    updatedAt: FieldOutputTypes['public']['OfferingInterest']['updatedAt'];
+    userId: FieldOutputTypes['public']['OfferingInterest']['userId'];
+    investorProfile: public_InvestorProfile;
+    offering: public_Offering;
+    readonly [RelationKeys]?: 'investorProfile' | 'offering';
   };
   export type public_OfferingShareTerms = {
     createdAt: FieldOutputTypes['public']['OfferingShareTerms']['createdAt'];
@@ -1163,6 +1184,7 @@ export declare const models: {
     Notification: Models.public_Notification;
     Offering: Models.public_Offering;
     OfferingDocument: Models.public_OfferingDocument;
+    OfferingInterest: Models.public_OfferingInterest;
     OfferingShareTerms: Models.public_OfferingShareTerms;
     PaymentTransaction: Models.public_PaymentTransaction;
     PlatformState: Models.public_PlatformState;
@@ -3661,6 +3683,138 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly OfferingInterest: {
+              columns: {
+                readonly createdAt: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly id: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly intendedAmountMinor: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly intendedShareQuantity: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly investorProfileId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly offeringId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly remindAtOpen: {
+                  readonly dataType: 'pg/bool';
+                  readonly codecId: 'pg/bool@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly remindedOpenAt: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly remindedSoonAt: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly status: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly updatedAt: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly userId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [
+                { readonly columns: readonly ['offeringId', 'investorProfileId'] },
+              ];
+              indexes: readonly [
+                {
+                  readonly name: 'OfferingInterest_investorProfileId_idx_059731a2';
+                  readonly prefix: 'OfferingInterest_investorProfileId_idx';
+                  readonly columns: readonly ['investorProfileId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'OfferingInterest_offeringId_idx_55a2db3c';
+                  readonly prefix: 'OfferingInterest_offeringId_idx';
+                  readonly columns: readonly ['offeringId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'OfferingInterest_status_idx_e98638ab';
+                  readonly prefix: 'OfferingInterest_status_idx';
+                  readonly columns: readonly ['status'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'OfferingInterest_userId_idx_a489d58a';
+                  readonly prefix: 'OfferingInterest_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'OfferingInterest';
+                    readonly columns: readonly ['offeringId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Offering';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'OfferingInterest';
+                    readonly columns: readonly ['investorProfileId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'InvestorProfile';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly OfferingShareTerms: {
               columns: {
                 readonly createdAt: {
@@ -5939,6 +6093,10 @@ type ContractBase = Omit<
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'OfferingDocument';
     };
+    readonly OfferingInterest: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'OfferingInterest';
+    };
     readonly OfferingShareTerms: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'OfferingShareTerms';
@@ -7066,6 +7224,17 @@ type ContractBase = Omit<
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
                   readonly model: 'NominationSet';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['investorProfileId'];
+                };
+              };
+              readonly offeringInterests: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'OfferingInterest';
                 };
                 readonly cardinality: '1:N';
                 readonly on: {
@@ -8247,6 +8416,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['offeringId'];
                 };
               };
+              readonly interests: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'OfferingInterest';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['offeringId'];
+                };
+              };
               readonly issuer: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -8446,6 +8626,102 @@ type ContractBase = Omit<
                 readonly titleFr: { readonly column: 'titleFr' };
                 readonly version: { readonly column: 'version' };
                 readonly visibility: { readonly column: 'visibility' };
+              };
+            };
+          };
+          readonly OfferingInterest: {
+            readonly fields: {
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly intendedAmountMinor: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly intendedShareQuantity: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly investorProfileId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly offeringId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly remindAtOpen: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+              };
+              readonly remindedOpenAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly remindedSoonAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly investorProfile: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'InvestorProfile';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['investorProfileId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly offering: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Offering';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['offeringId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'OfferingInterest';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly id: { readonly column: 'id' };
+                readonly intendedAmountMinor: { readonly column: 'intendedAmountMinor' };
+                readonly intendedShareQuantity: { readonly column: 'intendedShareQuantity' };
+                readonly investorProfileId: { readonly column: 'investorProfileId' };
+                readonly offeringId: { readonly column: 'offeringId' };
+                readonly remindAtOpen: { readonly column: 'remindAtOpen' };
+                readonly remindedOpenAt: { readonly column: 'remindedOpenAt' };
+                readonly remindedSoonAt: { readonly column: 'remindedSoonAt' };
+                readonly status: { readonly column: 'status' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly userId: { readonly column: 'userId' };
               };
             };
           };

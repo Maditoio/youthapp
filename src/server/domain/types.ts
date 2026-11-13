@@ -1,7 +1,7 @@
 import type { Gender } from "@/lib/choices";
 
 export const DEMO_NOW = "2026-11-10T12:00:00.000Z";
-export const STORE_VERSION = 4;
+export const STORE_VERSION = 5;
 
 export type { Gender };
 
@@ -50,6 +50,24 @@ export type SubscriptionStatus =
   | "CANCELLED"
   | "REFUNDED"
   | "EXPIRED";
+
+/** Soft pre-open demand — not a subscription, payment, or allotment. */
+export type OfferingInterestStatus = "ACTIVE" | "WITHDRAWN" | "CONVERTED" | "EXPIRED";
+
+export interface OfferingInterest {
+  id: string;
+  offeringId: string;
+  investorProfileId: string;
+  userId: string;
+  intendedAmountMinor: number;
+  intendedShareQuantity: number;
+  remindAtOpen: boolean;
+  remindedSoonAt: string | null;
+  remindedOpenAt: string | null;
+  status: OfferingInterestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type InheritanceStatus =
   | "REPORTED"
@@ -739,6 +757,7 @@ export interface Database {
   offeringShareTerms: OfferingShareTerms[];
   offeringDocuments: OfferingDocument[];
   subscriptions: Subscription[];
+  offeringInterests: OfferingInterest[];
   subscriptionAcceptances: SubscriptionAcceptance[];
   payments: PaymentTransaction[];
   refunds: Refund[];

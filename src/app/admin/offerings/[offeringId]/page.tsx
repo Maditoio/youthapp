@@ -4,7 +4,9 @@ import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal
 import { offeringTransitionAction } from "@/server/actions";
 import { errorCopy } from "@/server/domain/errors";
 import { OFFERING_TRANSITIONS } from "@/server/domain/finance";
+import { interestDemand } from "@/server/domain/mutate";
 import { getSession } from "@/server/auth/session";
+import { formatMoney } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -28,6 +30,17 @@ export default async function OfferingAdmin({
   if (!offering) notFound();
   const project = session.db.projects.find((item) => item.id === offering.projectId);
   const next = OFFERING_TRANSITIONS[offering.status];
+  const demand = interestDemand(session.db, offering.id);
+  const interests = session.db.offeringInterests
+    .filter((item) => item.offeringId === offering.id && item.status === "ACTIVE")
+    .map((item) => {
+      const profile = session.db.investorProfiles.find((row) => row.id === item.investorProfileId);
+      return { item, profile };
+    });
+  const fillPct =
+    offering.minimumRaiseMinor > 0
+      ? Math.min(999, Math.round((demand.amountMinor / offering.minimumRaiseMinor) * 100))
+      : 0;
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -54,6 +67,37 @@ export default async function OfferingAdmin({
       {next.length === 0 ? (
         <p className="text-sm text-muted">{tx(locale, "Aucune transition disponible.", "No transitions available.")}</p>
       ) : null}
+
+      <section className="rounded-[28px] bg-white p-5">
+        <h2 className="text-lg font-bold">{tx(locale, "Demande indicative (EOI)", "Indicative demand (EOI)")}</h2>
+        <p className="mt-2 text-sm text-muted">
+          {demand.count} {tx(locale, "intérêt(s) actifs", "active interest(s)")} ·{" "}
+          {formatMoney(demand.amountMinor, offering.currencyCode, locale)} · {demand.shareQuantity}{" "}
+          {tx(locale, "actions", "shares")} · {fillPct}%{" "}
+          {tx(locale, "du minimum", "of minimum")} (
+          {formatMoney(offering.minimumRaiseMinor, offering.currencyCode, locale)})
+        </p>
+        {interests.length > 0 ? (
+          <ul className="mt-3 space-y-2 text-sm">
+            {interests.map(({ item, profile }) => (
+              <li key={item.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2">
+                <span>
+                  {profile
+                    ? `${profile.legalFirstName} ${profile.legalLastName} · ${profile.investorNumber}`
+                    : item.userId}
+                </span>
+                <span className="text-muted">
+                  {formatMoney(item.intendedAmountMinor, offering.currencyCode, locale)} ·{" "}
+                  {item.intendedShareQuantity} {tx(locale, "act.", "sh.")}
+                  {item.remindAtOpen ? ` · ${tx(locale, "rappel", "remind")}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-muted">{tx(locale, "Aucun intérêt pour l'instant.", "No interest yet.")}</p>
+        )}
+      </section>
 
       <SearchParamModal
         param="modal"

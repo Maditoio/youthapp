@@ -112,6 +112,10 @@
       "model": "OfferingDocument",
       "namespace": "public"
     },
+    "OfferingInterest": {
+      "model": "OfferingInterest",
+      "namespace": "public"
+    },
     "OfferingShareTerms": {
       "model": "OfferingShareTerms",
       "namespace": "public"
@@ -1962,6 +1966,21 @@
                 },
                 "to": {
                   "model": "NominationSet",
+                  "namespace": "public"
+                }
+              },
+              "offeringInterests": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "investorProfileId"
+                  ]
+                },
+                "to": {
+                  "model": "OfferingInterest",
                   "namespace": "public"
                 }
               },
@@ -3929,6 +3948,21 @@
                   "namespace": "public"
                 }
               },
+              "interests": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "offeringId"
+                  ]
+                },
+                "to": {
+                  "model": "OfferingInterest",
+                  "namespace": "public"
+                }
+              },
               "issuer": {
                 "cardinality": "N:1",
                 "nullable": false,
@@ -4283,6 +4317,170 @@
               },
               "namespaceId": "public",
               "table": "OfferingDocument"
+            }
+          },
+          "OfferingInterest": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "intendedAmountMinor": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "intendedShareQuantity": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "investorProfileId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "offeringId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "remindAtOpen": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "remindedOpenAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "remindedSoonAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "investorProfile": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "investorProfileId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "InvestorProfile",
+                  "namespace": "public"
+                }
+              },
+              "offering": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "offeringId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Offering",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "intendedAmountMinor": {
+                  "column": "intendedAmountMinor"
+                },
+                "intendedShareQuantity": {
+                  "column": "intendedShareQuantity"
+                },
+                "investorProfileId": {
+                  "column": "investorProfileId"
+                },
+                "offeringId": {
+                  "column": "offeringId"
+                },
+                "remindAtOpen": {
+                  "column": "remindAtOpen"
+                },
+                "remindedOpenAt": {
+                  "column": "remindedOpenAt"
+                },
+                "remindedSoonAt": {
+                  "column": "remindedSoonAt"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "OfferingInterest"
             }
           },
           "OfferingShareTerms": {
@@ -10360,6 +10558,159 @@
               },
               "uniques": []
             },
+            "OfferingInterest": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "intendedAmountMinor": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": false
+                },
+                "intendedShareQuantity": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": false
+                },
+                "investorProfileId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "offeringId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "remindAtOpen": {
+                  "codecId": "pg/bool@1",
+                  "dataType": "pg/bool",
+                  "nullable": false
+                },
+                "remindedOpenAt": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "remindedSoonAt": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "OfferingInterest_offeringId_idx_55a2db3c"
+                  },
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "offeringId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "OfferingInterest"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Offering"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "OfferingInterest_investorProfileId_idx_059731a2"
+                  },
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "investorProfileId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "OfferingInterest"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "InvestorProfile"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "investorProfileId"
+                  ],
+                  "name": "OfferingInterest_investorProfileId_idx_059731a2",
+                  "prefix": "OfferingInterest_investorProfileId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "offeringId"
+                  ],
+                  "name": "OfferingInterest_offeringId_idx_55a2db3c",
+                  "prefix": "OfferingInterest_offeringId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "OfferingInterest_status_idx_e98638ab",
+                  "prefix": "OfferingInterest_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "OfferingInterest_userId_idx_a489d58a",
+                  "prefix": "OfferingInterest_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "offeringId",
+                    "investorProfileId"
+                  ]
+                }
+              ]
+            },
             "OfferingShareTerms": {
               "columns": {
                 "createdAt": {
@@ -12863,7 +13214,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "71d74ae12c8483b85d59fc2a9881c084d215c8cee01f21cd593bac36e042460e"
+    "storageHash": "62f816c462781c438ec1ebca72198d7f4674453753a600a75faa226a44238c1f"
   },
   "capabilities": {
     "postgres": {

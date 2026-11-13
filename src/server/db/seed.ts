@@ -86,6 +86,7 @@ export function createEmptyDatabase(clock = new Date().toISOString()): Database 
     offeringShareTerms: [],
     offeringDocuments: [],
     subscriptions: [],
+    offeringInterests: [],
     subscriptionAcceptances: [],
     payments: [],
     refunds: [],
@@ -484,6 +485,7 @@ export function createDemoDatabase(): Database {
       sub(ids.subJean, ids.profileJean, 20, 50_000, "PAID_AWAITING_CLOSING", "2026-08-18T10:00:00.000Z"),
       sub(ids.subPatrick, ids.profilePatrick, 10, 25_000, "PENDING_PAYMENT", "2026-11-01T10:00:00.000Z"),
     ],
+    offeringInterests: [],
     subscriptionAcceptances: [ids.subAmina1, ids.subAmina2, ids.subJean, ids.subPatrick].flatMap((subscriptionId) =>
       [ids.docMemo, ids.docAgree, ids.docRisk].map((documentId) => ({
         id: `acc-${subscriptionId}-${documentId}`,

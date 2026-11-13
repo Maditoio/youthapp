@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { OfferingCountdown } from "@/components/offering-countdown";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { StatusPill } from "@/components/visuals";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -7,6 +8,7 @@ import { getLocale } from "@/lib/i18n/get-dictionary";
 import { tx } from "@/lib/i18n/tx";
 import { getStore } from "@/server/db/store";
 import { fundingProgress } from "@/server/domain/finance";
+import { interestDemand } from "@/server/domain/mutate";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +24,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const shareClass = db.shareClasses.find((item) => item.id === terms.shareClassId)!;
   const docs = db.offeringDocuments.filter((item) => item.offeringId === offering.id && item.visibility === "PUBLIC");
   const progress = fundingProgress(db, offering.id);
+  const demand = interestDemand(db, offering.id);
   const updates = db.projectUpdates.filter((item) => item.projectId === project.id && item.approvalStatus === "APPROVED");
   const t = (fr: string, en: string) => tx(locale, fr, en);
+  const upcoming =
+    offering.status === "SCHEDULED" ||
+    offering.status === "APPROVED" ||
+    (offering.status === "OPEN" && Date.parse(offering.opensAt) > Date.now());
+  const ctaHref = `/investor/offers/${offering.id}`;
+  const ctaLabel = upcoming
+    ? t("Manifester un intérêt", "Express interest")
+    : t("Voir la souscription", "View subscription");
 
   return (
     <div>
@@ -57,18 +68,36 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             ))}
           </ul>
         </section>
-        <section className="rounded-[28px] bg-violet p-5 text-white">
-          <h2 className="text-xl font-bold">{t("Progression, séparée", "Progress, kept separate")}</h2>
-          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-            <Stat label={t("Initiées", "Initiated")} value={formatMoney(progress.initiatedMinor, offering.currencyCode, locale)} />
-            <Stat label={t("Paiements confirmés", "Confirmed payments")} value={formatMoney(progress.confirmedMinor, offering.currencyCode, locale)} />
-            <Stat label={t("Réglés", "Settled")} value={formatMoney(progress.settledMinor, offering.currencyCode, locale)} />
-            <Stat label={t("Actions allouées", "Shares allotted")} value={formatMoney(progress.allottedMinor, offering.currencyCode, locale)} />
-          </dl>
-          <p className="mt-3 text-xs text-white/80">
-            {t("Objectif maximum", "Maximum target")} {formatMoney(offering.maximumRaiseMinor, offering.currencyCode, locale)} · {t("minimum", "minimum")} {formatMoney(offering.minimumRaiseMinor, offering.currencyCode, locale)}. {t("Ces chiffres ne sont pas additionnés en un seul « montant levé ».", "These figures are not combined into one “raised” number.")}
-          </p>
-        </section>
+        {upcoming ? (
+          <section className="space-y-3 rounded-[28px] bg-white p-5">
+            <h2 className="text-xl font-bold">{t("Bientôt ouvert", "Opening soon")}</h2>
+            <p className="text-sm text-muted">
+              {t("Ouverture", "Opens")} {formatDate(offering.opensAt, locale)} · {t("clôture", "closes")}{" "}
+              {formatDate(offering.closesAt, locale)}.
+            </p>
+            {Date.parse(offering.opensAt) > Date.now() ? (
+              <OfferingCountdown locale={locale} opensAt={offering.opensAt} />
+            ) : null}
+            <p className="text-sm">
+              {t("Demande indicative", "Indicative demand")}: {demand.count}{" "}
+              {t("investisseur(s)", "investor(s)")} · {formatMoney(demand.amountMinor, offering.currencyCode, locale)}{" "}
+              / {formatMoney(offering.minimumRaiseMinor, offering.currencyCode, locale)} {t("min", "min")}
+            </p>
+          </section>
+        ) : (
+          <section className="rounded-[28px] bg-violet p-5 text-white">
+            <h2 className="text-xl font-bold">{t("Progression, séparée", "Progress, kept separate")}</h2>
+            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <Stat label={t("Initiées", "Initiated")} value={formatMoney(progress.initiatedMinor, offering.currencyCode, locale)} />
+              <Stat label={t("Paiements confirmés", "Confirmed payments")} value={formatMoney(progress.confirmedMinor, offering.currencyCode, locale)} />
+              <Stat label={t("Réglés", "Settled")} value={formatMoney(progress.settledMinor, offering.currencyCode, locale)} />
+              <Stat label={t("Actions allouées", "Shares allotted")} value={formatMoney(progress.allottedMinor, offering.currencyCode, locale)} />
+            </dl>
+            <p className="mt-3 text-xs text-white/80">
+              {t("Objectif maximum", "Maximum target")} {formatMoney(offering.maximumRaiseMinor, offering.currencyCode, locale)} · {t("minimum", "minimum")} {formatMoney(offering.minimumRaiseMinor, offering.currencyCode, locale)}. {t("Ces chiffres ne sont pas additionnés en un seul « montant levé ».", "These figures are not combined into one “raised” number.")}
+            </p>
+          </section>
+        )}
         <section className="rounded-[28px] bg-white p-5 text-sm leading-6">
           <h2 className="text-xl font-bold">{t("Termes de l'offre", "Offering terms")}</h2>
           <p className="mt-2">{t("Classe", "Class")} {shareClass.className} ({shareClass.classCode}). {t(shareClass.votingRightsFr, shareClass.votingRightsEn)}</p>
@@ -123,8 +152,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             ))}
           </section>
         ) : null}
-        <Link href={`/investor/offers/${offering.id}`} className="inline-flex rounded-full bg-violet px-5 py-3 font-semibold text-white">
-          {t("Voir la souscription", "View subscription")}
+        <Link href={ctaHref} className="inline-flex rounded-full bg-violet px-5 py-3 font-semibold text-white">
+          {ctaLabel}
         </Link>
       </main>
       <SiteFooter locale={locale} />

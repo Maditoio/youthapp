@@ -84,6 +84,7 @@ model InvestorProfile {
   updatedAt           String
   kycCases            KycCase[]
   subscriptions       Subscription[]
+  offeringInterests   OfferingInterest[]
   shareIssuances      ShareIssuance[]
   shareholdingEvents  ShareholdingEvent[]
   shareCertificates   ShareCertificate[]
@@ -298,6 +299,7 @@ model Offering {
   shareTerms               OfferingShareTerms[]
   documents                OfferingDocument[]
   subscriptions            Subscription[]
+  interests                OfferingInterest[]
   financings               CompanyFinancing[]
   allotmentBatches         AllotmentBatch[]
   shareIssuances           ShareIssuance[]
@@ -305,6 +307,30 @@ model Offering {
 
   @@index([projectId])
   @@index([issuerId])
+  @@index([status])
+}
+
+/// Soft expression of interest before an offering opens (no payment / allotment).
+model OfferingInterest {
+  id                    String          @id
+  offeringId            String
+  offering              Offering        @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+  investorProfileId     String
+  investorProfile       InvestorProfile @relation(fields: [investorProfileId], references: [id], onDelete: Cascade)
+  userId                String
+  intendedAmountMinor   Int
+  intendedShareQuantity Int
+  remindAtOpen          Boolean
+  remindedSoonAt        String?
+  remindedOpenAt        String?
+  status                String
+  createdAt             String
+  updatedAt             String
+
+  @@unique([offeringId, investorProfileId])
+  @@index([offeringId])
+  @@index([investorProfileId])
+  @@index([userId])
   @@index([status])
 }
 

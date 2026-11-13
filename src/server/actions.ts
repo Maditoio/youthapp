@@ -21,8 +21,11 @@ import {
   createDraftProject,
   createIssuer,
   createStaffMember,
+  createOrUpdateInterest,
   createSubscription,
   createTicket,
+  processDueOfferingReminders,
+  withdrawInterest,
   completeInvestorOnboarding,
   isInvestorOnboardingComplete,
   linkOrCreateClerk,
@@ -444,6 +447,42 @@ export async function subscribeAction(_prev: ActionState, formData: FormData): P
     if (isRedirect(error)) throw error;
     return fail(error);
   }
+}
+
+export async function expressInterestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { error: "FORBIDDEN" };
+  const amountMinor = parseMajorToMinor(String(formData.get("amount") ?? ""));
+  if (amountMinor === null) return { error: "AMOUNT_INVALID" };
+  const offeringId = String(formData.get("offeringId") ?? "");
+  try {
+    await (await getStore()).update((db) =>
+      createOrUpdateInterest(db, session.user.id, {
+        offeringId,
+        amountMinor,
+        remindAtOpen: formData.get("remind") === "on",
+      }),
+    );
+    redirect(withNotice(`/investor/offers/${offeringId}`, "INTEREST_SAVED"));
+  } catch (error) {
+    if (isRedirect(error)) throw error;
+    return fail(error);
+  }
+}
+
+export async function withdrawInterestAction(formData: FormData) {
+  const session = await getSession();
+  if (!session) redirect("/sign-in");
+  const offeringId = String(formData.get("offeringId") ?? "");
+  await attempt(`/investor/offers/${offeringId}`, async () =>
+    (await getStore()).update((db) => withdrawInterest(db, session.user.id, String(formData.get("id") ?? ""))),
+  );
+  redirect(withNotice(`/investor/offers/${offeringId}`, "INTEREST_WITHDRAWN"));
+}
+
+/** Idempotent reminder sweep — used by cron and offer pages. */
+export async function runOfferingReminderSweep(): Promise<number> {
+  return (await getStore()).update((db) => processDueOfferingReminders(db));
 }
 
 export async function cancelSubAction(formData: FormData) {

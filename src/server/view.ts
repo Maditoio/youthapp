@@ -73,8 +73,12 @@ export function publicProjects(db: Database) {
     .filter((project) => project.status === "PUBLISHED")
     .map((project) => {
       const issuer = db.issuers.find((item) => item.id === project.issuerId)!;
-      const offering = db.offerings.find((item) => item.projectId === project.id && item.status === "OPEN");
-      const progress = offering ? fundingProgress(db, offering.id) : null;
+      const offering = db.offerings.find(
+        (item) =>
+          item.projectId === project.id &&
+          (item.status === "OPEN" || item.status === "SCHEDULED" || item.status === "APPROVED"),
+      );
+      const progress = offering && offering.status === "OPEN" ? fundingProgress(db, offering.id) : null;
       const terms = offering ? db.offeringShareTerms.find((item) => item.offeringId === offering.id) : undefined;
       return { project, issuer, offering, progress, terms };
     })

@@ -51,6 +51,11 @@ export const INHERITANCE_NEXT: Record<InheritanceStatus, InheritanceStatus[]> = 
 };
 
 export function now(db: Database): string {
+  // Production uses wall clock so edited opensAt/closesAt behave as operators expect.
+  // Demo keeps the scenario clock (PlatformState / DEMO_NOW).
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "false") {
+    return new Date().toISOString();
+  }
   return db.clock || DEMO_NOW;
 }
 
@@ -1445,8 +1450,10 @@ export function eligibilityErrors(db: Database, userId: string, offeringId: stri
   if (!user.emailVerifiedAt) errors.push("EMAIL_UNVERIFIED");
   if (!user.phone || !profile.countryOfResidence) errors.push("PROFILE_INCOMPLETE");
   if (profile.onboardingStatus !== "APPROVED") errors.push("KYC_REQUIRED");
-  if (offering.status !== "OPEN") errors.push("OFFERING_UNAVAILABLE");
-  if (now(db) < offering.opensAt || now(db) > offering.closesAt) errors.push("OFFERING_UNAVAILABLE");
+  const at = now(db);
+  if (offering.status !== "OPEN") errors.push("OFFERING_NOT_OPEN");
+  else if (at < offering.opensAt) errors.push("OFFERING_NOT_STARTED");
+  else if (at > offering.closesAt) errors.push("OFFERING_CLOSED");
   if (profile.countryOfResidence && !offering.permittedCountries.includes(profile.countryOfResidence)) {
     errors.push("JURISDICTION_BLOCKED");
   }
@@ -1510,6 +1517,7 @@ export function createSubscription(
   const at = now(db);
   const id = uid();
   const holdingsBefore = db.shareholdingEvents.length;
+  markInterestConverted(db, profile.id, offering.id);
   db.subscriptions.push({
     id,
     investorProfileId: profile.id,
@@ -1877,6 +1885,227 @@ export function transitionOffering(
   offering.status = to;
   offering.updatedAt = now(db);
   audit(db, actorId, `offering.${to.toLowerCase()}`, "offering", offering.id, reason);
+  if (to === "OPEN") {
+    notifyOfferingOpened(db, offering.id);
+  }
+}
+
+const INTEREST_STATUSES = new Set(["APPROVED", "SCHEDULED", "PAUSED"]);
+
+export function canExpressInterest(db: Database, offeringId: string): boolean {
+  const offering = db.offerings.find((item) => item.id === offeringId);
+  if (!offering) return false;
+  if (offering.status === "OPEN" && now(db) >= offering.opensAt && now(db) <= offering.closesAt) {
+    return false;
+  }
+  return INTEREST_STATUSES.has(offering.status) || (offering.status === "OPEN" && now(db) < offering.opensAt);
+}
+
+export function interestDemand(db: Database, offeringId: string) {
+  const active = db.offeringInterests.filter(
+    (item) => item.offeringId === offeringId && item.status === "ACTIVE",
+  );
+  return {
+    count: active.length,
+    amountMinor: active.reduce((sum, item) => sum + item.intendedAmountMinor, 0),
+    shareQuantity: active.reduce((sum, item) => sum + item.intendedShareQuantity, 0),
+  };
+}
+
+export function createOrUpdateInterest(
+  db: Database,
+  userId: string,
+  input: {
+    offeringId: string;
+    amountMinor: number;
+    remindAtOpen?: boolean;
+  },
+): string {
+  const user = requireUser(db, userId);
+  const profile = db.investorProfiles.find((item) => item.userId === userId);
+  assert(profile, "NOT_FOUND");
+  const offering = db.offerings.find((item) => item.id === input.offeringId);
+  assert(offering, "NOT_FOUND");
+  assert(canExpressInterest(db, offering.id), "INTEREST_UNAVAILABLE");
+  if (!user.emailVerifiedAt) throw new AppError("EMAIL_UNVERIFIED");
+  if (profile.onboardingStatus !== "APPROVED") throw new AppError("KYC_REQUIRED");
+  const terms = db.offeringShareTerms.find((item) => item.offeringId === offering.id);
+  assert(terms, "NOT_FOUND");
+  const quote = quoteSubscription({
+    amountMinor: input.amountMinor,
+    issuePriceMinor: terms.issuePriceMinor,
+    fractionalSharesAllowed: terms.fractionalSharesAllowed,
+    minimumSubscriptionMinor: offering.minimumSubscriptionMinor,
+    maximumSubscriptionMinor: offering.maximumSubscriptionMinor,
+    minimumShares: terms.minimumSharesPerInvestor,
+    maximumShares: terms.maximumSharesPerInvestor,
+    feeMinor: offering.feeMinor,
+  });
+  if (!quote.ok) throw new AppError(quote.error);
+
+  const at = now(db);
+  const existing = db.offeringInterests.find(
+    (item) =>
+      item.offeringId === offering.id &&
+      item.investorProfileId === profile.id &&
+      item.status === "ACTIVE",
+  );
+  if (existing) {
+    existing.intendedAmountMinor = quote.grossMinor;
+    existing.intendedShareQuantity = quote.shareQuantity;
+    existing.remindAtOpen = input.remindAtOpen !== false;
+    existing.updatedAt = at;
+    audit(db, userId, "offering.interest_update", "offering", offering.id, `${quote.grossMinor}`);
+    return existing.id;
+  }
+
+  const id = uid();
+  db.offeringInterests.push({
+    id,
+    offeringId: offering.id,
+    investorProfileId: profile.id,
+    userId: user.id,
+    intendedAmountMinor: quote.grossMinor,
+    intendedShareQuantity: quote.shareQuantity,
+    remindAtOpen: input.remindAtOpen !== false,
+    remindedSoonAt: null,
+    remindedOpenAt: null,
+    status: "ACTIVE",
+    createdAt: at,
+    updatedAt: at,
+  });
+  audit(db, userId, "offering.interest_create", "offering", offering.id, `${quote.grossMinor}`);
+  const project = db.projects.find((item) => item.id === offering.projectId);
+  notify(
+    db,
+    user.id,
+    "offering.interest_saved",
+    "Intérêt enregistré",
+    "Interest saved",
+    project
+      ? `Nous vous préviendrons à l'ouverture de « ${project.titleFr} ».`
+      : "Nous vous préviendrons à l'ouverture de l'offre.",
+    project
+      ? `We will remind you when “${project.titleEn}” opens.`
+      : "We will remind you when the offering opens.",
+  );
+  return id;
+}
+
+export function withdrawInterest(db: Database, userId: string, interestId: string): void {
+  requireUser(db, userId);
+  const item = db.offeringInterests.find((row) => row.id === interestId && row.userId === userId);
+  assert(item, "NOT_FOUND");
+  assert(item.status === "ACTIVE", "INVALID_STATE");
+  item.status = "WITHDRAWN";
+  item.updatedAt = now(db);
+  audit(db, userId, "offering.interest_withdraw", "offering", item.offeringId, undefined);
+}
+
+/** Mark interest converted when the investor creates a real subscription. */
+export function markInterestConverted(db: Database, profileId: string, offeringId: string): void {
+  const item = db.offeringInterests.find(
+    (row) => row.investorProfileId === profileId && row.offeringId === offeringId && row.status === "ACTIVE",
+  );
+  if (!item) return;
+  item.status = "CONVERTED";
+  item.updatedAt = now(db);
+}
+
+function notifyOfferingOpened(db: Database, offeringId: string): void {
+  const offering = db.offerings.find((item) => item.id === offeringId);
+  if (!offering) return;
+  const project = db.projects.find((item) => item.id === offering.projectId);
+  const at = now(db);
+  const titleFr = "L'offre est ouverte";
+  const titleEn = "The offering is open";
+  const bodyFr = project
+    ? `« ${project.titleFr} » accepte maintenant les souscriptions.`
+    : "L'offre accepte maintenant les souscriptions.";
+  const bodyEn = project
+    ? `“${project.titleEn}” is now accepting subscriptions.`
+    : "The offering is now accepting subscriptions.";
+  for (const interest of db.offeringInterests) {
+    if (interest.offeringId !== offeringId || interest.status !== "ACTIVE") continue;
+    if (!interest.remindAtOpen) continue;
+    if (interest.remindedOpenAt) continue;
+    notify(db, interest.userId, "offering.opened", titleFr, titleEn, bodyFr, bodyEn);
+    interest.remindedOpenAt = at;
+    interest.updatedAt = at;
+  }
+}
+
+const SOON_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Sends "opens soon" and "now open" in-app reminders for ACTIVE interests.
+ * Safe to call on cron / page load; idempotent via reminded* stamps.
+ */
+export function processDueOfferingReminders(db: Database): number {
+  const at = now(db);
+  const atMs = Date.parse(at);
+  if (!Number.isFinite(atMs)) return 0;
+  let sent = 0;
+  for (const offering of db.offerings) {
+    const opensMs = Date.parse(offering.opensAt);
+    if (!Number.isFinite(opensMs)) continue;
+    const project = db.projects.find((item) => item.id === offering.projectId);
+    const interests = db.offeringInterests.filter(
+      (item) => item.offeringId === offering.id && item.status === "ACTIVE" && item.remindAtOpen,
+    );
+    if (!interests.length) continue;
+
+    const openForSubs =
+      offering.status === "OPEN" && at >= offering.opensAt && at <= offering.closesAt;
+
+    for (const interest of interests) {
+      if (openForSubs && !interest.remindedOpenAt) {
+        notify(
+          db,
+          interest.userId,
+          "offering.opened",
+          "L'offre est ouverte",
+          "The offering is open",
+          project
+            ? `« ${project.titleFr} » accepte maintenant les souscriptions. Votre intention : ${(interest.intendedAmountMinor / 100).toFixed(2)} USD.`
+            : "L'offre accepte maintenant les souscriptions.",
+          project
+            ? `“${project.titleEn}” is now accepting subscriptions. Your indicated amount: USD ${(interest.intendedAmountMinor / 100).toFixed(2)}.`
+            : "The offering is now accepting subscriptions.",
+        );
+        interest.remindedOpenAt = at;
+        interest.updatedAt = at;
+        sent += 1;
+        continue;
+      }
+
+      if (
+        !interest.remindedSoonAt &&
+        !openForSubs &&
+        ["APPROVED", "SCHEDULED", "OPEN"].includes(offering.status) &&
+        opensMs > atMs &&
+        opensMs - atMs <= SOON_MS
+      ) {
+        notify(
+          db,
+          interest.userId,
+          "offering.opens_soon",
+          "Ouverture imminente",
+          "Opening soon",
+          project
+            ? `« ${project.titleFr} » ouvre bientôt. Préparez votre souscription.`
+            : "L'offre ouvre bientôt. Préparez votre souscription.",
+          project
+            ? `“${project.titleEn}” opens soon. Get ready to subscribe.`
+            : "The offering opens soon. Get ready to subscribe.",
+        );
+        interest.remindedSoonAt = at;
+        interest.updatedAt = at;
+        sent += 1;
+      }
+    }
+  }
+  return sent;
 }
 
 function ensureOrdinaryShareClass(db: Database, issuerId: string, at: string): string {
