@@ -72,11 +72,11 @@ export function ClerkBindClient({ locale }: { locale: AppLocale }) {
         >
           {tx(locale, "Réessayer", "Try again")}
         </Button>
-        <SignOutButton className="text-sm font-semibold text-violet">
+        <SignOutButton className="text-sm font-semibold text-link">
           {tx(locale, "Se déconnecter et recommencer", "Sign out and start over")}
         </SignOutButton>
         <p className="text-xs text-muted">
-          <Link href="/sign-in" className="font-semibold text-violet">
+          <Link href="/sign-in" className="font-semibold text-link">
             {tx(locale, "Retour à la connexion", "Back to sign in")}
           </Link>
         </p>

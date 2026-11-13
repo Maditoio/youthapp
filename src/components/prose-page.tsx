@@ -21,7 +21,7 @@ export function ProsePage({
         <h1 className="text-4xl font-bold">{title}</h1>
         <div className="mt-6 space-y-4 text-sm leading-7 text-ink">{children}</div>
         <p className="mt-8 text-sm">
-          <Link href="/projects" className="font-semibold text-violet">
+          <Link href="/projects" className="font-semibold text-link">
             {locale === "fr" ? "Voir les projets" : "See projects"}
           </Link>
         </p>

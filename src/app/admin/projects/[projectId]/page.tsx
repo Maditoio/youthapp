@@ -41,7 +41,7 @@ function statusTone(status: string): string {
     status === "PAUSED" ||
     status === "ALLOTMENT_PENDING"
   ) {
-    return "bg-lilac text-violet";
+    return "accent-chip";
   }
   if (status === "CANCELLED" || status === "FAILED_TO_REACH_MINIMUM") {
     return "bg-danger/12 text-danger";

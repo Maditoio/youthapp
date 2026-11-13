@@ -88,7 +88,7 @@ export function KycStatusCard({
           {tx(locale, "Consultez la vérification pour les pièces demandées.", "Open verification for the requested documents.")}
         </p>
       ) : null}
-      <Link href={href} className="mt-4 inline-block text-sm font-semibold text-violet">
+      <Link href={href} className="mt-4 inline-block text-sm font-semibold text-link">
         {cta}
       </Link>
     </article>
@@ -106,7 +106,7 @@ export function RequestedDocumentsPanel({
   const parsed = parseKycReviewNotes(kyc.reviewNotes);
   const reason = kycReasonLabel(locale, "ADDITIONAL_INFORMATION_REQUIRED", kyc.reasonCode);
   return (
-    <section className="min-w-0 overflow-hidden rounded-[28px] bg-lilac/60 p-4">
+    <section className="min-w-0 overflow-hidden rounded-[28px] border border-border bg-white p-4">
       <h2 className="text-base font-bold leading-snug">
         {tx(locale, "Documents demandés", "Requested documents")}
       </h2>

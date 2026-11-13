@@ -52,7 +52,7 @@ export function SettingsPreferences({ locale, returnTo, children }: SettingsPref
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-2xl border px-3 py-4 text-sm font-semibold transition-colors",
                   selected
-                    ? "border-violet bg-lilac text-violet"
+                    ? "border-violet bg-surface-muted text-ink"
                     : "border-border bg-surface text-ink hover:bg-surface-muted",
                 )}
               >

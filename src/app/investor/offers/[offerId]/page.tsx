@@ -97,7 +97,7 @@ export default async function OfferPage({ params }: { params: Promise<{ offerId:
             {blockers.some(
               (code) => code === "KYC_REQUIRED" || code === "PROFILE_INCOMPLETE" || code === "EMAIL_UNVERIFIED",
             ) ? (
-              <Link href="/investor/onboarding" className="mt-3 inline-block font-semibold text-violet">
+              <Link href="/investor/onboarding" className="mt-3 inline-block font-semibold text-link">
                 {tx(locale, "Compléter le dossier", "Complete the file")}
               </Link>
             ) : null}

@@ -3,15 +3,18 @@ import { cn } from "@/lib/utils";
 
 export function Logo({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-2 font-extrabold tracking-tight", light ? "text-white" : "text-violet")}>
+    <span className={cn("inline-flex items-center gap-2 font-extrabold tracking-tight", light ? "text-white" : "text-ink")}>
       <span
         className={cn(
-          "grid h-9 w-9 place-items-center rounded-2xl",
+          "relative grid h-9 w-9 place-items-center rounded-2xl",
           light ? "bg-white/20" : "bg-violet text-white",
         )}
         aria-hidden
       >
         <span className="h-3.5 w-3.5 rounded-md bg-white" />
+        {!light ? (
+          <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-gold" />
+        ) : null}
       </span>
       {compact ? null : <span className="text-lg tracking-wide">JEUNESE</span>}
     </span>
@@ -83,13 +86,21 @@ export function OwnershipArt() {
   );
 }
 
-export function StatusPill({ children, tone = "violet" }: { children: ReactNode; tone?: "violet" | "green" | "amber" | "red" | "slate" }) {
+export function StatusPill({
+  children,
+  tone = "slate",
+}: {
+  children: ReactNode;
+  tone?: "violet" | "green" | "amber" | "red" | "slate" | "gold" | "pink";
+}) {
   const tones = {
-    violet: "bg-lilac text-violet",
-    green: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
-    red: "bg-rose-50 text-rose-700",
-    slate: "bg-slate-100 text-slate-600",
+    violet: "bg-lilac text-violet-ink",
+    green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+    amber: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
+    red: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300",
+    slate: "bg-surface-muted text-muted",
+    gold: "accent-chip",
+    pink: "accent-chip-soft",
   };
   return <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", tones[tone])}>{children}</span>;
 }

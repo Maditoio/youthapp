@@ -30,10 +30,10 @@ export default async function InvestorHomePage() {
 
   return (
     <div>
-      <section className="bg-gradient-to-b from-[#d9ccff] to-canvas px-4 pb-4 pt-5 md:hidden">
+      <section className="bg-gradient-to-b from-surface-muted to-canvas px-4 pb-4 pt-5 md:hidden">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-full bg-violet text-lg font-bold text-white">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-ink text-lg font-bold text-white">
               {snap.user.legalFirstName.slice(0, 1)}
             </span>
             <div>
@@ -43,21 +43,24 @@ export default async function InvestorHomePage() {
               <p className="text-sm text-muted">{tx(locale, "Bienvenue sur Jeunese", "Welcome back to Jeunese")}</p>
             </div>
           </div>
-          <Link href="/investor/notifications" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-violet shadow-sm" aria-label={tx(locale, "Notifications", "Notifications")}>
+          <Link href="/investor/notifications" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-ink shadow-sm" aria-label={tx(locale, "Notifications", "Notifications")}>
             <Bell className="h-5 w-5" />
             {unread > 0 ? <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-pink" /> : null}
           </Link>
         </div>
-        <div className="rounded-[28px] bg-gradient-to-br from-[#7a5cff] to-[#6d4dff] p-5 text-white shadow-[var(--shadow-card)]">
-          <p className="text-sm text-white/80">{tx(locale, "Capital confirmé", "Confirmed capital")}</p>
-          <p className="mt-2 text-4xl font-bold tracking-tight">{formatMoney(snap.confirmedMinor, "USD", locale)}</p>
-          <p className="mt-3 text-sm text-white/80">
+        <div className="rounded-[28px] border border-border bg-white p-5 shadow-[var(--shadow-card)]">
+          <p className="text-sm text-muted">{tx(locale, "Capital confirmé", "Confirmed capital")}</p>
+          <p className="mt-2 text-4xl font-bold tracking-tight text-ink">{formatMoney(snap.confirmedMinor, "USD", locale)}</p>
+          <p className="mt-3 text-sm text-muted">
             {snap.shareCount} {tx(locale, "actions dans", "shares in")} {snap.issuerCount}{" "}
             {tx(locale, "émetteur", "issuer")}
           </p>
-          <p className="mt-2 text-xs text-white/70">
+          <p className="mt-2 text-xs text-muted">
             {tx(locale, "Somme des souscriptions allouées. Ce n'est pas une valeur de revente.", "Sum of allotted subscriptions. This is not a resale value.")}
           </p>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+            <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-violet to-gold" />
+          </div>
         </div>
       </section>
 
@@ -66,33 +69,43 @@ export default async function InvestorHomePage() {
           title={tx(locale, "Tableau de bord", "Dashboard")}
           name={snap.user.legalFirstName}
           action={
-            <Link href="/investor/notifications" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-violet">
+            <Link href="/investor/notifications" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-ink">
               <Bell className="h-5 w-5" />
             </Link>
           }
         />
 
         <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(220px,0.7fr)]">
-          <article className="hidden rounded-[28px] bg-gradient-to-br from-[#6d4dff] to-[#7d5cff] p-6 text-white shadow-[var(--shadow-card)] md:block">
+          <article className="hidden rounded-[28px] border border-border bg-white p-6 shadow-[var(--shadow-card)] md:block">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{tx(locale, "Vue d'ensemble", "Overview")}</h2>
-              <StatusPill tone="slate">{tx(locale, "Capital alloué", "Allotted capital")}</StatusPill>
+              <h2 className="text-lg font-semibold text-ink">{tx(locale, "Vue d'ensemble", "Overview")}</h2>
+              <StatusPill tone="gold">{tx(locale, "Capital alloué", "Allotted capital")}</StatusPill>
             </div>
-            <AreaChart values={snap.series} labels={["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov"]} />
+            <div className="text-violet">
+              <AreaChart
+                values={snap.series}
+                labels={["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov"]}
+                stroke="#6d4dff"
+                fill="rgba(109,77,255,0.12)"
+                dot="#f6c15b"
+              />
+            </div>
             <div className="mt-4 grid grid-cols-3 gap-3">
-              <Metric label={tx(locale, "Confirmé", "Confirmed")} value={formatMoney(snap.confirmedMinor, "USD", locale)} />
-              <Metric label={tx(locale, "Actions", "Shares")} value={String(snap.shareCount)} />
-              <Metric label={tx(locale, "Émetteurs", "Issuers")} value={String(snap.issuerCount)} />
+              <Metric label={tx(locale, "Confirmé", "Confirmed")} value={formatMoney(snap.confirmedMinor, "USD", locale)} ink />
+              <Metric label={tx(locale, "Actions", "Shares")} value={String(snap.shareCount)} ink />
+              <Metric label={tx(locale, "Émetteurs", "Issuers")} value={String(snap.issuerCount)} ink />
             </div>
           </article>
           <div className="hidden gap-4 md:grid">
-            <article className="rounded-[28px] bg-[#ff7ab8] p-5 text-white">
-              <p className="text-sm text-white/80">{tx(locale, "Dividendes payés", "Dividends paid")}</p>
-              <p className="mt-2 text-3xl font-bold">{formatMoney(paid, "USD", locale)}</p>
+            <article className="rounded-[28px] border border-border bg-white p-5">
+              <p className="text-sm text-muted">{tx(locale, "Dividendes payés", "Dividends paid")}</p>
+              <p className="mt-2 text-3xl font-bold text-ink">{formatMoney(paid, "USD", locale)}</p>
+              <span className="mt-3 inline-block h-1 w-12 rounded-full bg-pink" />
             </article>
-            <article className="rounded-[28px] bg-violet p-5 text-white">
-              <p className="text-sm text-white/80">{tx(locale, "Dividendes en attente", "Dividends pending")}</p>
-              <p className="mt-2 text-3xl font-bold">{formatMoney(pending, "USD", locale)}</p>
+            <article className="rounded-[28px] border border-border bg-white p-5">
+              <p className="text-sm text-muted">{tx(locale, "Dividendes en attente", "Dividends pending")}</p>
+              <p className="mt-2 text-3xl font-bold text-ink">{formatMoney(pending, "USD", locale)}</p>
+              <span className="mt-3 inline-block h-1 w-12 rounded-full bg-gold" />
             </article>
           </div>
         </div>
@@ -201,11 +214,11 @@ export default async function InvestorHomePage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, ink = false }: { label: string; value: string; ink?: boolean }) {
   return (
-    <div className="rounded-2xl bg-white/15 p-3">
-      <p className="text-xs text-white/75">{label}</p>
-      <p className="mt-1 text-lg font-bold">{value}</p>
+    <div className={ink ? "rounded-2xl bg-surface-muted p-3" : "rounded-2xl bg-white/15 p-3"}>
+      <p className={ink ? "text-xs text-muted" : "text-xs text-white/75"}>{label}</p>
+      <p className={ink ? "mt-1 text-lg font-bold text-ink" : "mt-1 text-lg font-bold"}>{value}</p>
     </div>
   );
 }

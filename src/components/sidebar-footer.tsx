@@ -67,7 +67,7 @@ function defaultMenuItems(locale: AppLocale, shell: SidebarShellKind): FooterMen
 }
 
 const itemClass =
-  "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-medium text-ink transition-colors hover:bg-lilac hover:text-violet disabled:opacity-60";
+  "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-medium text-ink transition-colors hover:bg-surface-muted disabled:opacity-60";
 
 /**
  * Sidenav trailing control: gear opens a compact menu above the footer.
@@ -125,8 +125,8 @@ export function SidebarFooter({
         onClick={() => setOpen((value) => !value)}
         className={cn(
           "grid h-9 w-9 place-items-center rounded-xl text-muted transition-colors",
-          "hover:bg-lilac hover:text-violet",
-          open && "bg-lilac text-violet",
+          "hover:bg-surface-muted",
+          open && "bg-surface-muted text-ink",
         )}
       >
         <Settings2 className="h-4 w-4" aria-hidden />

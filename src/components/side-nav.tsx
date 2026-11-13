@@ -126,7 +126,7 @@ function SidebarBody({
       <div className="flex items-center justify-between gap-2 px-5 pb-4 pt-5">
         <Link href={homeHref} onClick={onNavigate} className="flex min-w-0 items-center gap-2">
           <Logo />
-          <span className="rounded-full bg-lilac px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet">
+          <span className="accent-chip-soft rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
             {area}
           </span>
         </Link>
@@ -152,20 +152,20 @@ function SidebarBody({
                       className={cn(
                         "group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
                         current
-                          ? "bg-lilac text-violet"
+                          ? "bg-surface-muted text-ink"
                           : "text-ink/75 hover:bg-surface-muted hover:text-ink",
                       )}
                     >
                       <span
                         aria-hidden
                         className={cn(
-                          "absolute inset-y-1.5 left-0 w-1 rounded-full bg-violet transition-opacity",
+                          "absolute inset-y-1.5 left-0 w-1 rounded-full bg-gold transition-opacity",
                           current ? "opacity-100" : "opacity-0",
                         )}
                       />
                       <Icon
                         aria-hidden
-                        className={cn("h-[18px] w-[18px] shrink-0", current ? "text-violet" : "text-muted group-hover:text-ink")}
+                        className={cn("h-[18px] w-[18px] shrink-0", current ? "text-violet-ink" : "text-muted group-hover:text-ink")}
                       />
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {item.badge ? (
@@ -184,7 +184,7 @@ function SidebarBody({
 
       <div className="border-t border-border px-3 py-3">
         <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet text-sm font-bold text-white">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink text-sm font-bold text-white">
             {userName.slice(0, 1).toUpperCase()}
           </span>
           <div
@@ -275,7 +275,7 @@ export function SidebarShell({
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-3 backdrop-blur print:hidden lg:hidden">
           <Link href={homeHref} className="flex items-center gap-2">
             <Logo />
-            <span className="rounded-full bg-lilac px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet">
+            <span className="accent-chip-soft rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
               {area}
             </span>
           </Link>
@@ -284,7 +284,7 @@ export function SidebarShell({
             onClick={() => setOpen(true)}
             aria-expanded={open}
             aria-controls={drawerId}
-            className="grid h-10 w-10 place-items-center rounded-xl text-ink hover:bg-lilac"
+            className="grid h-10 w-10 place-items-center rounded-xl text-ink hover:bg-surface-muted"
           >
             <Menu className="h-5 w-5" aria-hidden />
             <span className="sr-only">{labels.menu}</span>
@@ -321,7 +321,7 @@ export function SidebarShell({
               <button
                 type="button"
                 onClick={close}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted hover:bg-lilac hover:text-ink"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted hover:bg-surface-muted hover:text-ink"
               >
                 <X className="h-5 w-5" aria-hidden />
                 <span className="sr-only">{labels.close}</span>
@@ -349,10 +349,10 @@ export function SidebarShell({
                     aria-current={current ? "page" : undefined}
                     className={cn(
                       "flex flex-col items-center gap-1 text-[11px] font-semibold",
-                      current ? "text-violet" : "text-muted",
+                      current ? "text-ink" : "text-muted",
                     )}
                   >
-                    <Icon className="h-5 w-5" aria-hidden />
+                    <Icon className={cn("h-5 w-5", current ? "text-violet-ink" : "")} aria-hidden />
                     {item.label}
                   </Link>
                 </li>
@@ -366,7 +366,7 @@ export function SidebarShell({
                 aria-controls={drawerId}
                 className={cn(
                   "flex w-full flex-col items-center gap-1 text-[11px] font-semibold",
-                  active && !tabActive ? "text-violet" : "text-muted",
+                  active && !tabActive ? "text-ink" : "text-muted",
                 )}
               >
                 <Ellipsis className="h-5 w-5" aria-hidden />

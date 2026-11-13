@@ -40,7 +40,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
     <div>
       <SiteHeader returnTo={`/projects/${slug}`} />
       <main className="mx-auto max-w-3xl space-y-4 px-4">
-        <StatusPill>{offering.status}</StatusPill>
+        <StatusPill tone={upcoming ? "pink" : "gold"}>{offering.status}</StatusPill>
         <h1 className="text-4xl font-bold">{t(project.titleFr, project.titleEn)}</h1>
         <p className="text-muted">{issuer.legalName} · {issuer.registrationNumber} · {issuer.legalForm}</p>
         <p>{t(project.fullFr, project.fullEn)}</p>
@@ -85,15 +85,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             </p>
           </section>
         ) : (
-          <section className="rounded-[28px] bg-violet p-5 text-white">
-            <h2 className="text-xl font-bold">{t("Progression, séparée", "Progress, kept separate")}</h2>
+          <section className="rounded-[28px] border border-border bg-white p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-xl font-bold text-ink">{t("Progression, séparée", "Progress, kept separate")}</h2>
+              <StatusPill tone="gold">{t("Registre", "Register")}</StatusPill>
+            </div>
             <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-              <Stat label={t("Initiées", "Initiated")} value={formatMoney(progress.initiatedMinor, offering.currencyCode, locale)} />
-              <Stat label={t("Paiements confirmés", "Confirmed payments")} value={formatMoney(progress.confirmedMinor, offering.currencyCode, locale)} />
-              <Stat label={t("Réglés", "Settled")} value={formatMoney(progress.settledMinor, offering.currencyCode, locale)} />
-              <Stat label={t("Actions allouées", "Shares allotted")} value={formatMoney(progress.allottedMinor, offering.currencyCode, locale)} />
+              <Stat label={t("Initiées", "Initiated")} value={formatMoney(progress.initiatedMinor, offering.currencyCode, locale)} muted />
+              <Stat label={t("Paiements confirmés", "Confirmed payments")} value={formatMoney(progress.confirmedMinor, offering.currencyCode, locale)} muted />
+              <Stat label={t("Réglés", "Settled")} value={formatMoney(progress.settledMinor, offering.currencyCode, locale)} muted />
+              <Stat label={t("Actions allouées", "Shares allotted")} value={formatMoney(progress.allottedMinor, offering.currencyCode, locale)} muted />
             </dl>
-            <p className="mt-3 text-xs text-white/80">
+            <p className="mt-3 text-xs text-muted">
               {t("Objectif maximum", "Maximum target")} {formatMoney(offering.maximumRaiseMinor, offering.currencyCode, locale)} · {t("minimum", "minimum")} {formatMoney(offering.minimumRaiseMinor, offering.currencyCode, locale)}. {t("Ces chiffres ne sont pas additionnés en un seul « montant levé ».", "These figures are not combined into one “raised” number.")}
             </p>
           </section>
@@ -134,7 +137,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
           <ul className="mt-2 space-y-2">
             {docs.map((doc) => (
               <li key={doc.id}>
-                <a className="font-semibold text-violet" href={`/api/documents/${doc.id}`}>
+                <a className="font-semibold text-link" href={`/api/documents/${doc.id}`}>
                   {t(doc.titleFr, doc.titleEn)} · {doc.version}
                 </a>
               </li>
@@ -161,11 +164,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div className="rounded-2xl bg-white/15 p-3">
-      <dt className="text-white/75">{label}</dt>
-      <dd className="text-lg font-bold">{value}</dd>
+    <div className={muted ? "rounded-2xl bg-surface-muted p-3" : "rounded-2xl bg-white/15 p-3"}>
+      <dt className={muted ? "text-muted" : "text-white/75"}>{label}</dt>
+      <dd className={muted ? "text-lg font-bold text-ink" : "text-lg font-bold"}>{value}</dd>
     </div>
   );
 }

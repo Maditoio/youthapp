@@ -431,7 +431,7 @@ export function DatePicker({
           className,
         )}
       >
-        <CalendarDays className="size-4 shrink-0 text-violet" aria-hidden="true" />
+        <CalendarDays className="size-4 shrink-0 text-muted" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate">{shown}</span>
       </button>
       {/* type=text so the operating-system calendar never opens. The named value is what the server reads. */}

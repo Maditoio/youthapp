@@ -1,8 +1,9 @@
 /**
  * Jeunese visual system.
- * The product is an equity platform. The interface follows the violet
- * card language of the reference screens: soft canvas, purple surfaces,
- * pink accent, large radii. Forest green from the written spec is not used.
+ * Brand primary: violet (CTAs, focus, logo mark).
+ * Secondary accents: pink (soft highlights), gold (trust/value).
+ * Typography hierarchy uses ink + muted — not brand violet.
+ * Optional soften layer: styles/palette-rebalance.css (easy to remove).
  */
 :root {
   --brand-violet: #6d4dff;

@@ -1,0 +1,71 @@
+/**
+ * PALETTE REBALANCE (experiment)
+ * -----------------------------
+ * Softens violet dominance: neutrals carry hierarchy; violet stays for
+ * primary CTAs / focus; gold + pink are sparse accents.
+ *
+ * Revert: delete this file's import from globals.css, OR
+ *   git revert <commit that introduced palette rebalance>
+ */
+
+:root {
+  /* Cooler, less lilac wash — finance-product canvas */
+  --canvas: #eef0f4;
+  --surface-muted: #f4f5f8;
+  --border: #e2e4ec;
+  --text-secondary: #6b7286;
+  --brand-lilac: #eef0f7;
+  --shadow-card: 0 16px 36px rgba(29, 22, 51, 0.08);
+  --selection-bg: #e4e0f5;
+  --input-focus-ring: rgba(109, 77, 255, 0.12);
+
+  /* Semantic accents (use sparingly) */
+  --accent-warm: var(--brand-gold);
+  --accent-soft: var(--brand-pink);
+  --link: var(--brand-violet-ink);
+}
+
+.dark {
+  --canvas: #0f1016;
+  --surface-muted: #1c1e28;
+  --border: #2c3040;
+  --text-secondary: #9aa0b4;
+  --brand-lilac: #222536;
+  --shadow-card: 0 16px 36px rgba(0, 0, 0, 0.5);
+  --selection-bg: #2f3350;
+  --input-focus-ring: rgba(139, 117, 255, 0.22);
+
+  --accent-warm: var(--brand-gold);
+  --accent-soft: var(--brand-pink);
+  --link: var(--brand-violet-ink);
+}
+
+/* Inline links: deep ink-violet, not neon brand violet */
+.text-link {
+  color: var(--link);
+}
+.text-link:hover {
+  color: var(--brand-violet);
+}
+
+/* Warm accent chip (gold) — trust / value moments */
+.accent-chip {
+  background: color-mix(in srgb, var(--brand-gold) 22%, var(--surface));
+  color: color-mix(in srgb, var(--brand-gold) 55%, #3d2e0a);
+}
+
+.dark .accent-chip {
+  background: color-mix(in srgb, var(--brand-gold) 18%, var(--surface));
+  color: color-mix(in srgb, var(--brand-gold) 70%, #fff);
+}
+
+/* Soft pink chip — upcoming / soft highlights */
+.accent-chip-soft {
+  background: color-mix(in srgb, var(--brand-pink) 14%, var(--surface));
+  color: color-mix(in srgb, var(--brand-pink) 45%, var(--text-primary));
+}
+
+.dark .accent-chip-soft {
+  background: color-mix(in srgb, var(--brand-pink) 16%, var(--surface));
+  color: color-mix(in srgb, var(--brand-pink) 65%, #fff);
+}

@@ -78,7 +78,7 @@ export function ToastProvider({ locale, children }: { locale: AppLocale; childre
 const variantStyles: Record<ToastVariant, { icon: typeof Info; badge: string; bar: string }> = {
   success: { icon: CheckCircle2, badge: "bg-success/12 text-success", bar: "bg-success" },
   error: { icon: CircleAlert, badge: "bg-danger/12 text-danger", bar: "bg-danger" },
-  info: { icon: Info, badge: "bg-lilac text-violet", bar: "bg-violet" },
+  info: { icon: Info, badge: "bg-surface-muted text-violet-ink", bar: "bg-gold" },
 };
 
 function ToastCard({
@@ -127,7 +127,7 @@ function ToastCard({
         type="button"
         onClick={() => onDismiss(item.id)}
         aria-label={tx(locale, "Fermer la notification", "Dismiss notification")}
-        className="absolute top-3 right-3 grid size-7 place-items-center rounded-full text-muted transition-colors hover:bg-lilac hover:text-violet"
+        className="absolute top-3 right-3 grid size-7 place-items-center rounded-full text-muted transition-colors hover:bg-surface-muted hover:text-ink"
       >
         <X aria-hidden="true" className="size-4" />
       </button>

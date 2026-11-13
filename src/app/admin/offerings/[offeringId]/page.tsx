@@ -49,7 +49,7 @@ export default async function OfferingAdmin({
           <p>{offering.status}</p>
           {project ? (
             <p className="mt-1 text-sm">
-              <a className="font-semibold text-violet" href={`/admin/projects/${project.id}`}>
+              <a className="font-semibold text-link" href={`/admin/projects/${project.id}`}>
                 {tx(locale, "Éditer le contenu du projet et de l'offre", "Edit project and offering content")}
               </a>
             </p>

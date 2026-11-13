@@ -40,7 +40,7 @@ export function OfferingCountdown({
   if (!parts) return null;
   if (parts.totalMs <= 0) {
     return (
-      <p className="text-sm font-semibold text-violet">
+      <p className="text-sm font-semibold text-ink">
         {tx(locale, "La fenêtre d'ouverture est atteinte.", "The open window has been reached.")}
       </p>
     );

@@ -247,7 +247,7 @@ export function DataTable({
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs font-semibold text-violet hover:bg-lilac"
+                  className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs font-semibold text-violet-ink hover:bg-surface-muted"
                 >
                   <X className="size-3.5" aria-hidden />
                   {labels.clearFilters}
@@ -324,7 +324,7 @@ export function DataTable({
                               className="inline-flex items-center gap-1 rounded-md hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet"
                             >
                               {column.header}
-                              <span className="text-[10px] text-violet" aria-hidden>
+                              <span className="text-[10px] text-muted" aria-hidden>
                                 {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : "↕"}
                               </span>
                             </button>
