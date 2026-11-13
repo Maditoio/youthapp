@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AdminReasonField } from "@/components/admin-reason-field";
 import { ModalOpenLink, SearchParamModal } from "@/components/search-param-modal";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
 import { offeringTransitionAction } from "@/server/actions";
 import { errorCopy } from "@/server/domain/errors";
 import { OFFERING_TRANSITIONS } from "@/server/domain/finance";
@@ -41,6 +42,37 @@ export default async function OfferingAdmin({
     offering.minimumRaiseMinor > 0
       ? Math.min(999, Math.round((demand.amountMinor / offering.minimumRaiseMinor) * 100))
       : 0;
+
+  const interestColumns: DataTableColumn[] = [
+    { id: "investor", header: tx(locale, "Investisseur", "Investor"), sortable: true },
+    { id: "amount", header: tx(locale, "Montant", "Amount"), align: "right", sortable: true },
+    { id: "shares", header: tx(locale, "Actions", "Shares"), align: "right", sortable: true },
+    { id: "remind", header: tx(locale, "Rappel", "Remind"), sortable: true },
+  ];
+  const interestRows: DataTableRow[] = interests.map(({ item, profile }) => {
+    const investor = profile
+      ? `${profile.legalFirstName} ${profile.legalLastName} · ${profile.investorNumber}`
+      : item.userId;
+    const amount = formatMoney(item.intendedAmountMinor, offering.currencyCode, locale);
+    const remind = item.remindAtOpen ? tx(locale, "Oui", "Yes") : tx(locale, "Non", "No");
+    return {
+      id: item.id,
+      searchValue: `${investor} ${amount} ${item.intendedShareQuantity} ${remind}`,
+      sortValues: {
+        investor,
+        amount: item.intendedAmountMinor,
+        shares: item.intendedShareQuantity,
+        remind,
+      },
+      cells: {
+        investor: <span className="font-semibold">{investor}</span>,
+        amount,
+        shares: item.intendedShareQuantity,
+        remind,
+      },
+    };
+  });
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -68,35 +100,23 @@ export default async function OfferingAdmin({
         <p className="text-sm text-muted">{tx(locale, "Aucune transition disponible.", "No transitions available.")}</p>
       ) : null}
 
-      <section className="rounded-[28px] bg-white p-5">
-        <h2 className="text-lg font-bold">{tx(locale, "Demande indicative (EOI)", "Indicative demand (EOI)")}</h2>
-        <p className="mt-2 text-sm text-muted">
-          {demand.count} {tx(locale, "intérêt(s) actifs", "active interest(s)")} ·{" "}
-          {formatMoney(demand.amountMinor, offering.currencyCode, locale)} · {demand.shareQuantity}{" "}
-          {tx(locale, "actions", "shares")} · {fillPct}%{" "}
-          {tx(locale, "du minimum", "of minimum")} (
-          {formatMoney(offering.minimumRaiseMinor, offering.currencyCode, locale)})
-        </p>
-        {interests.length > 0 ? (
-          <ul className="mt-3 space-y-2 text-sm">
-            {interests.map(({ item, profile }) => (
-              <li key={item.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2">
-                <span>
-                  {profile
-                    ? `${profile.legalFirstName} ${profile.legalLastName} · ${profile.investorNumber}`
-                    : item.userId}
-                </span>
-                <span className="text-muted">
-                  {formatMoney(item.intendedAmountMinor, offering.currencyCode, locale)} ·{" "}
-                  {item.intendedShareQuantity} {tx(locale, "act.", "sh.")}
-                  {item.remindAtOpen ? ` · ${tx(locale, "rappel", "remind")}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2 text-sm text-muted">{tx(locale, "Aucun intérêt pour l'instant.", "No interest yet.")}</p>
-        )}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-bold">{tx(locale, "Demande indicative (EOI)", "Indicative demand (EOI)")}</h2>
+          <p className="mt-1 text-sm text-muted">
+            {demand.count} {tx(locale, "intérêt(s) actifs", "active interest(s)")} ·{" "}
+            {formatMoney(demand.amountMinor, offering.currencyCode, locale)} · {demand.shareQuantity}{" "}
+            {tx(locale, "actions", "shares")} · {fillPct}%{" "}
+            {tx(locale, "du minimum", "of minimum")} (
+            {formatMoney(offering.minimumRaiseMinor, offering.currencyCode, locale)})
+          </p>
+        </div>
+        <DataTable
+          locale={locale}
+          columns={interestColumns}
+          rows={interestRows}
+          emptyMessage={tx(locale, "Aucun intérêt pour l'instant.", "No interest yet.")}
+        />
       </section>
 
       <SearchParamModal

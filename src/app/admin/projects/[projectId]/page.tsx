@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { IndustrySelect } from "@/components/choice-fields";
 import { DatePicker } from "@/components/ui/date-picker";
+import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/data-table";
+import { uniqueFilterOptions } from "@/components/ui/data-table-utils";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { PERMITTED_COUNTRIES } from "@/lib/choices";
 import { formatMinorInput, toDatetimeLocalValue } from "@/lib/format";
@@ -469,29 +471,73 @@ export default async function ProjectAdminDetail({
           panel: !offering ? (
             <p className="text-sm text-muted">{t("Aucune offre liée.", "No linked offering.")}</p>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-              <div className="space-y-3">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">
+              <div className="space-y-2">
                 <h3 className="text-sm font-bold">{t("Documents existants", "Existing documents")}</h3>
-                {docs.length === 0 ? (
-                  <p className="text-sm text-muted">{t("Aucun document pour l'instant.", "No documents yet.")}</p>
-                ) : (
-                  docs.map((doc) => (
-                    <details key={doc.id} className="rounded-2xl bg-lilac/40 p-4">
-                      <summary className="cursor-pointer font-semibold">
-                        {t(doc.titleFr, doc.titleEn)} · {doc.documentType} · {doc.version}
-                      </summary>
-                      <div className="mt-3">
-                        <DocumentForm
-                          locale={locale}
-                          projectId={project.id}
-                          offeringId={offering.id}
-                          document={doc}
-                          submitLabel={t("Enregistrer le document", "Save document")}
-                        />
-                      </div>
-                    </details>
-                  ))
-                )}
+                <DataTable
+                  locale={locale}
+                  columns={
+                    [
+                      { id: "title", header: t("Titre", "Title"), sortable: true },
+                      {
+                        id: "type",
+                        header: t("Type", "Type"),
+                        sortable: true,
+                        filter: {
+                          options: uniqueFilterOptions(docs.map((doc) => doc.documentType)),
+                          allLabel: t("Tous les types", "All types"),
+                        },
+                      },
+                      { id: "version", header: t("Version", "Version"), sortable: true },
+                      {
+                        id: "visibility",
+                        header: t("Visibilité", "Visibility"),
+                        sortable: true,
+                        filter: {
+                          options: uniqueFilterOptions(docs.map((doc) => doc.visibility)),
+                          allLabel: t("Toutes", "All"),
+                        },
+                      },
+                    ] satisfies DataTableColumn[]
+                  }
+                  rows={docs.map((doc) => {
+                    const title = t(doc.titleFr, doc.titleEn);
+                    return {
+                      id: doc.id,
+                      searchValue: `${title} ${doc.documentType} ${doc.version} ${doc.visibility}`,
+                      filterValues: { type: doc.documentType, visibility: doc.visibility },
+                      sortValues: {
+                        title,
+                        type: doc.documentType,
+                        version: doc.version,
+                        visibility: doc.visibility,
+                      },
+                      cells: {
+                        title: <span className="font-semibold">{title}</span>,
+                        type: doc.documentType,
+                        version: doc.version,
+                        visibility: doc.visibility,
+                      },
+                      actions: (
+                        <details className="min-w-[16rem] rounded-2xl border border-border bg-surface-muted/60 p-3">
+                          <summary className="cursor-pointer text-sm font-semibold">
+                            {t("Modifier", "Edit")}
+                          </summary>
+                          <div className="mt-3">
+                            <DocumentForm
+                              locale={locale}
+                              projectId={project.id}
+                              offeringId={offering.id}
+                              document={doc}
+                              submitLabel={t("Enregistrer le document", "Save document")}
+                            />
+                          </div>
+                        </details>
+                      ),
+                    } satisfies DataTableRow;
+                  })}
+                  emptyMessage={t("Aucun document pour l'instant.", "No documents yet.")}
+                />
               </div>
 
               <div className="rounded-2xl border border-dashed border-border p-4 md:p-5">
