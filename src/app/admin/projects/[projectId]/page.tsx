@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { IndustrySelect } from "@/components/choice-fields";
+import { DatePicker } from "@/components/ui/date-picker";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { PERMITTED_COUNTRIES } from "@/lib/choices";
 import { formatMinorInput, toDatetimeLocalValue } from "@/lib/format";
@@ -308,24 +309,26 @@ export default async function ProjectAdminDetail({
                   <Field label={t("Name EN", "Name EN")} htmlFor="nameEn">
                     <input id="nameEn" name="nameEn" required defaultValue={offering.nameEn} className={field} />
                   </Field>
-                  <Field label={t("Ouverture", "Opens")} htmlFor="opensAt">
-                    <input
+                  <Field label={t("Ouverture", "Opens")}>
+                    <DatePicker
                       id="opensAt"
+                      locale={locale}
                       name="opensAt"
-                      type="datetime-local"
+                      withTime
                       required
+                      label={t("Ouverture", "Opens")}
                       defaultValue={toDatetimeLocalValue(offering.opensAt)}
-                      className={field}
                     />
                   </Field>
-                  <Field label={t("Clôture", "Closes")} htmlFor="closesAt">
-                    <input
+                  <Field label={t("Clôture", "Closes")}>
+                    <DatePicker
                       id="closesAt"
+                      locale={locale}
                       name="closesAt"
-                      type="datetime-local"
+                      withTime
                       required
+                      label={t("Clôture", "Closes")}
                       defaultValue={toDatetimeLocalValue(offering.closesAt)}
-                      className={field}
                     />
                   </Field>
                 </div>

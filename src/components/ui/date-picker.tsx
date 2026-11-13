@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import type { AppLocale } from "@/lib/config";
@@ -18,9 +26,15 @@ export type DatePickerProps = {
   min?: string;
   max?: string;
   className?: string;
+  id?: string;
   /** Accessible name for the field, separate from the empty-state placeholder. */
   label?: string;
   placeholder?: string;
+  /**
+   * When true, the submitted value is `YYYY-MM-DDTHH:mm` (datetime-local shape)
+   * and the popover includes hour/minute controls. No native OS date/time UI.
+   */
+  withTime?: boolean;
 };
 
 type Box = {
@@ -28,6 +42,12 @@ type Box = {
   left: number;
   width: number;
   maxHeight: number;
+};
+
+type ParsedValue = {
+  date: Date;
+  hours: number;
+  minutes: number;
 };
 
 function parseISODate(value: string | undefined | null): Date | null {
@@ -42,10 +62,41 @@ function parseISODate(value: string | undefined | null): Date | null {
   return date;
 }
 
+function parseValue(value: string | undefined | null, withTime: boolean): ParsedValue | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (withTime) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(trimmed);
+    if (!match) {
+      const dateOnly = parseISODate(trimmed);
+      if (!dateOnly) return null;
+      return { date: dateOnly, hours: 0, minutes: 0 };
+    }
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const hours = Number(match[4]);
+    const minutes = Number(match[5]);
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+    return { date, hours, minutes };
+  }
+  const date = parseISODate(trimmed);
+  if (!date) return null;
+  return { date, hours: 0, minutes: 0 };
+}
+
 function formatISODate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function formatValue(date: Date, hours: number, minutes: number, withTime: boolean): string {
+  const day = formatISODate(date);
+  if (!withTime) return day;
+  return `${day}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 function startOfDay(date: Date): Date {
@@ -127,8 +178,10 @@ export function DatePicker({
   min,
   max,
   className,
+  id,
   label,
   placeholder,
+  withTime = false,
 }: DatePickerProps) {
   const tag = localeTag(locale);
   const dialogId = useId();
@@ -137,28 +190,55 @@ export function DatePicker({
   const popoverRef = useRef<HTMLDivElement>(null);
   const returnFocus = useRef(false);
   const focusDay = useRef(false);
-  const initial = parseISODate(defaultValue);
-  const minDate = parseISODate(min);
-  const maxDate = parseISODate(max);
-  const [value, setValue] = useState(initial ? formatISODate(initial) : "");
+  const initial = parseValue(defaultValue, withTime);
+  const minParsed = parseValue(min, withTime);
+  const maxParsed = parseValue(max, withTime);
+  const minDate = minParsed?.date ?? null;
+  const maxDate = maxParsed?.date ?? null;
+  const [value, setValue] = useState(() =>
+    initial ? formatValue(initial.date, initial.hours, initial.minutes, withTime) : "",
+  );
+  const [hours, setHours] = useState(() => initial?.hours ?? 0);
+  const [minutes, setMinutes] = useState(() => initial?.minutes ?? 0);
   const [open, setOpen] = useState(false);
-  const [cursor, setCursor] = useState<Date>(() => initial ?? startOfDay(new Date()));
+  const [cursor, setCursor] = useState<Date>(() => initial?.date ?? startOfDay(new Date()));
   const [view, setView] = useState(() => {
-    const base = initial ?? new Date();
+    const base = initial?.date ?? new Date();
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
   const [box, setBox] = useState<Box | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  const placeholderText = placeholder ?? tx(locale, "Choisir une date", "Choose a date");
-  const selected = parseISODate(value);
+  const placeholderText =
+    placeholder ??
+    (withTime
+      ? tx(locale, "Choisir une date et une heure", "Choose a date and time")
+      : tx(locale, "Choisir une date", "Choose a date"));
+  const selected = parseValue(value, withTime);
   const start = weekStart(tag);
   const labels = weekdayLabels(tag, start);
   const days = monthGrid(view, start);
   const today = startOfDay(new Date());
   const monthTitle = new Intl.DateTimeFormat(tag, { month: "long", year: "numeric" }).format(view);
   const display = selected
-    ? new Intl.DateTimeFormat(tag, { day: "numeric", month: "long", year: "numeric" }).format(selected)
+    ? withTime
+      ? new Intl.DateTimeFormat(tag, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(
+          new Date(
+            selected.date.getFullYear(),
+            selected.date.getMonth(),
+            selected.date.getDate(),
+            selected.hours,
+            selected.minutes,
+          ),
+        )
+      : new Intl.DateTimeFormat(tag, { day: "numeric", month: "long", year: "numeric" }).format(selected.date)
     : "";
 
   function isSelectable(date: Date): boolean {
@@ -172,15 +252,26 @@ export function DatePicker({
     setOpen(false);
   }
 
-  function select(date: Date) {
+  function commit(date: Date, nextHours: number, nextMinutes: number, shouldClose: boolean) {
     if (!isSelectable(date)) return;
-    setValue(formatISODate(date));
+    setValue(formatValue(date, nextHours, nextMinutes, withTime));
+    setHours(nextHours);
+    setMinutes(nextMinutes);
     setCursor(date);
-    close(true);
+    if (shouldClose) close(true);
+  }
+
+  function selectDay(date: Date) {
+    if (!isSelectable(date)) return;
+    if (withTime) {
+      commit(date, hours, minutes, false);
+      return;
+    }
+    commit(date, 0, 0, true);
   }
 
   function openPicker() {
-    const base = selected ?? startOfDay(new Date());
+    const base = selected?.date ?? startOfDay(new Date());
     let next = base;
     if (!isSelectable(next)) {
       if (minDate && next < minDate) next = minDate;
@@ -188,7 +279,11 @@ export function DatePicker({
     }
     setCursor(next);
     setView(new Date(next.getFullYear(), next.getMonth(), 1));
-    if (triggerRef.current) setBox(measure(triggerRef.current, 380));
+    if (selected) {
+      setHours(selected.hours);
+      setMinutes(selected.minutes);
+    }
+    if (triggerRef.current) setBox(measure(triggerRef.current, withTime ? 460 : 380));
     focusDay.current = true;
     setOpen(true);
   }
@@ -243,7 +338,7 @@ export function DatePicker({
       const trigger = triggerRef.current;
       const popover = popoverRef.current;
       if (!trigger) return;
-      const next = measure(trigger, popover?.offsetHeight ?? 380);
+      const next = measure(trigger, popover?.offsetHeight ?? (withTime ? 460 : 380));
       setBox((current) => (current && sameBox(current, next) ? current : next));
     }
     place();
@@ -253,13 +348,16 @@ export function DatePicker({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
     };
-  }, [open, view]);
+  }, [open, view, withTime, hours, minutes]);
 
   useEffect(() => {
     if (!open) return;
     function onPointerDown(event: PointerEvent) {
       const target = event.target as Node;
       if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
+      if (withTime && selected) {
+        setValue(formatValue(selected.date, hours, minutes, true));
+      }
       setOpen(false);
     }
     function onKey(event: KeyboardEvent) {
@@ -273,7 +371,7 @@ export function DatePicker({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, withTime, selected, hours, minutes]);
 
   function onDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
@@ -281,15 +379,20 @@ export function DatePicker({
       close(true);
       return;
     }
+    const target = event.target as HTMLElement;
+    if (target.tagName === "SELECT") return;
     if (event.key === "Enter") {
       event.preventDefault();
-      const target = event.target as HTMLElement;
       const nav = target.closest<HTMLButtonElement>("[data-month-nav]");
       if (nav) {
         nav.click();
         return;
       }
-      select(cursor);
+      if (withTime) {
+        commit(cursor, hours, minutes, true);
+        return;
+      }
+      selectDay(cursor);
       return;
     }
     const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[event.key];
@@ -300,11 +403,13 @@ export function DatePicker({
 
   const shown = display || placeholderText;
   const accessible = label ? `${label}, ${shown}` : undefined;
+  const selectedIso = selected ? formatISODate(selected.date) : "";
 
   return (
     <div ref={rootRef} className="relative w-full min-w-0">
       <button
         ref={triggerRef}
+        id={id}
         type="button"
         disabled={disabled}
         aria-haspopup="dialog"
@@ -391,14 +496,16 @@ export function DatePicker({
                 {days.map((date) => {
                   const iso = formatISODate(date);
                   const enabled = isSelectable(date);
-                  const isSelected = value === iso;
+                  const isSelected = selectedIso === iso;
                   const isToday = date.getTime() === today.getTime();
                   const outside = date.getMonth() !== view.getMonth();
                   const full = new Intl.DateTimeFormat(tag, { dateStyle: "full" }).format(date);
                   if (!enabled) {
                     return (
                       <div key={iso} role="gridcell" className="flex min-w-0 items-center justify-center py-0.5">
-                        <span className="grid aspect-square w-full max-w-10 place-items-center text-sm text-muted/40">{date.getDate()}</span>
+                        <span className="grid aspect-square w-full max-w-10 place-items-center text-sm text-muted/40">
+                          {date.getDate()}
+                        </span>
                       </div>
                     );
                   }
@@ -410,7 +517,7 @@ export function DatePicker({
                         aria-label={full}
                         aria-pressed={isSelected}
                         aria-current={isToday ? "date" : undefined}
-                        onClick={() => select(date)}
+                        onClick={() => selectDay(date)}
                         className={cn(
                           "relative grid aspect-square w-full max-w-10 place-items-center rounded-full text-sm font-semibold leading-none",
                           "transition-[transform,background-color,color,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
@@ -431,6 +538,61 @@ export function DatePicker({
                   );
                 })}
               </div>
+              {withTime ? (
+                <div className="mt-3 space-y-3 border-t border-border pt-3">
+                  <p className="text-xs font-semibold text-muted">{tx(locale, "Heure", "Time")}</p>
+                  <div className="flex items-center gap-2">
+                    <label className="min-w-0 flex-1 space-y-1">
+                      <span className="sr-only">{tx(locale, "Heure", "Hour")}</span>
+                      <select
+                        value={hours}
+                        onChange={(event) => {
+                          const nextHours = Number(event.target.value);
+                          setHours(nextHours);
+                          const day = selected?.date ?? cursor;
+                          setValue(formatValue(day, nextHours, minutes, true));
+                        }}
+                        className="h-11 w-full rounded-2xl border border-border bg-white px-3 text-sm font-semibold text-ink"
+                      >
+                        {Array.from({ length: 24 }, (_, hour) => (
+                          <option key={hour} value={hour}>
+                            {String(hour).padStart(2, "0")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <span className="text-sm font-bold text-muted" aria-hidden="true">
+                      :
+                    </span>
+                    <label className="min-w-0 flex-1 space-y-1">
+                      <span className="sr-only">{tx(locale, "Minutes", "Minutes")}</span>
+                      <select
+                        value={minutes}
+                        onChange={(event) => {
+                          const nextMinutes = Number(event.target.value);
+                          setMinutes(nextMinutes);
+                          const day = selected?.date ?? cursor;
+                          setValue(formatValue(day, hours, nextMinutes, true));
+                        }}
+                        className="h-11 w-full rounded-2xl border border-border bg-white px-3 text-sm font-semibold text-ink"
+                      >
+                        {Array.from({ length: 60 }, (_, minute) => (
+                          <option key={minute} value={minute}>
+                            {String(minute).padStart(2, "0")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => commit(selected?.date ?? cursor, hours, minutes, true)}
+                    className="flex h-11 w-full items-center justify-center rounded-full bg-violet text-sm font-semibold text-white hover:bg-violet-deep"
+                  >
+                    {tx(locale, "Valider", "Done")}
+                  </button>
+                </div>
+              ) : null}
             </div>,
             document.body,
           )
